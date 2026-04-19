@@ -24,8 +24,8 @@ class EgivemoAdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
-            ->id('law-sched-admin')
-            ->path('law-sched-admin')
+            ->id('ev-admin')
+            ->path('ev-admin')
             ->login()
             // ->registration()
             ->profile()

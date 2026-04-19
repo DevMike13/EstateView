@@ -2,9 +2,9 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Pages\Dashboard as BaseDashboard;
+use Filament\Pages\Page;
 
-class Dashboard extends BaseDashboard
+class Dashboard extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-home';
 

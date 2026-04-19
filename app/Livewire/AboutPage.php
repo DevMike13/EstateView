@@ -12,9 +12,6 @@ class AboutPage extends Component
 {
     public function render()
     {
-        $services = Services::where('is_active', 1)->get();
-        return view('livewire.about-page', [
-            'services' => $services
-        ]);
+        return view('livewire.about-page');
     }
 }

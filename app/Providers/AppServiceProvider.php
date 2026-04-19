@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $this->loadMigrationsFrom(database_path('migrations'));
+ 
+        if (is_dir(database_path('migrations/prpcmblmts'))) {
+            $this->loadMigrationsFrom(database_path('migrations/prpcmblmts'));
+        }
     }
 }

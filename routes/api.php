@@ -43,39 +43,43 @@ Route::get('/api/client/provinces', [ApiController::class, 'getProvinces'])->nam
 Route::get('/api/client/municipalities', [ApiController::class, 'getMunicipalities'])->name('api.municipalities.client');
 Route::get('/api/client/barangays', [ApiController::class, 'getBarangays'])->name('api.barangays.client');
 
-// CASE SUB TYPE
-Route::get('/case/types', [ApiController::class, 'getCaseTypes'])->name('api.case.types');
-Route::get('/api/case/sub-types', [ApiController::class, 'getCaseSubTypes'])->name('api.case.sub-types');
-
-// CASE STAGE 
-Route::get('/api/case/stage', [ApiController::class, 'getCaseStage'])->name('api.case.stage');
-
-// COURT TYPE
-Route::get('/court/types', [ApiController::class, 'getCourtTypes'])->name('api.court.types');
-Route::get('/courts', [ApiController::class, 'getCourts'])->name('api.courts');
-Route::get('/courts/{courtTypeId}', [ApiController::class, 'getCourtsByType'])->name('api.court.byType');
-
-// USER
-Route::get('/api/user/participant', [ApiController::class, 'getParticipant'])->name('api.user.participant');
-Route::post('/law-sched-admin/appointment', [AppointmentPage::class, 'createMeeting']);
-
-// SERVICES
-Route::get('/api/services/types', [ApiController::class, 'getServiceTypes'])->name('api.services.types');
-Route::get('/api/services', [ApiController::class, 'getServices'])->name('api.services');
-
-// ZOOM
-// Route::get('/zoom/authorize', [AppointmentPage::class, 'redirectToZoom'])->name('zoom.authorize');
-// Route::get('/zoom/callback', [AppointmentPage::class, 'handleZoomCallback']);
-// Route::post('/zoom-meetings', [AppointmentPage::class, 'createMeeting']);
-
 Route::get('/location/province/{regionCode}', [ApiController::class, 'getProvincesByRegion'])->name('location.province');
 Route::get('/location/municipalities/{provinceCode}', [ApiController::class, 'getMunicipalitiesByProvince'])->name('location.municipality');
 Route::get('/location/barangay/{municipalityCode}', [ApiController::class, 'getBarangaysByMunicipality'])->name('location.barangay');
 
-Route::get('/appointments', [AutomaticEmailController::class, 'index']);
-Route::get('/cases', [AutomaticEmailController::class, 'getCaseDetails']);
-Route::get('/zooms', [AutomaticEmailController::class, 'getZoomDetails']);
+// CASE SUB TYPE
+// Route::get('/case/types', [ApiController::class, 'getCaseTypes'])->name('api.case.types');
+// Route::get('/api/case/sub-types', [ApiController::class, 'getCaseSubTypes'])->name('api.case.sub-types');
 
-Route::post('/send-appointment-reminder', [AutomaticEmailController::class, 'sendAppointmentReminder']);
-Route::post('/send-case-reminder', [AutomaticEmailController::class, 'sendCaseReminder']);
-Route::post('/send-zoom-reminder', [AutomaticEmailController::class, 'sendZoomReminder']);
+// // CASE STAGE 
+// Route::get('/api/case/stage', [ApiController::class, 'getCaseStage'])->name('api.case.stage');
+
+// // COURT TYPE
+// Route::get('/court/types', [ApiController::class, 'getCourtTypes'])->name('api.court.types');
+// Route::get('/courts', [ApiController::class, 'getCourts'])->name('api.courts');
+// Route::get('/courts/{courtTypeId}', [ApiController::class, 'getCourtsByType'])->name('api.court.byType');
+
+// // USER
+// Route::get('/api/user/participant', [ApiController::class, 'getParticipant'])->name('api.user.participant');
+// Route::post('/law-sched-admin/appointment', [AppointmentPage::class, 'createMeeting']);
+
+// // SERVICES
+// Route::get('/api/services/types', [ApiController::class, 'getServiceTypes'])->name('api.services.types');
+// Route::get('/api/services', [ApiController::class, 'getServices'])->name('api.services');
+
+// // ZOOM
+// // Route::get('/zoom/authorize', [AppointmentPage::class, 'redirectToZoom'])->name('zoom.authorize');
+// // Route::get('/zoom/callback', [AppointmentPage::class, 'handleZoomCallback']);
+// // Route::post('/zoom-meetings', [AppointmentPage::class, 'createMeeting']);
+
+// Route::get('/location/province/{regionCode}', [ApiController::class, 'getProvincesByRegion'])->name('location.province');
+// Route::get('/location/municipalities/{provinceCode}', [ApiController::class, 'getMunicipalitiesByProvince'])->name('location.municipality');
+// Route::get('/location/barangay/{municipalityCode}', [ApiController::class, 'getBarangaysByMunicipality'])->name('location.barangay');
+
+// Route::get('/appointments', [AutomaticEmailController::class, 'index']);
+// Route::get('/cases', [AutomaticEmailController::class, 'getCaseDetails']);
+// Route::get('/zooms', [AutomaticEmailController::class, 'getZoomDetails']);
+
+// Route::post('/send-appointment-reminder', [AutomaticEmailController::class, 'sendAppointmentReminder']);
+// Route::post('/send-case-reminder', [AutomaticEmailController::class, 'sendCaseReminder']);
+// Route::post('/send-zoom-reminder', [AutomaticEmailController::class, 'sendZoomReminder']);

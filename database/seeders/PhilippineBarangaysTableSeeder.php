@@ -11,8 +11,15 @@ class PhilippineBarangaysTableSeeder extends Seeder
      */
     public function run()
     {
-        if(!\DB::table('philippine_barangays')->count()) {
-            \DB::unprepared(file_get_contents(__DIR__ . '/sql/philippine_barangays.sql'));
+        if (!\DB::table('philippine_barangays')->count()) {
+            $sql = file_get_contents(__DIR__ . '/sql/philippine_barangays.sql');
+            $queries = array_filter(array_map('trim', explode(";", $sql)));
+
+            foreach ($queries as $query) {
+                if (!empty($query)) {
+                    \DB::unprepared($query . ";");
+                }
+            }
         }
     }
 }

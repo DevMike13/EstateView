@@ -13,9 +13,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -50,28 +50,4 @@ class User extends Authenticatable implements FilamentUser
         'email_verified_at' => 'datetime',
     ];
 
-    public function info(): HasOne{
-        return $this->hasOne(UserInfo::class);
-    }
-
-    public function cases(): HasMany
-    {
-        return $this->hasMany(Cases::class, 'petitioner_id');
-    }
-
-    public function appointmentDetails(): BelongsTo
-    {
-        return $this->belongsTo(AppointmentDetails::class, 'client_id');
-    }
-
-    public function canAccessPanel(Panel $panel): bool
-    {
-        $allowedIds = [1, 2, 3];
-
-        return in_array($this->id, $allowedIds);
-    }
-
-    public function invoice(): HasMany{
-        return $this->hasMany(Invoice::class, 'client_id');
-    }
 }

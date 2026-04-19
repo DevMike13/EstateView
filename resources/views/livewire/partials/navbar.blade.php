@@ -1,8 +1,8 @@
-<header class="flex flex-wrap sm:justify-start sm:flex-nowrap w-full text-sm py-8 md:py-5 bg-transparent md:fixed z-10">
-    <nav class="max-w-[97rem] w-full mx-auto px-4 flex flex-wrap basis-full items-center justify-between" aria-label="Global">
-        <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse text-[#2b2b31] font-bold text-lg md:text-lg md:mx-auto md:mb-3 lg:text-3xl lg:mx-px">
-            <img src="{{ asset('images/sched-logo.png') }}" class="h-14" alt="Flowbite Logo">
-            LawScheduler
+<header class="flex flex-wrap sm:justify-start sm:flex-nowrap w-full text-sm py-8 md:py-5 bg-white md:fixed z-20">
+    <nav class="max-w-[97rem] w-full mx-auto px-14 flex flex-wrap basis-full items-center justify-between" aria-label="Global">
+        <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse text-[#2b2b31] font-bold text-lg md:text-lg md:mx-auto lg:text-3xl lg:mx-px">
+            <img src="{{ asset('images/estate-view-logo.png') }}" class="h-12" alt="">
+            {{-- EstateView --}}
         </a>
       @if (!request()->is('login') && !request()->is('register') && !request()->is('forgot') && !request()->is('reset*') && !request()->is('account-verification*'))
         <div class="sm:order-3 flex items-center gap-x-2">
@@ -12,12 +12,12 @@
           </button>
           <div class="hidden lg:block">
               @guest
-                  <a href="{{ route('login') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-transparent text-[#2b2b31] hover:bg-slate-300 disabled:opacity-50 disabled:pointer-events-none">
+                  <a href="{{ route('login') }}" class="py-3 px-8 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
                       Login
                   </a>
-                  <a href="{{ route('register') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
+                  {{-- <a href="{{ route('register') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
                       Sign up
-                  </a>
+                  </a> --}}
               @endguest
               @auth
                   <div class="flex items-center justify-center">
@@ -54,29 +54,11 @@
           </div>
         </div>
         
-        <div id="navbar-alignment" class="hs-collapse hidden overflow-hidden transition-all duration-300 basis-full grow sm:grow-0 sm:basis-auto sm:block sm:order-2">
-          <div class="flex flex-col gap-8 lg:gap-16 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5">
-            <a class="font-medium text-[#2b2b31] hover:text-[#d6b685] {{ request()->is('/') ? 'text-[#d6b685]' : 'text-[#2b2b31]'  }} text-base" href="/" aria-current="page">Home</a>
-            {{-- <div class="hs-dropdown [--strategy:static] sm:[--strategy:fixed] [--adaptive:none] ">
-              <button id="hs-mega-menu-basic-dr" type="button" class="flex items-center w-full text-[#2b2b31] hover:text-[#d6b685] font-medium dark:text-neutral-400 dark:hover:text-neutral-500 text-base">
-                Practice Areas
-                <svg class="ms-1 flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="hs-dropdown-menu transition-[opacity,margin] duration-[0.1ms] sm:duration-[150ms] hs-dropdown-open:opacity-100 opacity-0 sm:w-48 z-10 bg-white sm:shadow-md rounded-lg p-2 dark:bg-neutral-800 sm:dark:border dark:border-neutral-700 dark:divide-neutral-700 before:absolute top-full sm:border before:-top-5 before:start-0 before:w-full before:h-5 hidden">
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-[#2b2b31] hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300" href="#">
-                  Program
-                </a>
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-[#2b2b31] hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300" href="#">
-                  Queue
-                </a>
-                <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-[#2b2b31] hover:bg-gray-100 focus:ring-2 focus:ring-blue-500 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300" href="#">
-                  Report
-                </a>
-              </div>
-            </div> --}}
-            <a class="font-medium text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 text-base {{ request()->routeIs('user.services') ? 'text-[#d6b685]' : 'text-[#2b2b31]' }}" href="{{ route('user.services') }}">Services</a>
-            <a class="font-medium text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 text-base {{ request()->routeIs('user.about') ? 'text-[#d6b685]' : 'text-[#2b2b31]' }}" href="{{ route('user.about') }}">About Us</a>
-            <a class="font-medium text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 text-base {{ request()->routeIs('user.contact') ? 'text-[#d6b685]' : 'text-[#2b2b31]'}}" href="{{ route('user.contact') }}">Contact</a>
+        <div id="navbar-alignment" class="hs-collapse hidden overflow-hidden transition-all duration-300 basis-full grow sm:grow-0 sm:basis-auto sm:block sm:order-2 lg:ml-auto lg:mr-12">
+          <div class="flex flex-col gap-8 lg:gap-12 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5">
+            <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] {{ request()->is('/') ? 'text-black' : 'text-gray-400'  }}" href="/" aria-current="page">HOME</a>
+            <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.about') ? 'text-black' : 'text-gray-400' }}" href="{{ route('user.about') }}">ABOUT</a>
+            <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.contact') ? 'text-black' : 'text-gray-400'}}" href="{{ route('user.contact') }}">PROPERTIES</a>
 
             <div class="flex justify-center lg:hidden md:ml-10">
               {{-- <a href="{{ route('login') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-transparent text-[#2b2b31] hover:bg-slate-300 disabled:opacity-50 disabled:pointer-events-none">
@@ -86,12 +68,12 @@
                   Sign up
               </a> --}}
               @guest
-                  <a href="{{ route('login') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-transparent text-[#2b2b31] hover:bg-slate-300 disabled:opacity-50 disabled:pointer-events-none">
+                  <a href="{{ route('login') }}" class="py-3 px-8 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
                       Login
                   </a>
-                  <a href="{{ route('register') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
+                  {{-- <a href="{{ route('register') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
                       Sign up
-                  </a>
+                  </a> --}}
               @endguest
               @auth
                   <div class="flex items-center justify-center">

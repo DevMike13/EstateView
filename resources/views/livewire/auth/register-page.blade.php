@@ -1,14 +1,19 @@
-<div class="w-full h-full flex flex-row justify-center">
-    <div class="w-[90%] md:w-[50%] h-screen flex flex-col justify-center items-center gap-1 md:gap-0 mt-28 md:mt-0 md:pt-12">
-        <h1 class="md:text-3xl text-2xl font-medium text-center">Create your account</h1>
-        <p class="text-center">Sign up now and get an appointment.</p>
+<div class="w-full h-full flex flex-col justify-center">
+    <div class="flex justify-center items-center md:mt-10 mb-10">
+        <a href="/">
+            <img src="{{ asset('/images/estate-view-logo.png') }}" alt="" class="h-12">
+        </a>
+    </div>
+    <div class="w-[90%] md:w-[55%] h-auto flex flex-col justify-center items-center gap-1 md:gap-0 mt-28 md:mt-0 md:pt-12 md:pb-10 bg-white mx-auto rounded-2xl">
+        <h1 class="md:text-3xl text-2xl font-medium text-center">Create Account</h1>
+        <p class="text-center">Register as a new client</p>
         <div class="w-full flex flex-col justify-center items-center">
             <form wire:submit.prevent="register" class="w-full flex justify-center">
                 <div  class="w-full md:w-[90%]">
-                    <ul class="relative flex flex-row gap-x-2 mb-3 md:mb-2">
+                    <ul class="relative flex flex-row gap-x-2 mb-3 md:mb-10 mt-10">
                         <li class="flex items-center gap-x-2 shrink basis-0 flex-1 group">
                             <span class="min-w-7 min-h-7 group inline-flex items-center text-xs align-middle">
-                            <span class="size-7 flex justify-center items-center flex-shrink-0 font-medium text-gray-800 rounded-full {{ $currentStep == 1 || $isFinishedStepOne == true ? 'bg-blue-600 text-white' : 'text-gray-800'}}">
+                            <span class="size-7 flex justify-center items-center flex-shrink-0 font-medium text-gray-800 rounded-full {{ $currentStep == 1 || $isFinishedStepOne == true ? 'bg-[#101727] text-white' : 'text-gray-800'}}">
                                 <span class="{{ $isFinishedStepOne == true ? 'hidden' : ''}}">1</span>
                                 <svg class="flex-shrink-0 size-3 {{ $isFinishedStepOne == true ? 'block' : 'hidden'}}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
@@ -23,7 +28,7 @@
                     
                         <li class="flex items-center gap-x-2 shrink basis-0 flex-1 group">
                             <span class="min-w-7 min-h-7 group inline-flex items-center text-xs align-middle">
-                            <span class="size-7 flex justify-center items-center flex-shrink-0 font-medium text-gray-800 rounded-full {{ $currentStep == 2 || $isFinishedStepOne == true ? 'bg-blue-600 text-white' : 'text-gray-800'}}">
+                            <span class="size-7 flex justify-center items-center flex-shrink-0 font-medium text-gray-800 rounded-full {{ $currentStep == 2 || $isFinishedStepOne == true ? 'bg-[#101727] text-white' : 'text-gray-800'}}">
                                 <span class="hs-stepper-success:hidden hs-stepper-completed:hidden">2</span>
                                 <svg class="hidden flex-shrink-0 size-3 hs-stepper-success:block" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
@@ -38,7 +43,7 @@
 
                         <li class="flex items-center gap-x-2 shrink basis-0 flex-1 group">
                             <span class="min-w-7 min-h-7 group inline-flex items-center text-xs align-middle">
-                            <span class="size-7 flex justify-center items-center flex-shrink-0 font-medium text-gray-800 rounded-full {{ $currentStep == 2 || $isFinishedStepOne == true ? 'bg-blue-600 text-white' : 'text-gray-800'}}">
+                            <span class="size-7 flex justify-center items-center flex-shrink-0 font-medium text-gray-800 rounded-full {{ $currentStep == 3 || $isFinishedStepTwo == true ? 'bg-[#101727] text-white' : 'text-gray-800'}}">
                                 <span class="hs-stepper-success:hidden hs-stepper-completed:hidden">3</span>
                                 <svg class="hidden flex-shrink-0 size-3 hs-stepper-success:block" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
@@ -72,11 +77,21 @@
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="w-full flex flex-col md:flex-row gap-2">
                                     <div class="w-full space-y-3">
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
                                                 <x-input label="Last name" placeholder="Ex: Dela Cruz" class="py-3 -mt-1" wire:model.blur="lastName" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="w-full space-y-3">
+                                        <div>
+                                            <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
+                                            <div class="relative">
+                                                <x-input label="Suffix" placeholder="Ex: Jr., Sr., III" class="py-3 -mt-1" wire:model.blur="suffix" />
                                             </div>
                                         </div>
                                     </div>
@@ -242,7 +257,7 @@
                     @elseif($currentStep == 3)
                     
                     @endif
-                    <div class="flex">
+                    <div class="flex pb-5">
                         @if ($currentStep > 1)
                             <button wire:click="backStep" type="button" class="justify-start mt-4 py-2 px-3 inline-flex items-center gap-x-1 text-sm font-semibold rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none"
                             {{  $currentStep == 1 ? 'disabled="disabled"' : '' }}
@@ -255,7 +270,7 @@
                         @endif
 
                         @if ($currentStep < 2)
-                            <button wire:click="nextStep" type="button" class="ml-auto mt-4 py-2 px-3 inline-flex items-center gap-x-1 text-base font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+                            <button wire:click="nextStep" type="button" class="ml-auto mt-4 py-2 px-3 inline-flex items-center gap-x-1 text-base font-semibold rounded-lg border border-transparent bg-[#101727] text-white hover:bg-[#101727] disabled:opacity-50 disabled:pointer-events-none"
                             {{ !$firstName || !$middleName || !$lastName  ? 'disabled="disabled"' : '' }}
                             >
                                 Next
@@ -264,7 +279,7 @@
                                 </svg>
                             </button>
                         @else
-                            <button type="submit" class="ml-auto mt-4 py-2 px-3 inline-flex items-center gap-x-1 text-sm font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+                            <button type="submit" class="ml-auto mt-4 py-2 px-3 inline-flex items-center gap-x-1 text-sm font-semibold rounded-lg border border-transparent bg-[#101727] text-white hover:bg-[#101727] disabled:opacity-50 disabled:pointer-events-none"
                             >
                                 Finish
                                 <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -278,26 +293,35 @@
                 </div>
             </form>
         </div>
-        <div class="flex flex-col mt-2 -mb-3 md:mb-2 lg:-mt-11 pb-5">
-            <div class="flex gap-1">
-                <p>Already have an account?</p>
-                <a href="{{ route('login')}}" class="font-bold">Sign in</a>
-            </div>
-            <img src="{{ asset('images/sign-2.png')}}" alt="" class="w-20 self-end pl-6">
-        </div>
         
         <div class="flex flex-col w-[90%] md:w-[80%] md:mt-0">
             <hr>
-            <div class="flex my-3 text-justify">
-                <p>By signing in, creating an account, or checking out as a Guest you are agreeing to our <a href="{{ route('terms&condition')}}" class="font-base underline text-blue-500">Terms and Conditions.</a></p>
+            <div class="flex items-start gap-2 my-3">
+                <input type="checkbox" id="terms">
+
+                <label for="terms" class="text-sm text-gray-500">
+                    I agree to the 
+                    <a href="#" class="underline text-[#101727]">Terms and Conditions</a> 
+                    and 
+                    <a href="#" class="underline text-[#101727]">Privacy Policy</a>
+                </label>
+            </div>
+        </div>
+
+        <div class="flex flex-col text-sm">
+            <div class="flex justify-center gap-1 pt-3 px-8">
+                <p class="text-gray-500">Already have an account?</p>
+                <a href="{{ route('login') }}">Sign in here</a>
             </div>
         </div>
     </div>
-    <div class="w-[50%] h-screen rounded-l-[8%] overflow-hidden relative hidden md:block">
-        <img src="{{ asset('images/building2.jpg') }}" alt="" class="object-cover object-right-bottom w-auto h-full">
-        <a class="flex items-center justify-center text-white font-medium text-5xl absolute inset-0 m-auto">
-            <img src="{{ asset('images/logo-white.png') }}" alt="">
-            LawScheduler
+    <div class="mx-auto my-7">
+        <a href="/" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-transparent text-black disabled:opacity-50 disabled:pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15.75 3 12m0 0 3.75-3.75M3 12h18" />
+            </svg>
+
+            BACK TO HOME
         </a>
     </div>
 </div>

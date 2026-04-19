@@ -4,12 +4,12 @@
     <wireui:scripts />
     @vite(['resources/css/custom.css', 'resources/css/app.css', 'resources/js/app.js'])
 
-    <livewire:fil-pages.dashboard />
-    
-    <x-dialog z-index="z-50" blur="md" align="center" />
+    <livewire:fil-pages.map-management-page />
+
     <script>
         window.addEventListener('reload', event => {
             window.location.reload();
         })
+        
     </script>
 </x-filament-panels::page>

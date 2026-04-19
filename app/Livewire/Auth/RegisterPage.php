@@ -27,6 +27,7 @@ class RegisterPage extends Component
     public $firstName;
     public $lastName;
     public $middleName;
+    public $suffix;
     public $phone;
     public $email;
 

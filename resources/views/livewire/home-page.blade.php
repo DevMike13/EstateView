@@ -1,48 +1,151 @@
-<div class="w-full h-screen px-10 md:px-24">
-    {{-- HERO SECTION --}}
-    <div class="flex flex-col h-full md:flex md:flex-row ">
-        <div class="flex flex-col justify-center gap-5 w-full mt-5 md:mt-16">
-            <p class="font-medium text-sm">-GETTING IT DONE.</p>
-            <p class="font-serif text-4xl font-semibold md:text-5xl">Trusted legal solutions for the real world.</p>
-            <p class="md:pr-20">
-                Organize your tasks, lists and reminders in one app, it will help you a lot.
-            </p>
-            <div class="flex flex-col items-center gap-5 mt-5 md:flex md:flex-row">
-                <a href="{{ route('client.booking') }}" class="py-3 px-6 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#d1ab70] text-white hover:bg-[#d6b685] disabled:opacity-50 hover:cursor-pointer">
-                    Book Appointment
-                </a>
-                <div class="flex justify-center items-center gap-2">
+<div class="w-full h-auto">
+    <div class="w-full h-screen bg-cover bg-center bg-no-repeat relative" style="background-image: url('{{ asset('images/home-bg.jpg') }}');">
+        <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent"></div>
+        
+        <div class="max-w-[97rem] w-full relative z-10 h-full px-10">
+            <div class="w-fit h-full flex flex-col justify-center text-white">
+                <div class="flex items-center gap-2 mb-10">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 3.75v4.5m0-4.5h-4.5m4.5 0-6 6m3 12c-8.284 0-15-6.716-15-15V4.5A2.25 2.25 0 0 1 4.5 2.25h1.372c.516 0 .966.351 1.091.852l1.106 4.423c.11.44-.054.902-.417 1.173l-1.293.97a1.062 1.062 0 0 0-.38 1.21 12.035 12.035 0 0 0 7.143 7.143c.441.162.928-.004 1.21-.38l.97-1.293a1.125 1.125 0 0 1 1.173-.417l4.423 1.106c.5.125.852.575.852 1.091V19.5a2.25 2.25 0 0 1-2.25 2.25h-2.25Z" />
-                    </svg>    
-                    <div class="">
-                        <p class="text-sm font-normal">Or call us at</p>
-                        <p class="font-medium">0123 567 8901</p>
-                    </div>                  
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                    </svg>
+                    <p class="uppercase">Manhattan Residences Candelaria</p>
                 </div>
-            </div>   
-        </div>  
-        <div class="w-full relative mt-24 md:mb-14">
-            <div class="w-full h-full ">
-                <img src="{{ asset('images/justice.jpg')}} " alt="" class="w-full h-full object-contain object-center hidden md:block">
-                <div class="absolute inset-0 bg-gradient-to-r from-[#f1f4f6] via-transparent to-transparent"></div>
-            </div> 
-           
-            {{-- <div class="w-48 h-36 md:w-72 md:h-44 flex flex-col justify-center items-center gap-1 md:gap-2 absolute -right-5 bottom-20 bg-white shadow-2xl opacity-95 md:rounded-md ">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#d1ab70" class="size-10">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-                </svg>
-                <div class="flex justify-center items-center">
-                    <span class="text-2xl md:text-5xl font-semibold">10</span>
-                    <span class="text-xl md:text-3xl font-extralight">+</span>
+                <h2 class="text-6xl mb-4">Discover Your</h2>
+                <h2 class="font-semibold text-6xl mb-4">Dream Home</h2>
+                <p class="mb-4">Experience refined living in our thoughtfully designed residences</p>
+                <div class="flex items-center gap-3 mt-10">
+                    <a href="#" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-white text-black disabled:opacity-50 disabled:pointer-events-none">
+                        VIEW PROPERTIES
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                        </svg>
+                    </a>
+                    <a href="#"
+                        class="py-4 px-10 inline-flex items-center gap-x-2 text-sm text-white
+                            bg-white/10 backdrop-blur-md border border-white/20
+                            hover:bg-white/20 transition">
+                        BOOK A VISIT
+                    </a>
                 </div>
-                <p class="text-center text-xs px-5 md:text-base">
-                    Years of experience in this field.
-                </p>
-            </div>   --}}
+            </div>
         </div>
     </div>
-    
-    {{-- SERVICES SECTION --}}
-    
+
+    <div class="w-full h-screen bg-white">
+        <div class="max-w-[97rem] w-full h-full px-10 mx-auto">
+            <div class="w-full h-full flex flex-col items-center py-20">
+                <h1 class="text-5xl font-light mb-4 text-center">Featured Properties</h1>
+                <p>Explore our collection of exceptional homes</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full h-auto bg-[#f9fafc]">
+        <div class="max-w-[97rem] w-full h-full px-10 mx-auto">
+            <div class="w-full h-full flex flex-col-reverse lg:flex-row items-center py-20">
+                <div class="w-full h-full flex flex-col justify-center">
+                    <h4 class="font-light text-4xl">Why Choose</h4>
+                    <h4 class="font-light text-4xl">EstateView</h4>
+
+                    <p class="font-light mt-10">We're committed to helping you find the perfect home that matches your lifestyle and aspirations. Our properties offer exceptional value and quality.</p>
+
+                    <div class="flex items-center gap-3 mb-6 mt-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+                        </svg>
+
+                        <div>
+                            <h5 class="font-semibold text-xl">Premium Properties</h5>
+                            <p class="text-sm font-light">Choose from our exclusive house models and premium lots</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 2.994v2.25m10.5-2.25v2.25m-14.252 13.5V7.491a2.25 2.25 0 0 1 2.25-2.25h13.5a2.25 2.25 0 0 1 2.25 2.25v11.251m-18 0a2.25 2.25 0 0 0 2.25 2.25h13.5a2.25 2.25 0 0 0 2.25-2.25m-18 0v-7.5a2.25 2.25 0 0 1 2.25-2.25h13.5a2.25 2.25 0 0 1 2.25 2.25v7.5m-6.75-6h2.25m-9 2.25h4.5m.002-2.25h.005v.006H12v-.006Zm-.001 4.5h.006v.006h-.006v-.005Zm-2.25.001h.005v.006H9.75v-.006Zm-2.25 0h.005v.005h-.006v-.005Zm6.75-2.247h.005v.005h-.005v-.005Zm0 2.247h.006v.006h-.006v-.006Zm2.25-2.248h.006V15H16.5v-.005Z" />
+                        </svg>
+
+
+                        <div>
+                            <h5 class="font-semibold text-xl">Easy Scheduling</h5>
+                            <p class="text-sm font-light">Book property visits and consultations online</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                        </svg>
+
+                        <div>
+                            <h5 class="font-semibold text-xl">Secure Process</h5>
+                            <p class="text-sm font-light">Safe and transparent reservation and payment system</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full h-full mb-5 lg:mb-0">
+                    <img src="{{ asset('images/right-banner.jpg') }}" 
+                        class="w-[80%] h-[300px] lg:h-[750px] object-cover mx-auto" 
+                        alt="">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full h-screen bg-white">
+        <div class="max-w-[97rem] w-full h-full px-10 mx-auto">
+            <div class="w-full h-full flex flex-col items-center py-20">
+                <p class="uppercase bg-[#111727] text-white text-xs font-light px-4 py-2 mb-5">Limited Offer</p>
+                <h1 class="text-5xl font-light mb-6 text-center">Early Buyer Benefits</h1>
+                <p class="font-light w-[90%] lg:w-[50%] text-center mb-6">Take advantage of our exclusive offers for Manhattan Residences with special discounts and flexible payment terms.</p>
+                
+                <div class="w-full lg:w-[60%] flex gap-3 mb-14">
+                    <div class="flex flex-col justify-center items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-12">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+
+                        <p class="text-center">Low down payment starting at 20%</p>
+                    </div>
+
+                    <div class="flex flex-col justify-center items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-12">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+
+                        <p class="text-center">Flexible bank financing options</p>
+                    </div>
+
+                    <div class="flex flex-col justify-center items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-12">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+
+                        <p class="text-center">Premium location with amenities</p>
+                    </div>
+                </div>
+
+                <a href="#" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-[#111727] text-white disabled:opacity-50 disabled:pointer-events-none">
+                    RESERVE NOW
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full h-fit bg-[#111727]">
+        <div class="max-w-[97rem] w-full h-full px-10 mx-auto">
+            <div class="w-full h-full flex flex-col items-center py-20">
+                <h1 class="text-5xl font-light mb-6 text-white text-center">Begin Your Journey</h1>
+                <p class="font-light w-full lg:w-[50%] text-center mb-6 text-white">Join us in creating a home you'll love for years to come</p>
+                
+                <a href="#" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-white text-black disabled:opacity-50 disabled:pointer-events-none">
+                    GET STARTED
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
 </div>

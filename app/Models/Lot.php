@@ -13,7 +13,9 @@ class Lot extends Model
         'map_id',
         'name',
         'coords',
-        'status'
+        'status',
+        'type',
+        'image',
     ];
 
     public function map()

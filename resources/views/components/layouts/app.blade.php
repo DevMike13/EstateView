@@ -19,7 +19,7 @@
         </main>
         @livewire('partials.footer')
         @livewireScripts
-        
+        @filepondScripts
         <script src="{{ asset('lodash-min.js') }}"></script>
         <script src="{{ asset('dropzone-min.js') }}"></script>
           

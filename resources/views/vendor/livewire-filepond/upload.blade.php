@@ -1,0 +1,137 @@
+@php
+$isCustomPlaceholder = isset($placeholder);
+@endphp
+
+@props([
+    'multiple' => false,
+    'required' => false,
+    'disabled' => false,
+    'maxFiles' => null,
+    'placeholder' => __('Drag & Drop your files or <span class="filepond--label-action"> Browse </span>'),
+    'maxfilesmsg' => __('You can upload a maximum of :max files.'),
+])
+
+@php
+if (! $wireModelAttribute = $attributes->whereStartsWith('wire:model')->first()) {
+    throw new Exception("You must wire:model to the filepond input.");
+}
+
+$pondProperties = $attributes->except([
+    'class',
+    'placeholder',
+    'required',
+    'disabled',
+    'multiple',
+    'wire:model',
+]);
+
+if ($maxFiles !== null) {
+    $pondProperties['max-files'] = $maxFiles;
+}
+
+// convert keys from kebab-case to camelCase
+$pondProperties = collect($pondProperties)
+    ->mapWithKeys(fn ($value, $key) => [Illuminate\Support\Str::camel($key) => $value])
+    ->toArray();
+
+$pondLocalizations = __('livewire-filepond::filepond');
+@endphp
+
+<div
+    class="{{ $attributes->get('class') }}"
+    wire:ignore
+    x-cloak
+    x-data="{
+        model: @entangle($wireModelAttribute),
+        isMultiple: @js($multiple),
+        current: undefined,
+        files: [],
+        async loadModel() {
+            if (! this.model) {
+              return;
+            }
+
+            if (this.isMultiple) {
+              await Promise.all(Object.values(this.model).map(async (picture) => this.files.push(await URLtoFile(picture))))
+              return;
+            }
+
+            try {
+                this.files.push(await URLtoFile(this.model))
+            } catch (e) {
+                console.error(e)
+            }
+        }
+    }"
+    x-init="async () => {
+      await loadModel();
+
+      const pond = LivewireFilePond.create($refs.input);
+
+      pond.setOptions({
+          allowMultiple: isMultiple,
+          server: {
+              process: async (fieldName, file, metadata, load, error, progress) => {
+                  $wire.dispatchSelf('filepond-upload-started', '{{ $wireModelAttribute }}');
+                  await @this.upload('{{ $wireModelAttribute }}', file, async (response) => {
+                    let validationResult  = await @this.call('validateUploadedFile', response);
+                        // Check server validation result
+                        if (validationResult === true) {
+                            // File is valid, dispatch the upload-finished event
+                            load(response);
+                            $wire.dispatchSelf('filepond-upload-finished', { '{{ $wireModelAttribute }}': response });
+                        } else {
+                            // Throw error after validating server side
+                            error('Filepond Api Ignores This Message');
+                            $wire.dispatchSelf('filepond-upload-reset', '{{ $wireModelAttribute }}');
+                        }
+                  }, error, (event) => {
+                        progress(event.detail.progress, event.detail.progress, 100);
+                });
+              },
+              revert: async (filename, load) => {
+                  await @this.revert('{{ $wireModelAttribute }}', filename, load);
+                  $wire.dispatchSelf('filepond-upload-reverted', {'attribute' : '{{ $wireModelAttribute }}'});
+              },
+              remove: async (file, load) => {
+                  await @this.remove('{{ $wireModelAttribute }}', file.name);
+                  load();
+                  $wire.dispatchSelf('filepond-upload-file-removed', {'attribute' : '{{ $wireModelAttribute }}'});
+              },
+          },
+          required: @js($required),
+          disabled: @js($disabled),
+      });
+
+      pond.setOptions(@js($pondLocalizations));
+
+      pond.setOptions(@js($pondProperties));
+
+      @if($isCustomPlaceholder)
+      pond.setOptions({ labelIdle: @js($placeholder) });
+      @endif
+
+      pond.addFiles(files)
+      pond.on('addfile', (error, file) => {
+          if (error) console.log(error);
+      });
+
+      pond.on('warning', (error) => {
+          if (error?.body === 'Max files' && {{ $maxFiles ? 'true' : 'false' }}) {
+              const message = @js($maxfilesmsg).replace(':max', {{ $maxFiles ?? 0 }});
+              $wire.call('setMaxFilesError', message);
+          }
+      });
+
+      // All files have been processed and uploaded, dispatch the upload-completed event
+      pond.on('processfiles', () => {
+          $wire.dispatchSelf('filepond-upload-completed', {'attribute' : '{{ $wireModelAttribute }}'});
+      });
+
+      $wire.on('filepond-reset-{{ $wireModelAttribute }}', () => {
+          pond.removeFiles();
+      });
+    }"
+>
+    <input type="file" x-ref="input">
+</div>

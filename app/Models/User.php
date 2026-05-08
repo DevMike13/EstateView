@@ -29,6 +29,7 @@ class User extends Authenticatable
         'password',
         'otp', 
         'is_verified',
+        'profile_picture'
     ];
 
     /**
@@ -50,4 +51,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
+    public function info(): HasOne{
+        return $this->hasOne(UserInfo::class);
+    }
 }

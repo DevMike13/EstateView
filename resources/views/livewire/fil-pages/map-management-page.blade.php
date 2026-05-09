@@ -1,267 +1,592 @@
 <div>
-    <div class="mb-5 flex justify-end">
-        <x-button label="New Lot Area" x-on:click="$openModal('newLot')" primary />
+
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        @foreach($lotCounts as $type => $count)
+
+            @php
+                $color = $typeColors[$type] ?? '#ccc';
+            @endphp
+
+            <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
+                
+                <div class="flex gap-5 items-center">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style="background-color: {{ $color }}20; color: {{ $color }}">
+
+                        {{-- House & Lot --}}
+                        @if($type === 'House & Lot')
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                            </svg>
+
+                        {{-- Model House --}}
+                        @elseif($type === 'Model House')
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" />
+                            </svg>
+
+                        {{-- Lot Only --}}
+                        @elseif($type === 'Lot Only')
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                            </svg>
+
+                        {{-- Default Icon --}}
+                        @else
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v18h18" />
+                            </svg>
+                        @endif
+                    </div>
+
+                    <h2 class="text-3xl font-bold text-gray-900">
+                        {{ $count }}
+                    </h2>
+                </div>
+
+                <p class="text-xs text-gray-500 mt-1">
+                    {{ $type }}
+                </p>
+            </div>
+
+        @endforeach
     </div>
-    
-    <div class="relative">
-        @if($map)
 
-            <img 
-                id="map-image"
-                src="{{ asset($map->image_path) }}"
-                usemap="#estate-map"
-                class="w-full"
-            />
+    {{-- MODEL HOUSE --}}
+    <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100 mt-10">
+        <div class="w-full h-auto flex justify-between items-center mb-5">
+            <div>
+                <h2 class="text-lg font-semibold">House Models</h2>
+                <p class="text-sm text-gray-500">Available house designs for clients</p>
+            </div>
+            <div class="flex justify-end">
+                <x-button icon="plus" primary label="Add Model" x-on:click="$openModal('newModelHouse')" />
+            </div>
+        </div>
 
-            <canvas 
-                id="lot-overlay"
-                class="absolute top-0 left-0 pointer-events-none"
-                {{-- wire:ignore --}}
-            ></canvas>
-            <div
-                id="lot-tooltip"
-                class="absolute hidden z-50 bg-white shadow-2xl overflow-visible rounded-xl border w-80"
-            >
-                <div class="relative overflow-visible">
-                    <div id="tooltip-arrow"></div>
-                    {{-- <img
-                        id="tooltip-image"
-                        class="w-full h-40 object-cover rounded-t-xl"
-                    /> --}}
-                    <div
-                        id="tooltip-panorama"
-                        class="w-full h-40 rounded-t-xl overflow-hidden"
-                    ></div>
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4">
+            @foreach($houseModels as $model)
+                <div class="flex flex-col bg-card border border-card-line shadow-2xs rounded-xl">
+                    <img 
+                        class="w-full h-48 object-cover rounded-t-xl" 
+                        src="{{ $model->image 
+                        ? asset('storage/' . $model->image) 
+                        : 'https://images.unsplash.com/photo-1680868543815-b8666dba60f7' }}" 
+                        alt="{{ $model->model_name }}"
+                    >
+                    <div class="p-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-semibold text-foreground">
+                                {{ $model->model_name }}
+                            </h3>
 
-                    <div class="p-3">
-                        <div class="text-lg font-bold" id="tooltip-name"></div>
-
-                        <div class="text-sm text-gray-500 mt-1" id="tooltip-type"></div>
-
-                        <div class="text-gray-400 mt-2" id="tooltip-coords" style="font-size: 8px;"></div>
-
-                        <div class="mt-3 flex justify-end gap-2">
-                            <button
-                                id="tooltip-edit-btn"
-                                class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                                type="button"
-                            >
-                                Edit
-                            </button>
-                            <button
-                                id="tooltip-edit-btn"
-                                class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                                type="button"
-                            >
-                                Delete
-                            </button>
+                            <div>
+                                <x-button.circle xs onclick="$openModal('editModelHouse')" wire:click="getSelectedModelHouse({{$model->id}})" icon="pencil" />
+                                <x-button.circle 
+                                    xs 
+                                    wire:click="deleteModelHouseConfirmation({{$model->id}}, '{{$model->model_name}}')" 
+                                    negative icon="trash" 
+                                />
+                            </div>
                         </div>
+                       
+                        <p class="my-2 text-sm text-muted-foreground-1">
+                            {{ $model->floor_area }} sqm
+                        </p>
+
+                        <div class="flex justify-start items-center gap-3">
+                            <div class="flex items-center gap-1 text-sm text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" 
+                                    viewBox="0 0 512 512" 
+                                    class="w-4 h-4 text-gray-500">
+
+                                    <path d="M384 240H96V136a40.12 40.12 0 0140-40h240a40.12 40.12 0 0140 40v104zM48 416V304a64.19 64.19 0 0164-64h288a64.19 64.19 0 0164 64v112" 
+                                        fill="none" stroke="currentColor" stroke-linecap="round" 
+                                        stroke-linejoin="round" stroke-width="32"/>
+
+                                    <path d="M48 416v-8a24.07 24.07 0 0124-24h368a24.07 24.07 0 0124 24v8M112 240v-16a32.09 32.09 0 0132-32h80a32.09 32.09 0 0132 32v16M256 240v-16a32.09 32.09 0 0132-32h80a32.09 32.09 0 0132 32v16" 
+                                        fill="none" stroke="currentColor" stroke-linecap="round" 
+                                        stroke-linejoin="round" stroke-width="32"/>
+                                </svg>
+
+                                <span class="text-xs">{{ $model->bedrooms }} Bedrooms</span>
+                            </div>
+                            •
+                            <div class="flex items-center gap-2 text-sm text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" 
+                                    viewBox="0 0 512 512" 
+                                    class="w-4 h-4 text-gray-500">
+
+                                    <path d="M96 192V96a32 32 0 0132-32h256a32 32 0 0132 32v96" 
+                                        fill="none" stroke="currentColor" stroke-linecap="round" 
+                                        stroke-linejoin="round" stroke-width="32"/>
+
+                                    <path d="M64 224h384v64a96 96 0 01-96 96H160a96 96 0 01-96-96v-64z" 
+                                        fill="none" stroke="currentColor" stroke-linejoin="round" 
+                                        stroke-width="32"/>
+
+                                    <path d="M112 384v48M400 384v48M160 224v-32M352 224v-32" 
+                                        fill="none" stroke="currentColor" stroke-linecap="round" 
+                                        stroke-linejoin="round" stroke-width="32"/>
+
+                                </svg>
+
+                                <span class="text-xs">{{ $model->bathrooms }} Bathrooms</span>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-5">
+
+                        <p class="text-muted-foreground-1 font-semibold text-lg">
+                            ₱{{ number_format($model->price, 2) }}
+                        </p>
+                        
                     </div>
                 </div>
-            </div>
-            <map name="estate-map">
-                @foreach($lots as $lot)
-                    <area
-                        shape="poly"
-                        coords="{{ $lot->coords }}"
-                        href="#"
-                        {{-- wire:click.prevent="openLot({{ $lot->id }})" --}}
-                        data-type="{{ $lot->type }}"
-                        data-name="{{ $lot->name }}"
-                        data-image="{{ $lot->image ? asset('storage/' . $lot->image) : '' }}"
-                        data-coords="{{ $lot->coords }}"
-                    />
-                @endforeach
-            </map>
+            @endforeach
+        </div>
 
-        @endif
-    </div>
+        {{-- CREATE MODEL HOUSE --}}
+        <x-modal blur name="newModelHouse" persistent align="center" max-width="xl">
+            <form wire:submit.prevent="createModelHouse" class="w-full">
+                <x-card title="Create New Model House">
+                    
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-2">
+                            360° Virtual Tour Image
+                        </label>
 
-    <x-modal blur name="newLot" persistent align="center" max-width="6xl">
-        <form wire:submit.prevent="createLotArea" class="w-full" x-data="lotDrawer()" x-init="init()">
-            <x-card title="Create New Lot Area">
-                <div class="mt-3 relative">
-                    @if($map)
-                        <img 
-                            id="modal-map-image"
-                            src="{{ asset($map->image_path) }}"
-                            class="w-full cursor-crosshair"
-                            @click="addPoint($event)"
-                            x-ref="img"
+                        <x-filepond::upload
+                            wire:model="modelHouseImage"
+                            :accepted-file-types="['image/png', 'image/jpeg', 'image/webp']"
+                            label="Click to upload 360° image"
                         />
-                        <canvas 
-                            id="modal-lot-overlay"
-                            class="absolute top-0 left-0 pointer-events-none"
-                            x-ref="canvas"
-                        ></canvas>
-                    @endif
-                </div>
+                    </div>
 
-                <!-- Reset Button -->
-                <div class="mt-3 flex gap-x-2">
-                    <x-button primary label="Reset Points" @click="resetPoints()" />
-                </div>
+                    <div class="mt-3">
+                        <x-input
+                            label="Virtual Tour URL (Optional)"
+                            placeholder="Ex: https://example.com/virtual-tour"
+                            wire:model.defer="virtualTourUrl"
+                        />
+                    </div>
 
-                <div class="mt-3">
-                    <x-input
-                        label="Lot Name"
-                        placeholder="Ex: Block 1, Lot 43"
-                        wire:model.defer="lotName"
-                    />
-                </div>
+                    <div class="mt-3">
+                        <x-input
+                            label="Model Name"
+                            placeholder="E.g, Naomi"
+                            wire:model.defer="modelName"
+                        />
+                    </div>
 
-                <div class="mt-3">
-                    <x-native-select
-                        label="Lot Type"
-                        wire:model="lotType"
-                    >
-                        <option value="">Select Type</option>
-                        <option value="Playground & Community Amenities">Playground & Community Amenities</option>
-                        <option value="Model House">Model House</option>
-                        <option value="Lot Only">Lot Only</option>
-                        <option value="House & Lot">House & Lot</option>
-                        <option value="Sold">Sold</option>
-                    </x-native-select>
-                </div>
+                    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <x-inputs.number 
+                            label="Bedrooms" 
+                            min="0"
+                            wire:model.defer="bedroomsCount" 
+                        />
 
+                        <x-inputs.number 
+                            label="Bathrooms" 
+                            min="0"
+                            wire:model.defer="bathroomsCount" 
+                        />
+                    </div>
+
+                    <div class="mt-3">
+                        <x-input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            class="pr-28"
+                            label="Floor Area"
+                            placeholder="100"
+                            suffix="sqm"
+                            wire:model.defer="floorArea"
+                        />
+                    </div>
+
+                    <div class="mt-3">
+                        <x-inputs.currency
+                            label="Price"
+                            placeholder="Enter price"
+                            icon="banknotes"
+                            currency="PHP"
+                            thousands=","
+                            decimal="."
+                            precision="2"
+                            wire:model.defer="price"
+                        />
+                    </div>
+
+                    <x-slot name="footer" class="flex justify-end gap-x-4">
+                        <div class="flex justify-end gap-x-4">
+                            <x-button flat label="Cancel" @click="closeModal()" x-on:click="close"/>
+                            <x-button primary label="Save" type="submit" />
+                        </div>
+                    </x-slot>
+
+                </x-card>
+            </form>
+        </x-modal>
+
+
+        {{-- EDIT MODEL HOUSE --}}
+        <x-modal blur name="editModelHouse" persistent align="center" max-width="xl">
+            <x-card title="Edit Model House">
                 <div class="mt-4">
                     <label class="block text-sm font-medium mb-2">
-                        Lot Image
+                        360° Virtual Tour Image
                     </label>
 
                     <x-filepond::upload
-                        wire:model="lotImage"
-                        :accepted-file-types="['image/png', 'image/jpeg', 'image/webp']"
-                        label="Upload your 360 View"
+                        wire:model="editModelHouseImage"
+                        allowImagePreview="true"
+                        imagePreviewMaxHeight="200"
+                        allowFileTypeValidation="true"
+                        acceptedFileTypes="image/jpeg, image/png, image/jpg"
+                    />
+                    
+                </div>
+
+                <div class="mt-3">
+                    <x-input
+                        label="Virtual Tour URL (Optional)"
+                        placeholder="Ex: https://example.com/virtual-tour"
+                        wire:model.defer="editVirtualTourUrl"
                     />
                 </div>
 
                 <div class="mt-3">
                     <x-input
-                        label="Lot Coordinates"
-                        placeholder="Ex: 74,238,239,38"
-                        x-model="coordsString"
-                        readonly
+                        label="Model Name"
+                        placeholder="E.g, Naomi"
+                        wire:model.defer="editModelName"
+                    />
+                </div>
+
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <x-inputs.number 
+                        label="Bedrooms" 
+                        min="0"
+                        wire:model="editBedroomsCount" 
+                    />
+
+                    <x-inputs.number 
+                        label="Bathrooms" 
+                        min="0"
+                        wire:model="editBathroomsCount" 
+                    />
+                </div>
+
+                <div class="mt-3">
+                    <x-input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        class="pr-28"
+                        label="Floor Area"
+                        placeholder="100"
+                        suffix="sqm"
+                        wire:model.defer="editFloorArea"
+                    />
+                </div>
+
+                <div class="mt-3">
+                    <x-inputs.currency
+                        label="Price"
+                        placeholder="Enter price"
+                        icon="banknotes"
+                        currency="PHP"
+                        thousands=","
+                        decimal="."
+                        precision="2"
+                        wire:model.defer="editPrice"
                     />
                 </div>
 
                 <x-slot name="footer" class="flex justify-end gap-x-4">
-                    <div class="flex justify-end gap-x-4">
-                        <x-button flat label="Cancel" @click="closeModal()" x-on:click="close"/>
-                        <x-button primary label="Save" type="submit" @click="$wire.lotCoordinates = coordsString" />
-                    </div>
+                    <x-button flat label="Cancel" @click="closeModal()" x-on:click="close"/>
+                    <x-button primary label="Update" wire:click="editModelHouseConfirmation('{{$editModelName}}')" />
                 </x-slot>
 
             </x-card>
-        </form>
+        </x-modal>
+    </div>
 
-        <script>
-            document.addEventListener("livewire:init", () => {
-                pannellum.viewer('panorama', {
-                    type: "equirectangular",
-                    panorama: "{{ asset('images/shot-panoramic-composition-living-room.jpg') }}",
-                    autoLoad: true
+    {{-- SUBDIVISION LOT MAP --}}
+    <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100 mt-10">
+        <div class="w-full h-auto flex justify-between items-center mb-5">
+            <div>
+                <h2 class="text-lg font-semibold">Subdivision Lot Map</h2>
+                <p class="text-sm text-gray-500">Click on any lot to view details or assign to a client</p>
+            </div>
+            <div class="flex justify-end">
+                <x-button label="New Lot Area" x-on:click="$openModal('newLot')" primary />
+            </div>
+        </div>
+       
+        <div class="relative">
+            @if($map)
+
+                <img 
+                    id="map-image"
+                    src="{{ asset($map->image_path) }}"
+                    usemap="#estate-map"
+                    class="w-full"
+                />
+
+                <canvas 
+                    id="lot-overlay"
+                    class="absolute top-0 left-0 pointer-events-none"
+                    {{-- wire:ignore --}}
+                ></canvas>
+                <div
+                    id="lot-tooltip"
+                    class="absolute hidden z-50 bg-white shadow-2xl overflow-visible rounded-xl border w-80"
+                >
+                    <div class="relative overflow-visible">
+                        <div id="tooltip-arrow"></div>
+                        {{-- <img
+                            id="tooltip-image"
+                            class="w-full h-40 object-cover rounded-t-xl"
+                        /> --}}
+                        <div
+                            id="tooltip-panorama"
+                            class="w-full h-40 rounded-t-xl overflow-hidden"
+                        ></div>
+
+                        <div class="p-3">
+                            <div class="text-lg font-bold" id="tooltip-name"></div>
+
+                            <div class="text-sm text-gray-500 mt-1" id="tooltip-type"></div>
+
+                            <div class="text-gray-400 mt-2" id="tooltip-coords" style="font-size: 8px;"></div>
+
+                            <div class="mt-3 flex justify-end gap-2">
+                                <button
+                                    id="tooltip-edit-btn"
+                                    class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    type="button"
+                                >
+                                    Edit
+                                </button>
+                                <button
+                                    id="tooltip-edit-btn"
+                                    class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                                    type="button"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <map name="estate-map">
+                    @foreach($lots as $lot)
+                        <area
+                            shape="poly"
+                            coords="{{ $lot->coords }}"
+                            href="#"
+                            {{-- wire:click.prevent="openLot({{ $lot->id }})" --}}
+                            title="Click to show info"
+                            data-type="{{ $lot->type }}"
+                            data-name="{{ $lot->name }}"
+                            data-image="{{ $lot->image ? asset('storage/' . $lot->image) : '' }}"
+                            data-coords="{{ $lot->coords }}"
+                        />
+                    @endforeach
+                </map>
+
+            @endif
+        </div>
+
+        <x-modal blur name="newLot" persistent align="center" max-width="6xl">
+            <form wire:submit.prevent="createLotArea" class="w-full" x-data="lotDrawer()" x-init="init()">
+                <x-card title="Create New Lot Area">
+                    <div class="mt-3 relative">
+                        @if($map)
+                            <img 
+                                id="modal-map-image"
+                                src="{{ asset($map->image_path) }}"
+                                class="w-full cursor-crosshair"
+                                @click="addPoint($event)"
+                                x-ref="img"
+                            />
+                            <canvas 
+                                id="modal-lot-overlay"
+                                class="absolute top-0 left-0 pointer-events-none"
+                                x-ref="canvas"
+                            ></canvas>
+                        @endif
+                    </div>
+
+                    <!-- Reset Button -->
+                    <div class="mt-3 flex gap-x-2">
+                        <x-button primary label="Reset Points" @click="resetPoints()" />
+                    </div>
+
+                    <div class="mt-3">
+                        <x-input
+                            label="Lot Name"
+                            placeholder="Ex: Block 1, Lot 43"
+                            wire:model.defer="lotName"
+                        />
+                    </div>
+
+                    <div class="mt-3">
+                        <x-native-select
+                            label="Lot Type"
+                            wire:model="lotType"
+                        >
+                            <option value="">Select Type</option>
+                            <option value="Playground & Community Amenities">Playground & Community Amenities</option>
+                            <option value="Model House">Model House</option>
+                            <option value="Lot Only">Lot Only</option>
+                            <option value="House & Lot">House & Lot</option>
+                            <option value="Sold">Sold</option>
+                        </x-native-select>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-2">
+                            Lot Image
+                        </label>
+
+                        <x-filepond::upload
+                            wire:model="lotImage"
+                            :accepted-file-types="['image/png', 'image/jpeg', 'image/webp']"
+                            label="Upload your 360 View"
+                        />
+                    </div>
+
+                    <div class="mt-3">
+                        <x-input
+                            label="Lot Coordinates"
+                            placeholder="Ex: 74,238,239,38"
+                            x-model="coordsString"
+                            readonly
+                        />
+                    </div>
+
+                    <x-slot name="footer" class="flex justify-end gap-x-4">
+                        <div class="flex justify-end gap-x-4">
+                            <x-button flat label="Cancel" @click="closeModal()" x-on:click="close"/>
+                            <x-button primary label="Save" type="submit" @click="$wire.lotCoordinates = coordsString" />
+                        </div>
+                    </x-slot>
+
+                </x-card>
+            </form>
+
+            <script>
+                document.addEventListener("livewire:init", () => {
+                    pannellum.viewer('panorama', {
+                        type: "equirectangular",
+                        panorama: "{{ asset('images/shot-panoramic-composition-living-room.jpg') }}",
+                        autoLoad: true
+                    });
                 });
-            });
-        </script>
+            </script>
 
-        <script>
-            function lotDrawer() {
-                return {
-                    points: [],
-                    coordsString: '',
-                    canvas: null,
-                    ctx: null,
-                    img: null,
+            <script>
+                function lotDrawer() {
+                    return {
+                        points: [],
+                        coordsString: '',
+                        canvas: null,
+                        ctx: null,
+                        img: null,
 
-                    init() {
-                        this.canvas = this.$refs.canvas;
-                        this.img = this.$refs.img;
-                        this.ctx = this.canvas.getContext('2d');
-                        window.addEventListener('resize', () => this.redraw());
-                    },
+                        init() {
+                            this.canvas = this.$refs.canvas;
+                            this.img = this.$refs.img;
+                            this.ctx = this.canvas.getContext('2d');
+                            window.addEventListener('resize', () => this.redraw());
+                        },
 
-                    onImageLoad() {
-                        // ensure canvas matches image size after it loads
-                        this.canvas.width = this.img.clientWidth;
-                        this.canvas.height = this.img.clientHeight;
-                        this.redraw();
-                    },
+                        onImageLoad() {
+                            // ensure canvas matches image size after it loads
+                            this.canvas.width = this.img.clientWidth;
+                            this.canvas.height = this.img.clientHeight;
+                            this.redraw();
+                        },
 
-                    addPoint(e) {
-                        if (!this.img.naturalWidth || !this.img.naturalHeight) return;
+                        addPoint(e) {
+                            if (!this.img.naturalWidth || !this.img.naturalHeight) return;
 
-                        // calculate natural coordinates
-                        const x = Math.round((e.offsetX / this.img.clientWidth) * this.img.naturalWidth);
-                        const y = Math.round((e.offsetY / this.img.clientHeight) * this.img.naturalHeight);
+                            // calculate natural coordinates
+                            const x = Math.round((e.offsetX / this.img.clientWidth) * this.img.naturalWidth);
+                            const y = Math.round((e.offsetY / this.img.clientHeight) * this.img.naturalHeight);
 
-                        this.points.push({x, y});
-                        this.updateCoordsString();
-                        this.redraw();
+                            this.points.push({x, y});
+                            this.updateCoordsString();
+                            this.redraw();
 
-                        // sync to Livewire
-                        $wire.addPoint(e.offsetX / this.img.clientWidth, e.offsetY / this.img.clientHeight);
-                    },
+                            // sync to Livewire
+                            $wire.addPoint(e.offsetX / this.img.clientWidth, e.offsetY / this.img.clientHeight);
+                        },
 
-                    resetPoints() {
-                        this.points = [];
-                        this.coordsString = '';
-                        this.redraw();
-                        $wire.resetPoints();
-                    },
+                        resetPoints() {
+                            this.points = [];
+                            this.coordsString = '';
+                            this.redraw();
+                            $wire.resetPoints();
+                        },
 
-                    updateCoordsString() {
-                        this.coordsString = this.points.map(p => `${p.x},${p.y}`).join(',');
-                    },
+                        updateCoordsString() {
+                            this.coordsString = this.points.map(p => `${p.x},${p.y}`).join(',');
+                        },
 
-                    redraw() {
-                        if (!this.canvas || !this.img) return;
+                        redraw() {
+                            if (!this.canvas || !this.img) return;
 
-                        this.canvas.width = this.img.clientWidth;
-                        this.canvas.height = this.img.clientHeight;
-                        const ctx = this.ctx;
+                            this.canvas.width = this.img.clientWidth;
+                            this.canvas.height = this.img.clientHeight;
+                            const ctx = this.ctx;
 
-                        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-                        if (this.points.length === 0) return;
+                            if (this.points.length === 0) return;
 
-                        // Draw polygon
-                        ctx.beginPath();
-                        this.points.forEach((p, i) => {
-                            const x = p.x * this.img.clientWidth / this.img.naturalWidth;
-                            const y = p.y * this.img.clientHeight / this.img.naturalHeight;
-                            if (i === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
-                        });
-                        ctx.closePath();
-                        ctx.fillStyle = "rgba(0,150,255,0.3)";
-                        ctx.fill();
-                        ctx.strokeStyle = "#0096ff";
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-
-                        // Draw black dots
-                        this.points.forEach(p => {
-                            const x = p.x * this.img.clientWidth / this.img.naturalWidth;
-                            const y = p.y * this.img.clientHeight / this.img.naturalHeight;
+                            // Draw polygon
                             ctx.beginPath();
-                            ctx.arc(x, y, 5, 0, Math.PI * 2);
-                            ctx.fillStyle = "#000";
+                            this.points.forEach((p, i) => {
+                                const x = p.x * this.img.clientWidth / this.img.naturalWidth;
+                                const y = p.y * this.img.clientHeight / this.img.naturalHeight;
+                                if (i === 0) ctx.moveTo(x, y);
+                                else ctx.lineTo(x, y);
+                            });
+                            ctx.closePath();
+                            ctx.fillStyle = "rgba(0,150,255,0.3)";
                             ctx.fill();
-                            ctx.strokeStyle = "#fff";
-                            ctx.lineWidth = 1;
+                            ctx.strokeStyle = "#0096ff";
+                            ctx.lineWidth = 2;
                             ctx.stroke();
-                        });
-                    },
 
-                    closeModal() {
-                        this.resetPoints();
-                        $dispatch('close');
+                            // Draw black dots
+                            this.points.forEach(p => {
+                                const x = p.x * this.img.clientWidth / this.img.naturalWidth;
+                                const y = p.y * this.img.clientHeight / this.img.naturalHeight;
+                                ctx.beginPath();
+                                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                                ctx.fillStyle = "#000";
+                                ctx.fill();
+                                ctx.strokeStyle = "#fff";
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                            });
+                        },
+
+                        closeModal() {
+                            this.resetPoints();
+                            $dispatch('close');
+                        }
                     }
                 }
-            }
-        </script>
-    </x-modal>
+            </script>
+        </x-modal>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jQuery-rwdImageMaps/1.6/jquery.rwdImageMaps.min.js"></script>
@@ -623,4 +948,5 @@
         document.addEventListener('DOMContentLoaded', initLotTooltip);
 
     </script>
+
 </div>

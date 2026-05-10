@@ -142,6 +142,26 @@
                         </p>
                         
                     </div>
+
+                    <x-button 
+                        class="my-5 mx-auto w-[80%]"
+                        icon="home" 
+                        rounded 
+                        positive 
+                        label="Create Virtual Tour" 
+                        wire:click="selectHouseModel({{ $model->id }})"
+                        x-on:click="$openModal('createVirtualTour')"
+                    />
+
+                    <x-button 
+                        class="my-5 mx-auto w-[80%]"
+                        icon="home" 
+                        rounded 
+                        positive 
+                        label="Show Tour" 
+                        wire:click="viewHouseTour({{ $model->id }})"
+                        x-on:click="$openModal('viewTour')"
+                    />
                 </div>
             @endforeach
         </div>
@@ -234,19 +254,31 @@
         {{-- EDIT MODEL HOUSE --}}
         <x-modal blur name="editModelHouse" persistent align="center" max-width="xl">
             <x-card title="Edit Model House">
-                <div class="mt-4">
-                    <label class="block text-sm font-medium mb-2">
-                        360° Virtual Tour Image
-                    </label>
+                <div class="flex items-center gap-6">
+                    @if($editImagePreview)
+                        <div class="shrink-0">
+                            <p class="text-sm font-medium text-gray-700 mb-2">
+                                Current Image
+                            </p>
 
-                    <x-filepond::upload
-                        wire:model="editModelHouseImage"
-                        allowImagePreview="true"
-                        imagePreviewMaxHeight="200"
-                        allowFileTypeValidation="true"
-                        acceptedFileTypes="image/jpeg, image/png, image/jpg"
-                    />
-                    
+                            <img
+                                src="{{ $editImagePreview }}"
+                                class="w-32 h-32 object-cover rounded-xl border border-gray-200 shadow-sm"
+                            >
+                        </div>
+                    @endif
+                    <div class="flex-1">
+                        
+                        <label class="block text-sm font-medium mb-2">
+                            360° Virtual Tour Image
+                        </label>
+
+                        <x-filepond::upload
+                            wire:model="editModelHouseImage"
+                            :accepted-file-types="['image/png', 'image/jpeg', 'image/webp']"
+                        />
+                        
+                    </div>
                 </div>
 
                 <div class="mt-3">
@@ -310,6 +342,161 @@
                     <x-button primary label="Update" wire:click="editModelHouseConfirmation('{{$editModelName}}')" />
                 </x-slot>
 
+            </x-card>
+        </x-modal>
+
+        {{-- CREATE VIRUAL TOUR MODAL --}}
+        <x-modal blur name="createVirtualTour" max-width="6xl" persistent>
+            <x-card title="Virtual Tour Builder">
+
+                {{-- TITLE --}}
+                <x-input label="Tour Title" wire:model="tourTitle" />
+                <x-input
+                    label="Scene Name"
+                    wire:model="newSceneName"
+                />
+                {{-- ADD SCENE --}}
+                <x-button class="mt-3" primary label="Add Scene" wire:click="addScene" />
+
+                {{-- SCENE SWITCH --}}
+                <div class="flex gap-2 mt-4">
+                    @foreach($scenes as $i => $scene)
+                        <button
+                            class="px-3 py-1 rounded {{ $activeScene == $i ? 'bg-blue-600 text-white' : 'bg-gray-200' }}"
+                            wire:click="setActiveScene({{ $i }})"
+                        >
+                            {{ $scene['name'] }}
+                        </button>
+                    @endforeach
+                </div>
+
+                {{-- ACTIVE SCENE --}}
+                @if(isset($scenes[$activeScene]))
+                    <div class="mt-4">
+
+                        {{-- NATIVE UPLOAD (NO FILEPOND) --}}
+                        <input
+                            type="file"
+                            wire:model="scenes.{{ $activeScene }}.file"
+                            class="block w-full border p-2 rounded"
+                        />
+
+                        @if(!empty($scenes[$activeScene]['preview']))
+                            <div class="mt-4 relative w-full h-[500px] bg-gray-100 rounded-lg overflow-hidden border">
+
+                                <img
+                                    src="{{ $scenes[$activeScene]['preview'] }}"
+                                    class="w-full h-full object-contain cursor-crosshair"
+                                >
+                                
+                                
+                                <div
+                                    class="absolute inset-0 cursor-crosshair"
+                                    wire:click="startHotspot($event.offsetX, $event.offsetY)"
+                                ></div>
+
+                                @if($showHotspotForm)
+                                    <div
+                                        class="absolute bg-white shadow-lg p-2 rounded border"
+                                        style="left: {{ $hotspotX }}px; top: {{ $hotspotY }}px;"
+                                    >
+                                        <input
+                                            type="text"
+                                            wire:model="hotspotLabel"
+                                            class="border p-1 text-sm"
+                                            placeholder="Hotspot name"
+                                        />
+
+                                        @php
+                                            $currentSceneId = $scenes[$activeScene]['id'] ?? null;
+                                        @endphp
+
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">
+                                                Target Scene
+                                            </label>
+
+                                            <select wire:model.live="tempTargetScene" class="w-full border rounded px-3 py-2">
+                                                <option value="">Select Scene</option>
+
+                                                @foreach($scenes as $index => $scene)
+                                                    @if($index !== $activeScene)
+                                                        <option value="{{ $index }}">
+                                                            {{ $scene['name'] }}
+                                                        </option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="flex gap-2 mt-1">
+                                            <button
+                                                class="text-xs bg-blue-500 text-white px-2 py-1 rounded"
+                                                wire:click="saveInlineHotspot"
+                                            >
+                                                Save
+                                            </button>
+
+                                            <button
+                                                class="text-xs bg-gray-400 text-white px-2 py-1 rounded"
+                                                wire:click="$set('showHotspotForm', false)"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endif
+
+                            </div>
+                        @endif
+
+                        {{-- HOTSPOTS --}}
+                        <div class="mt-3">
+                            <h3 class="font-bold">Hotspots</h3>
+
+                            @foreach($scenes[$activeScene]['hotspots'] ?? [] as $h)
+                                <div class="text-sm bg-gray-100 p-2 rounded mt-1">
+                                    {{ $h['label'] }}
+                                </div>
+                            @endforeach
+                        </div>
+
+                    </div>
+                @endif
+
+                {{-- SAVE --}}
+                <x-button class="mt-4" primary label="Save Tour" wire:click="saveTour" />
+
+            </x-card>
+        </x-modal>
+
+        {{-- VIEW TOUR --}}
+
+        <x-modal blur name="viewTour" max-width="6xl" persistent>
+            <x-card title="Virtual Tour Viewer">
+
+                <div
+                    x-data="tourViewer()"
+                    x-init="setScenes(@js($viewScenes ?? [])); init()"
+                    class="relative w-full h-[500px]"
+                >
+                    
+                    <!-- Scene Buttons -->
+                    {{-- <div class="flex gap-2 mb-3">
+                        <template x-for="(scene, index) in scenes" :key="scene.id">
+                            <button
+                                class="px-3 py-1 rounded bg-gray-200"
+                                @click="loadScene(index)"
+                                x-text="'Scene ' + (index + 1)"
+                            ></button>
+                        </template>
+                    </div> --}}
+
+                    <!-- Viewer -->
+                    <div x-ref="viewer" class="w-full h-[100%] bg-black rounded"></div>
+
+                </div>
+            
             </x-card>
         </x-modal>
     </div>
@@ -479,7 +666,7 @@
                 </x-card>
             </form>
 
-            <script>
+            {{-- <script>
                 document.addEventListener("livewire:init", () => {
                     pannellum.viewer('panorama', {
                         type: "equirectangular",
@@ -487,7 +674,7 @@
                         autoLoad: true
                     });
                 });
-            </script>
+            </script> --}}
 
             <script>
                 function lotDrawer() {
@@ -949,4 +1136,224 @@
 
     </script>
 
+    <script>
+    document.addEventListener('livewire:init', () => {
+
+        let viewer = null;
+
+        function load(image) {
+
+            setTimeout(() => {
+
+                const container = document.getElementById('panorama');
+                if (!container || !image) return;
+
+                if (viewer) {
+                    viewer.destroy();
+                    viewer = null;
+                }
+
+                container.innerHTML = "";
+
+                viewer = pannellum.viewer(container, {
+                    type: "equirectangular",
+                    panorama: image,
+                    autoLoad: true,
+                    showControls: true
+                });
+
+                viewer.on('mousedown', function (e) {
+                    Livewire.dispatch('open-hotspot', {
+                        pitch: e.pitch,
+                        yaw: e.yaw
+                    });
+                });
+
+            }, 50); // 🔥 ensures modal + DOM is ready
+        }
+
+        Livewire.on('load-panorama', (data) => {
+            if (!data.image) return;
+            load(data.image);
+        });
+
+    });
+    </script>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+
+            Alpine.data('tourViewer', () => ({
+                scenes: [],
+                viewer: null,
+                activeIndex: 0,
+
+                setScenes(data) {
+                    this.scenes = Array.isArray(data) ? data : [];
+                    console.log('SCENES LOADED:', this.scenes);
+                },
+
+                init() {
+                    if (this.scenes.length > 0) {
+                        this.$nextTick(() => this.loadScene(0));
+                    }
+                },
+
+                // buildHotspots(scene) {
+
+                //     return (scene.hotspots || []).map(h => ({
+
+                //         pitch: Number(h.pitch),
+                //         yaw: Number(h.yaw),
+
+                //         type: "custom",
+
+                //         createTooltipArgs: {
+                //             text: h.label
+                //         },
+
+                //         createTooltipFunc: (hotSpotDiv, args) => {
+
+                //             hotSpotDiv.innerHTML = `
+                //                 <button
+                //                     style="
+                //                         background:#2563eb;
+                //                         color:white;
+                //                         border:none;
+                //                         border-radius:999px;
+                //                         padding:10px 14px;
+                //                         font-size:13px;
+                //                         font-weight:600;
+                //                         cursor:pointer;
+                //                         box-shadow:0 4px 12px rgba(0,0,0,0.35);
+                //                         transition:all .2s ease;
+                //                         white-space:nowrap;
+                //                     "
+                //                     onmouseover="
+                //                         this.style.transform='scale(1.08)';
+                //                         this.style.background='#1d4ed8';
+                //                     "
+                //                     onmouseout="
+                //                         this.style.transform='scale(1)';
+                //                         this.style.background='#2563eb';
+                //                     "
+                //                 >
+                //                     ${args.text}
+                //                 </button>
+                //             `;
+
+                //             hotSpotDiv.style.transform = "translate(-50%, -50%)";
+                //         },
+
+                //         clickHandlerFunc: () => {
+
+                //             const idx = this.scenes.findIndex(
+                //                 s => s.id === h.target_scene_id
+                //             );
+
+                //             if (idx !== -1) {
+                //                 this.loadScene(idx);
+                //             }
+                //         }
+
+                //     }));
+                // },
+
+                buildHotspots(scene) {
+
+                    return (scene.hotspots || []).map(h => ({
+
+                        pitch: Number(h.pitch),
+                        yaw: Number(h.yaw),
+
+                        type: "custom",
+
+                        createTooltipFunc: (hotSpotDiv) => {
+
+                            const button = document.createElement("button");
+
+                            button.innerText = h.label;
+
+                            button.style.background = "#2563eb";
+                            button.style.color = "white";
+                            button.style.border = "none";
+                            button.style.borderRadius = "999px";
+                            button.style.padding = "10px 14px";
+                            button.style.fontSize = "13px";
+                            button.style.fontWeight = "600";
+                            button.style.cursor = "pointer";
+                            button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.35)";
+                            button.style.whiteSpace = "nowrap";
+
+                            // hover
+                            button.onmouseover = () => {
+                                button.style.transform = "scale(1.08)";
+                                button.style.background = "#1d4ed8";
+                            };
+
+                            button.onmouseout = () => {
+                                button.style.transform = "scale(1)";
+                                button.style.background = "#2563eb";
+                            };
+
+                            // 🔥 ACTUAL SCENE SWITCH
+                            button.onclick = (e) => {
+
+                                e.stopPropagation();
+
+                                const idx = this.scenes.findIndex(
+                                    s => s.id === h.target_scene_id
+                                );
+
+                                console.log("TARGET:", h.target_scene_id);
+                                console.log("FOUND INDEX:", idx);
+
+                                if (idx !== -1) {
+                                    this.loadScene(idx);
+                                }
+                            };
+
+                            hotSpotDiv.appendChild(button);
+
+                            hotSpotDiv.style.transform =
+                                "translate(-50%, -50%)";
+                        }
+
+                    }));
+                },
+
+                loadScene(index) {
+
+                    const scene = this.scenes[index];
+                    if (!scene) return;
+
+                    this.activeIndex = index;
+
+                    const container = this.$refs.viewer;
+
+                    if (this.viewer) {
+                        try { this.viewer.destroy(); } catch (e) {}
+                        this.viewer = null;
+                    }
+
+                    container.innerHTML = "";
+
+                    this.$nextTick(() => {
+                        requestAnimationFrame(() => {
+
+                            this.viewer = pannellum.viewer(container, {
+                                type: "equirectangular",
+                                panorama: scene.image,
+                                autoLoad: true,
+                                showControls: true,
+                                hotSpots: this.buildHotspots(scene)
+                            });
+
+                        });
+                    });
+                }
+            }));
+
+        });
+    </script>
 </div>

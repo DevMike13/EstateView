@@ -5,10 +5,14 @@ namespace App\Livewire\FilPages;
 use App\Models\HouseModel;
 use App\Models\Lot;
 use App\Models\Map;
+use App\Models\TourHotSpot;
+use App\Models\TourScene;
+use App\Models\VirtualTour;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use Spatie\LivewireFilepond\WithFilePond;
@@ -16,7 +20,7 @@ use WireUi\Traits\Actions;
 
 class MapManagementPage extends Component
 {
-    use WithFilePond, Actions;
+    use WithFilePond, Actions, WithFileUploads;
     
     // LOT MANAGEMENT
     public $map;
@@ -55,8 +59,7 @@ class MapManagementPage extends Component
 
     public $selectedHouseId;
 
-    // public $editModelHouseImage;
-    public $editModelHouseImage = [];
+    public $editModelHouseImage;
     public $editImagePreview;
     public $editVirtualTourUrl;
     public $editModelName;
@@ -76,6 +79,30 @@ class MapManagementPage extends Component
     ];
     // MODEL HOUSE END
 
+    // VIRTUAL TOUR CREATION
+    public $selectedHouseModel;
+
+    public $tourTitle;
+    public $scenes = [];
+    public $newSceneName = '';
+    public $activeScene = 0;
+
+    // hotspot temp
+    public $tempPitch;
+    public $tempYaw;
+    public $tempLabel;
+    public $tempTargetScene = null;
+    
+    public $showHotspotForm = false;
+    public $hotspotX;
+    public $hotspotY;
+    public $hotspotLabel;
+
+    public $viewScenes = [];
+    public $activeViewScene = 0;
+    public $selectedTour = null;
+    // VIRTUAL TOUR CREATION END
+
     public $typeColors = [
         'Playground & Community Amenities' => '#f2b879',
         'Model House' => '#c8c9c3',
@@ -89,7 +116,10 @@ class MapManagementPage extends Component
         $this->map = Map::with('lots')->first();
         $this->lots = $this->map?->lots ?? [];
 
-        $this->houseModels = HouseModel::all();
+        // $this->houseModels = HouseModel::all();
+        $this->houseModels = HouseModel::with([
+            'virtualTour.scenes.hotspots'
+        ])->get();
 
         $this->generateLotCounts();
     }
@@ -156,11 +186,11 @@ class MapManagementPage extends Component
         $this->selectedHouseId = $model->id;
 
         // $this->editModelHouseImage = $model->image;
-        $this->editImagePreview = Storage::url($model->image);
+       $this->editImagePreview = $model->image
+        ? asset('storage/' . $model->image)
+        : null;
         
-        $this->editModelHouseImage = $model->image
-        ? [asset('storage/' . $model->image)]
-        : [];
+        $this->editModelHouseImage = null;
 
         $this->editModelName = $model->model_name;
         $this->editVirtualTourUrl = $model->virtual_tour_url;
@@ -179,21 +209,23 @@ class MapManagementPage extends Component
 
             $imagePath = $model->image;
 
-            if (
-                is_array($this->editModelHouseImage) &&
-                isset($this->editModelHouseImage[0]) &&
-                $this->editModelHouseImage[0] instanceof TemporaryUploadedFile
-            ) {
-
-                $file = $this->editModelHouseImage[0];
+            if ($this->editModelHouseImage instanceof TemporaryUploadedFile) {
+                
+            // delete old image
+                if (
+                    $model->image &&
+                    Storage::disk('public')->exists($model->image)
+                ) {
+                    Storage::disk('public')->delete($model->image);
+                }
 
                 $fileName = Str::slug($this->editModelName)
-                    . '-' 
-                    . Str::uuid() 
-                    . '.' 
-                    . $file->getClientOriginalExtension();
+                    . '-'
+                    . Str::uuid()
+                    . '.'
+                    . $this->editModelHouseImage->getClientOriginalExtension();
 
-                $imagePath = $file->storeAs(
+                $imagePath = $this->editModelHouseImage->storeAs(
                     'modelHouse',
                     $fileName,
                     'public'
@@ -292,6 +324,283 @@ class MapManagementPage extends Component
             'params'      => $id
         ]);
     }
+
+    // CREATE VIRTUAL TOUR FUNCTIONS
+    public function selectHouseModel($id)
+    {
+        $this->selectedHouseModel = HouseModel::findOrFail($id);
+        $this->tourTitle = $this->selectedHouseModel->model_name . ' Tour';
+
+        // auto initialize first scene
+        $this->scenes = [];
+        $this->activeScene = 0;
+    }
+
+    public function addScene()
+    {
+        $this->validate([
+            'newSceneName' => 'required|string|max:255',
+        ]);
+
+        $this->scenes[] = [
+            'name' => $this->newSceneName,
+            'file' => null,
+            'preview' => null,
+            'hotspots' => []
+        ];
+
+        $this->newSceneName = '';
+        $this->activeScene = count($this->scenes) - 1;
+    }
+
+    public function startHotspot($x, $y)
+    {
+        $this->hotspotX = $x;
+        $this->hotspotY = $y;
+        $this->hotspotLabel = '';
+        $this->showHotspotForm = true;
+    }
+
+    public function saveInlineHotspot()
+    {
+        $this->validate([
+            'hotspotLabel' => 'required|string|max:255',
+        ]);
+
+        $this->scenes[$this->activeScene]['hotspots'][] = [
+            'x' => $this->hotspotX,
+            'y' => $this->hotspotY,
+            'label' => $this->hotspotLabel,
+        ];
+
+        $this->showHotspotForm = false;
+        $this->hotspotLabel = null;
+    }
+
+    public function setActiveScene($index)
+    {
+        $this->activeScene = $index;
+
+        if (!empty($this->scenes[$index]['preview'])) {
+            $this->dispatch('load-panorama', [
+                'image' => $this->scenes[$index]['preview']
+            ]);
+        } else {
+            $this->dispatch('load-panorama', [
+                'image' => null
+            ]);
+        }
+    }
+
+    public function updatedScenes($value, $key)
+    {
+        // $key example: "0.file"
+        [$index, $field] = explode('.', $key);
+
+        if ($field === 'file' && isset($this->scenes[$index]['file'])) {
+
+            $this->scenes[$index]['preview'] =
+                $this->scenes[$index]['file']->temporaryUrl();
+
+            // 🔥 send to frontend immediately
+            $this->dispatch('load-panorama', [
+                'image' => $this->scenes[$index]['preview']
+            ]);
+        }
+    }
+
+    #[On('open-hotspot')]
+    public function openHotspot($pitch, $yaw)
+    {
+        $this->tempPitch = $pitch;
+        $this->tempYaw = $yaw;
+        $this->tempLabel = '';
+        $this->tempTargetScene = null;
+
+        $this->dispatch('open-modal', name: 'hotspotModal');
+    }
+
+    public function saveHotspot()
+    {
+        $this->validate([
+            'tempLabel' => 'required|string|max:255',
+            'tempTargetScene' => 'required|integer',
+        ]);
+
+        $this->scenes[$this->activeScene]['hotspots'][] = [
+            'pitch' => $this->tempPitch,
+            'yaw' => $this->tempYaw,
+            'label' => $this->tempLabel,
+            'target_index' => (int) $this->tempTargetScene,
+        ];
+
+        $this->reset([
+            'tempPitch',
+            'tempYaw',
+            'tempLabel',
+            'tempTargetScene'
+        ]);
+    }
+
+    // =====================
+    // SAVE TOUR
+    // =====================
+    public function saveTour()
+    {
+        
+        $this->validate([
+            'tourTitle' => 'required|string',
+            'selectedHouseModel.id' => 'required',
+        ]);
+
+        $tour = VirtualTour::create([
+            'title' => $this->tourTitle,
+            'house_model_id' => $this->selectedHouseModel->id,
+        ]);
+
+        // 🔥 STORE CREATED SCENES
+        $createdScenes = [];
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 1: CREATE ALL SCENES FIRST
+        |--------------------------------------------------------------------------
+        */
+
+        foreach ($this->scenes as $i => $scene) {
+
+            if (!$scene['file']) continue;
+
+            $path = $scene['file']->store('virtual-tour', 'public');
+
+            $createdScenes[$i] = TourScene::create([
+                'virtual_tour_id' => $tour->id,
+                'image' => $path,
+                'name' => $scene['name'],
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 2: CREATE HOTSPOTS
+        |--------------------------------------------------------------------------
+        */
+
+        foreach ($this->scenes as $i => $scene) {
+
+            if (!isset($createdScenes[$i])) continue;
+
+            $dbScene = $createdScenes[$i];
+
+            foreach ($scene['hotspots'] as $hotspot) {
+
+                $targetIndex = $hotspot['target_index'] ?? null;
+
+                $targetSceneId = null;
+
+                if ($targetIndex !== null && isset($createdScenes[$targetIndex])) {
+                    $targetSceneId = $createdScenes[$targetIndex]->id;
+                }
+
+                TourHotSpot::create([
+                    'scene_id' => $dbScene->id,
+                    'label' => $hotspot['label'],
+                    'pitch' => $hotspot['x'],
+                    'yaw' => $hotspot['y'],
+                    'target_scene_id' => $targetSceneId,
+                ]);
+            }
+        }
+
+        $this->reset([
+            'tourTitle',
+            'scenes',
+            'activeScene',
+            'selectedHouseModel'
+        ]);
+
+        $this->dispatch('reload');
+
+        return redirect()->back();
+    }
+
+    // public function viewHouseTour($houseModelId)
+    // {
+    //     $house = HouseModel::with('virtualTour.scenes.hotspots')
+    //         ->findOrFail($houseModelId);
+
+    //     $this->selectedTour = $house->virtualTour;
+
+    //     $this->viewScenes = $house->virtualTour?->scenes->map(function ($scene) {
+    //         return [
+    //             'id' => $scene->id,
+    //             'name' => $scene->name,
+    //             'image' => asset('storage/' . $scene->image),
+    //             'hotspots' => $scene->hotspots->map(function ($h) {
+    //                 return [
+    //                     'pitch' => $h->pitch,
+    //                     'yaw' => $h->yaw,
+    //                     'label' => $h->label,
+    //                     'target_scene_id' => $h->target_scene_id,
+    //                 ];
+    //             })->toArray(),
+    //         ];
+    //     })->toArray() ?? [];
+
+    //     $this->activeViewScene = 0;
+
+    //     $this->dispatch('open-viewer-modal');
+       
+    //     $this->dispatch('load-viewer-scene',
+    //         scene: $this->viewScenes[0] ?? null
+    //     );
+    // }
+
+    // public function setViewScene($index)
+    // {
+    //     $this->activeViewScene = $index;
+
+    //     $this->dispatch('load-viewer-scene', [
+    //         'scene' => $this->viewScenes[$index] ?? null
+    //     ]);
+    // }
+
+    public function viewHouseTour($id)
+    {
+        $house = HouseModel::with('virtualTour.scenes.hotspots')->findOrFail($id);
+
+        $this->viewScenes = $house->virtualTour->scenes->map(fn ($scene) => [
+            'id' => $scene->id,
+            'name' => $scene->name,
+            'image' => asset('storage/' . $scene->image),
+            'hotspots' => $scene->hotspots->map(fn ($h) => [
+                'pitch' => $h->pitch,
+                'yaw' => $h->yaw,
+                'label' => $h->label,
+                'target_scene_id' => $h->target_scene_id,
+            ])->toArray(),
+        ])->values()->toArray();
+
+        $this->dispatch('open-viewer-modal');
+    }
+
+    public function setViewScene($sceneId)
+    {
+        $this->dispatch('switch-view-scene', sceneId: $sceneId);
+    }
+
+    #[On('go-to-scene')]
+    public function goToScene($scene_id)
+    {
+        $index = collect($this->viewScenes)
+            ->search(fn ($s) => $s['id'] == $scene_id);
+
+        if ($index !== false) {
+            $this->setViewScene($index);
+        }
+    }
+
+    // CREATE VIRTUAL TOUR FUNCTIONS END
 
     public function generateLotCounts()
     {

@@ -25,4 +25,9 @@ class HouseModel extends Model
         'floor_area' => 'decimal:2',
         'price' => 'decimal:2',
     ];
+
+    public function virtualTour()
+    {
+        return $this->hasOne(VirtualTour::class);
+    }
 }

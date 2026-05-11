@@ -144,8 +144,8 @@
                     </div>
 
                     <x-button 
-                        class="my-5 mx-auto w-[80%]"
-                        icon="home" 
+                        class="mb-3 mx-auto w-[90%]"
+                        icon="viewfinder-circle" 
                         rounded 
                         positive 
                         label="Create Virtual Tour" 
@@ -154,11 +154,10 @@
                     />
 
                     <x-button 
-                        class="my-5 mx-auto w-[80%]"
-                        icon="home" 
-                        rounded 
-                        positive 
-                        label="Show Tour" 
+                        class="mb-3 mx-auto w-[90%]"
+                        icon="eye" 
+                        rounded  
+                        label="Show Virtual Tour" 
                         wire:click="viewHouseTour({{ $model->id }})"
                         x-on:click="$openModal('viewTour')"
                     />
@@ -346,157 +345,466 @@
         </x-modal>
 
         {{-- CREATE VIRUAL TOUR MODAL --}}
-        <x-modal blur name="createVirtualTour" max-width="6xl" persistent>
+        <x-modal blur name="createVirtualTour" max-width="4xl" persistent>
             <x-card title="Virtual Tour Builder">
 
                 {{-- TITLE --}}
-                <x-input label="Tour Title" wire:model="tourTitle" />
-                <x-input
-                    label="Scene Name"
-                    wire:model="newSceneName"
-                />
-                {{-- ADD SCENE --}}
-                <x-button class="mt-3" primary label="Add Scene" wire:click="addScene" />
-
-                {{-- SCENE SWITCH --}}
-                <div class="flex gap-2 mt-4">
-                    @foreach($scenes as $i => $scene)
-                        <button
-                            class="px-3 py-1 rounded {{ $activeScene == $i ? 'bg-blue-600 text-white' : 'bg-gray-200' }}"
-                            wire:click="setActiveScene({{ $i }})"
-                        >
-                            {{ $scene['name'] }}
-                        </button>
-                    @endforeach
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <x-input label="Tour Title" wire:model="tourTitle" />
+                    <x-input
+                        label="Scene Name"
+                        wire:model="newSceneName"
+                    />
                 </div>
+                <hr class="my-4">
 
-                {{-- ACTIVE SCENE --}}
-                @if(isset($scenes[$activeScene]))
-                    <div class="mt-4">
+                {{-- ADD SCENE --}}
+                <x-button sm icon="squares-plus" rounded label="Add Scene" wire:click="addScene" />
+                
+                <div class="border-2 border-dashed rounded-lg mt-6 px-6">
+                    {{-- SCENE SWITCH --}}
+                    <div class="flex gap-2 mt-4">
+                        @foreach($scenes as $i => $scene)
+                            <x-button
+                                xs 
+                                rounded
+                                icon="pencil"
+                                class="px-3 py-1 rounded {{ $activeScene == $i ? 'bg-blue-600 text-white' : 'bg-gray-200' }}"
+                                wire:click="setActiveScene({{ $i }})"
+                            >
+                                {{ $scene['name'] }}
+                            </x-button>
+                        @endforeach
+                    </div>
 
-                        {{-- NATIVE UPLOAD (NO FILEPOND) --}}
-                        <input
-                            type="file"
-                            wire:model="scenes.{{ $activeScene }}.file"
-                            class="block w-full border p-2 rounded"
-                        />
+                    <hr class="my-4">
 
-                        @if(!empty($scenes[$activeScene]['preview']))
-                            <div class="mt-4 relative w-full h-[500px] bg-gray-100 rounded-lg overflow-hidden border">
+                    {{-- ACTIVE SCENE --}}
+                    @if(isset($scenes[$activeScene]))
+                        <div class="mt-4">
 
-                                <img
-                                    src="{{ $scenes[$activeScene]['preview'] }}"
-                                    class="w-full h-full object-contain cursor-crosshair"
+                            <div x-data="{ isDragging: false }" class="mt-4">
+                                <label
+                                    for="scene-upload-{{ $activeScene }}"
+                                    class="relative flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-300"
+                                    :class="isDragging
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-blue-400'"
+                                    @dragover.prevent="isDragging = true"
+                                    @dragleave.prevent="isDragging = false"
+                                    @drop.prevent="isDragging = false"
                                 >
-                                
-                                
-                                <div
-                                    class="absolute inset-0 cursor-crosshair"
-                                    wire:click="startHotspot($event.offsetX, $event.offsetY)"
-                                ></div>
 
-                                @if($showHotspotForm)
+                                    <div class="flex flex-col items-center justify-center text-center px-4">
+
+                                        {{-- ICON --}}
+                                        <svg
+                                            class="w-10 h-10 mb-2 text-blue-500"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.5"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1"
+                                            />
+                                        </svg>
+
+                                        <p class="text-sm font-semibold text-gray-700">
+                                            Upload Panorama
+                                        </p>
+
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Drag & drop or click to browse
+                                        </p>
+
+                                        @if(!empty($scenes[$activeScene]['file']))
+                                            <div class="mt-2 text-[11px] text-green-600 font-medium truncate max-w-[220px]">
+                                                {{ $scenes[$activeScene]['file']->getClientOriginalName() }}
+                                            </div>
+                                        @endif
+
+                                    </div>
+
+                                    <input
+                                        id="scene-upload-{{ $activeScene }}"
+                                        type="file"
+                                        wire:model="scenes.{{ $activeScene }}.file"
+                                        class="hidden"
+                                        accept="image/*"
+                                    />
+                                </label>
+
+                                {{-- LOADING --}}
+                                <div wire:loading wire:target="scenes.{{ $activeScene }}.file" class="mt-2">
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-blue-600 h-1.5 animate-pulse w-full"></div>
+                                    </div>
+
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        Uploading...
+                                    </p>
+                                </div>
+                            </div>
+
+                            @if(!empty($scenes[$activeScene]['preview']))
+
+                                <div
+                                    wire:ignore
+                                    x-data="panoramaEditor()"
+                                    x-init="init()"
+                                    class="mt-4"
+                                >
+                                    {{-- PANNELLUM VIEWER --}}
                                     <div
-                                        class="absolute bg-white shadow-lg p-2 rounded border"
-                                        style="left: {{ $hotspotX }}px; top: {{ $hotspotY }}px;"
-                                    >
-                                        <input
-                                            type="text"
-                                            wire:model="hotspotLabel"
-                                            class="border p-1 text-sm"
-                                            placeholder="Hotspot name"
+                                        x-ref="viewer"
+                                        wire:ignore
+                                        class="w-full h-[500px] min-h-[500px] bg-black rounded-lg overflow-hidden"
+                                        style="height:500px !important;"
+                                    ></div>
+                                </div>
+
+                                
+                            @endif
+
+                            {{-- HOTSPOT FORM --}}
+                            {{-- @if($showHotspotForm)
+
+                                <div class="mt-4 border rounded-lg p-4 bg-white">
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                        <x-input
+                                            label="Hotspot Label"
+                                            wire:model="tempLabel"
                                         />
 
-                                        @php
-                                            $currentSceneId = $scenes[$activeScene]['id'] ?? null;
-                                        @endphp
-
                                         <div>
-                                            <label class="block text-sm font-medium mb-1">
+                                            <label class="block text-sm mb-1">
                                                 Target Scene
                                             </label>
 
-                                            <select wire:model.live="tempTargetScene" class="w-full border rounded px-3 py-2">
-                                                <option value="">Select Scene</option>
+                                            <select
+                                                wire:model="tempTargetScene"
+                                                class="w-full border rounded px-3 py-2"
+                                            >
+                                                <option value="">
+                                                    Select Scene
+                                                </option>
 
                                                 @foreach($scenes as $index => $scene)
+
                                                     @if($index !== $activeScene)
+
                                                         <option value="{{ $index }}">
                                                             {{ $scene['name'] }}
                                                         </option>
+
                                                     @endif
+
                                                 @endforeach
                                             </select>
                                         </div>
 
-                                        <div class="flex gap-2 mt-1">
-                                            <button
-                                                class="text-xs bg-blue-500 text-white px-2 py-1 rounded"
-                                                wire:click="saveInlineHotspot"
-                                            >
-                                                Save
-                                            </button>
-
-                                            <button
-                                                class="text-xs bg-gray-400 text-white px-2 py-1 rounded"
-                                                wire:click="$set('showHotspotForm', false)"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
                                     </div>
-                                @endif
 
-                            </div>
-                        @endif
+                                    <div class="flex gap-2 mt-4">
 
-                        {{-- HOTSPOTS --}}
-                        <div class="mt-3">
-                            <h3 class="font-bold">Hotspots</h3>
+                                        <x-button
+                                            primary
+                                            label="{{ $editingHotspot !== null ? 'Update' : 'Save' }}"
+                                            wire:click="saveHotspot"
+                                        />
 
-                            @foreach($scenes[$activeScene]['hotspots'] ?? [] as $h)
-                                <div class="text-sm bg-gray-100 p-2 rounded mt-1">
-                                    {{ $h['label'] }}
+                                        <x-button
+                                            flat
+                                            label="Cancel"
+                                            wire:click="resetHotspotForm"
+                                        />
+
+                                    </div>
+
                                 </div>
-                            @endforeach
-                        </div>
 
-                    </div>
-                @endif
+                            @endif --}}
+
+                            <div
+                                x-data="{ open: @entangle('showHotspotForm') }"
+                                x-show="open"
+                                class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
+                                x-cloak
+                            >
+                                <div class="bg-white w-[400px] rounded-lg p-4 shadow-lg">
+
+                                    <h2 class="text-lg font-bold mb-3">Create Hotspot</h2>
+
+                                    <div class="space-y-3">
+
+                                        <input
+                                            type="text"
+                                            placeholder="Hotspot Label"
+                                            class="w-full border rounded px-3 py-2"
+                                            wire:model="tempLabel"
+                                        />
+
+                                        <select
+                                            class="w-full border rounded px-3 py-2"
+                                            wire:model="tempTargetScene"
+                                        >
+                                            <option value="">Select Scene</option>
+
+                                            @foreach($scenes as $index => $scene)
+                                                @if($index !== $activeScene)
+                                                    <option value="{{ $index }}">
+                                                        {{ $scene['name'] }}
+                                                    </option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+
+                                    </div>
+
+                                    <div class="flex justify-end gap-2 mt-4">
+
+                                        <button
+                                            class="px-3 py-1 border rounded"
+                                            wire:click="resetHotspotForm"
+                                        >
+                                            Cancel
+                                        </button>
+
+                                        <button
+                                            class="px-3 py-1 bg-blue-600 text-white rounded"
+                                            wire:click="saveHotspot"
+                                        >
+                                            Save
+                                        </button>
+
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {{-- HOTSPOTS --}}
+                            <div class="my-4 border border-dashed rounded-lg px-5 py-3">
+
+                                <h3 class="font-bold mb-2">
+                                    Hotspots
+                                </h3>
+
+                                <div class="space-y-2">
+
+                                    @foreach($scenes[$activeScene]['hotspots'] ?? [] as $i => $h)
+
+                                        <div class="flex items-center justify-between bg-gray-100 rounded-lg p-3">
+
+                                            <div>
+                                                <div class="font-medium">
+                                                    {{ $h['label'] }}
+                                                </div>
+
+                                                <div class="text-xs text-gray-500">
+                                                    Pitch: {{ $h['pitch'] }},
+                                                    Yaw: {{ $h['yaw'] }}
+                                                </div>
+                                            </div>
+
+                                            <div class="flex gap-2">
+
+                                                <x-button
+                                                    xs
+                                                    icon="pencil"
+                                                    amber
+                                                    wire:click="editHotspot({{ $i }})"
+                                                />
+
+                                                <x-button
+                                                    xs
+                                                    icon="trash"
+                                                    red
+                                                    wire:click="deleteHotspot({{ $i }})"
+                                                />
+
+                                            </div>
+                                        </div>
+
+                                    @endforeach
+
+                                </div>
+                            </div>
+
+                        </div>
+                    @endif
+                </div>
 
                 {{-- SAVE --}}
-                <x-button class="mt-4" primary label="Save Tour" wire:click="saveTour" />
-
+                <x-slot name="footer" class="flex justify-end gap-x-4">
+                    <x-button flat label="Cancel" @click="closeModal()" x-on:click="close" wire:click="reloadWeb" />
+                    <x-button primary label="Save Tour" wire:click="saveTour" />
+                </x-slot>
             </x-card>
+
+            <script>
+                document.addEventListener('alpine:init', () => {
+
+                Alpine.data('panoramaEditor', () => ({
+
+                    viewer: null,
+                    hotspotMode: false,
+
+                    init() {
+
+                        this.renderViewer();
+                        this.injectHotspotButton();
+
+                        // 🔥 FIX: react to scene change
+                        this.$watch(() => @this.activeScene, () => {
+                            this.hotspotMode = false;
+                            this.renderViewer();
+                            this.injectHotspotButton();
+                        });
+
+                        // 🔥 FIX: react to scenes updates (uploads / edits)
+                        this.$watch(() => @this.scenes, () => {
+                            this.renderViewer();
+                            this.injectHotspotButton();
+                        });
+                    },
+
+                    renderViewer() {
+
+                        const scenes = @this.scenes;
+                        const active = @this.activeScene;
+                        const scene = scenes?.[active];
+
+                        if (!scene || !scene.preview) return;
+
+                        const el = this.$refs.viewer;
+
+                        // 🔥 HARD RESET OLD INSTANCE
+                        if (this.viewer) {
+                            try { this.viewer.destroy(); } catch (e) {}
+                            this.viewer = null;
+                        }
+
+                        el.innerHTML = '';
+
+                        this.viewer = pannellum.viewer(el, {
+                            type: 'equirectangular',
+                            panorama: scene.preview,
+                            autoLoad: true,
+                            showControls: true,
+                            hotSpots: (scene.hotspots || []).map(h => ({
+                                pitch: Number(h.pitch),
+                                yaw: Number(h.yaw),
+                                type: 'info',
+                                text: h.label
+                            }))
+                        });
+
+                        this.bindClick();
+                    },
+
+                    injectHotspotButton() {
+
+                        const check = () => {
+
+                            const container = this.$refs.viewer?.querySelector('.pnlm-render-container');
+                            if (!container) return setTimeout(check, 200);
+
+                            let overlay = container.querySelector('.hotspot-overlay');
+
+                            if (!overlay) {
+                                overlay = document.createElement('div');
+                                overlay.className = 'hotspot-overlay';
+                                container.style.position = 'relative';
+                                container.appendChild(overlay);
+                            }
+
+                            if (overlay.querySelector('.hotspot-btn')) return;
+
+                            const btn = document.createElement('button');
+                            btn.innerHTML = '➕ Hotspot';
+                            btn.className = 'hotspot-btn';
+
+                            btn.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                // toggle state
+                                this.hotspotMode = !this.hotspotMode;
+
+                                // update UI via class (NOT inline style)
+                                btn.classList.toggle('active', this.hotspotMode);
+
+                                console.log('HOTSPOT MODE:', this.hotspotMode);
+                            });
+
+                            overlay.appendChild(btn);
+                        };
+
+                        setTimeout(check, 500);
+                    },
+
+                    bindClick() {
+
+                        const container = this.viewer?.getContainer();
+                        if (!container) return;
+
+                        // 🔥 REMOVE OLD HANDLER SAFELY
+                        container.onclick = null;
+
+                        container.addEventListener('click', (event) => {
+
+                            if (!this.hotspotMode) return;
+
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            const coords = this.viewer.mouseEventToCoords(event);
+                            if (!coords) return;
+
+                            this.hotspotMode = false;
+
+                            const btn = this.$el.querySelector('.hotspot-btn');
+                            if (btn) btn.classList.remove('active');
+
+                            @this.call('prepareHotspot', coords[0], coords[1]);
+                        }, true);
+                    }
+
+                }));
+
+                });
+            </script>
         </x-modal>
+        
 
         {{-- VIEW TOUR --}}
-
         <x-modal blur name="viewTour" max-width="6xl" persistent>
             <x-card title="Virtual Tour Viewer">
 
+                
                 <div
                     x-data="tourViewer()"
                     x-init="setScenes(@js($viewScenes ?? [])); init()"
                     class="relative w-full h-[500px]"
                 >
-                    
-                    <!-- Scene Buttons -->
-                    {{-- <div class="flex gap-2 mb-3">
-                        <template x-for="(scene, index) in scenes" :key="scene.id">
-                            <button
-                                class="px-3 py-1 rounded bg-gray-200"
-                                @click="loadScene(index)"
-                                x-text="'Scene ' + (index + 1)"
-                            ></button>
-                        </template>
-                    </div> --}}
-
                     <!-- Viewer -->
-                    <div x-ref="viewer" class="w-full h-[100%] bg-black rounded"></div>
-
+                    <div x-show="scenes.length > 0" x-ref="viewer" class="w-full h-[100%] bg-transparent rounded"></div>
+                    
+                    <!-- No tour fallback -->
+                    <template x-if="scenes.length === 0">
+                        <div class="w-full h-[500px] flex items-center justify-center text-gray-500">
+                            No Virtual Tour Yet
+                        </div>
+                    </template>    
                 </div>
-            
+                <x-slot name="footer" class="flex justify-end gap-x-4">
+                    <x-button flat label="Close" @click="closeModal()" x-on:click="close" wire:click="reloadWeb" />
+                </x-slot>
             </x-card>
         </x-modal>
     </div>
@@ -926,6 +1234,7 @@
 
     </script>
 
+    {{-- LOT 360 PREVIEW --}}
     <script>
 
         function initLotTooltip() {
@@ -939,50 +1248,6 @@
             const img = document.getElementById('map-image');
 
             if (!img || !tooltip) return;
-
-            // function show(area, e) {
-
-            //     const panoContainer = document.getElementById('tooltip-panorama');
-            //     panoContainer.innerHTML = "";
-
-            //     tName.textContent = area.dataset.name ?? 'No Name';
-            //     tType.textContent = area.dataset.type ?? 'No Type';
-            //     tCoords.textContent = area.dataset.coords ?? '';
-                
-            //     // if (area.dataset.image) {
-
-            //     //     tImage.onload = () => {
-            //     //         tImage.style.display = "block";
-            //     //     };
-
-            //     //     tImage.onerror = () => {
-            //     //         tImage.style.display = "none";
-            //     //     };
-
-            //     //     tImage.src = area.dataset.image;
-
-            //     // } else {
-            //     //     tImage.removeAttribute('src');
-            //     //     tImage.style.display = "none";
-            //     // }
-
-            //     tooltip.classList.remove('hidden');
-
-            //     requestAnimationFrame(() => {
-
-            //         const panoContainer = document.getElementById('tooltip-panorama');
-            //         panoContainer.innerHTML = "";
-
-            //         pannellum.viewer(panoContainer, {
-            //             type: "equirectangular",
-            //             panorama: area.dataset.image,
-            //             autoLoad: true,
-            //             showControls: false
-            //         });
-
-            //     });
-            //     move(e);
-            // }
 
             function show(area, e) {
 
@@ -998,7 +1263,7 @@
                 // 👇 IMPORTANT: wait for layout BEFORE initializing pannellum
                 requestAnimationFrame(() => {
 
-                    pannellum.viewer(panoContainer, {
+                    tooltipViewer = pannellum.viewer(panoContainer, {
                         type: "equirectangular",
                         panorama: area.dataset.image,
                         autoLoad: true,
@@ -1070,17 +1335,6 @@
                 tooltip.classList.add('hidden');
             }
 
-            // function bind() {
-
-            //     document.querySelectorAll('area').forEach(area => {
-
-            //         area.addEventListener('mouseenter', (e) => show(area, e));
-            //         area.addEventListener('mousemove', (e) => move(e));
-            //         area.addEventListener('mouseleave', hide);
-
-            //     });
-
-            // }
             function bind() {
                 let activeArea = null;
 
@@ -1136,50 +1390,52 @@
 
     </script>
 
-    <script>
-    document.addEventListener('livewire:init', () => {
+    {{-- HOTSPOTS TOUR SCRIPT  --}}
+    {{-- <script>
+        document.addEventListener('livewire:init', () => {
 
-        let viewer = null;
+            let viewer = null;
 
-        function load(image) {
+            function load(image) {
 
-            setTimeout(() => {
+                setTimeout(() => {
 
-                const container = document.getElementById('panorama');
-                if (!container || !image) return;
+                    const container = document.getElementById('panorama');
+                    if (!container || !image) return;
 
-                if (viewer) {
-                    viewer.destroy();
-                    viewer = null;
-                }
+                    if (viewer) {
+                        viewer.destroy();
+                        viewer = null;
+                    }
 
-                container.innerHTML = "";
+                    container.innerHTML = "";
 
-                viewer = pannellum.viewer(container, {
-                    type: "equirectangular",
-                    panorama: image,
-                    autoLoad: true,
-                    showControls: true
-                });
-
-                viewer.on('mousedown', function (e) {
-                    Livewire.dispatch('open-hotspot', {
-                        pitch: e.pitch,
-                        yaw: e.yaw
+                    viewer = pannellum.viewer(container, {
+                        type: "equirectangular",
+                        panorama: image,
+                        autoLoad: true,
+                        showControls: true
                     });
-                });
 
-            }, 50); // 🔥 ensures modal + DOM is ready
-        }
+                    viewer.on('mousedown', function (e) {
+                        Livewire.dispatch('open-hotspot', {
+                            pitch: e.pitch,
+                            yaw: e.yaw
+                        });
+                    });
 
-        Livewire.on('load-panorama', (data) => {
-            if (!data.image) return;
-            load(data.image);
+                }, 50); // 🔥 ensures modal + DOM is ready
+            }
+
+            Livewire.on('load-panorama', (data) => {
+                if (!data.image) return;
+                load(data.image);
+            });
+
         });
+    </script> --}}
 
-    });
-    </script>
-
+   {{-- VIEW TOUR SCRIPT  --}}
     <script>
         document.addEventListener('alpine:init', () => {
 
@@ -1199,66 +1455,6 @@
                     }
                 },
 
-                // buildHotspots(scene) {
-
-                //     return (scene.hotspots || []).map(h => ({
-
-                //         pitch: Number(h.pitch),
-                //         yaw: Number(h.yaw),
-
-                //         type: "custom",
-
-                //         createTooltipArgs: {
-                //             text: h.label
-                //         },
-
-                //         createTooltipFunc: (hotSpotDiv, args) => {
-
-                //             hotSpotDiv.innerHTML = `
-                //                 <button
-                //                     style="
-                //                         background:#2563eb;
-                //                         color:white;
-                //                         border:none;
-                //                         border-radius:999px;
-                //                         padding:10px 14px;
-                //                         font-size:13px;
-                //                         font-weight:600;
-                //                         cursor:pointer;
-                //                         box-shadow:0 4px 12px rgba(0,0,0,0.35);
-                //                         transition:all .2s ease;
-                //                         white-space:nowrap;
-                //                     "
-                //                     onmouseover="
-                //                         this.style.transform='scale(1.08)';
-                //                         this.style.background='#1d4ed8';
-                //                     "
-                //                     onmouseout="
-                //                         this.style.transform='scale(1)';
-                //                         this.style.background='#2563eb';
-                //                     "
-                //                 >
-                //                     ${args.text}
-                //                 </button>
-                //             `;
-
-                //             hotSpotDiv.style.transform = "translate(-50%, -50%)";
-                //         },
-
-                //         clickHandlerFunc: () => {
-
-                //             const idx = this.scenes.findIndex(
-                //                 s => s.id === h.target_scene_id
-                //             );
-
-                //             if (idx !== -1) {
-                //                 this.loadScene(idx);
-                //             }
-                //         }
-
-                //     }));
-                // },
-
                 buildHotspots(scene) {
 
                     return (scene.hotspots || []).map(h => ({
@@ -1270,22 +1466,45 @@
 
                         createTooltipFunc: (hotSpotDiv) => {
 
+                            const wrapper = document.createElement("div");
+
+                            wrapper.style.position = "relative";
+                            wrapper.style.display = "inline-flex";
+                            wrapper.style.alignItems = "center";
+                            wrapper.style.justifyContent = "center";
+
+                            
+                            const ping = document.createElement("div");
+
+                            Object.assign(ping.style, {
+                                position: "absolute",
+                                inset: "-10px",                 
+                                borderRadius: "9999px",
+                                background: "rgba(37, 99, 235, 0.25)",
+                                animation: "hotspot-ping 1.6s ease-out infinite",
+                                zIndex: "0"
+                            });
+
                             const button = document.createElement("button");
 
                             button.innerText = h.label;
 
-                            button.style.background = "#2563eb";
-                            button.style.color = "white";
-                            button.style.border = "none";
-                            button.style.borderRadius = "999px";
-                            button.style.padding = "10px 14px";
-                            button.style.fontSize = "13px";
-                            button.style.fontWeight = "600";
-                            button.style.cursor = "pointer";
-                            button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.35)";
-                            button.style.whiteSpace = "nowrap";
+                            Object.assign(button.style, {
+                                position: "relative",
+                                zIndex: "2",
+                                background: "#2563eb",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "999px",
+                                padding: "10px 14px",
+                                fontSize: "13px",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
+                                whiteSpace: "nowrap",
+                                transition: "transform .2s ease, background .2s ease"
+                            });
 
-                            // hover
                             button.onmouseover = () => {
                                 button.style.transform = "scale(1.08)";
                                 button.style.background = "#1d4ed8";
@@ -1296,27 +1515,23 @@
                                 button.style.background = "#2563eb";
                             };
 
-                            // 🔥 ACTUAL SCENE SWITCH
                             button.onclick = (e) => {
-
                                 e.stopPropagation();
 
                                 const idx = this.scenes.findIndex(
                                     s => s.id === h.target_scene_id
                                 );
 
-                                console.log("TARGET:", h.target_scene_id);
-                                console.log("FOUND INDEX:", idx);
-
                                 if (idx !== -1) {
                                     this.loadScene(idx);
                                 }
                             };
 
-                            hotSpotDiv.appendChild(button);
+                            wrapper.appendChild(ping);
+                            wrapper.appendChild(button);
+                            hotSpotDiv.appendChild(wrapper);
 
-                            hotSpotDiv.style.transform =
-                                "translate(-50%, -50%)";
+                            hotSpotDiv.style.transform = "translate(-50%, -50%)";
                         }
 
                     }));
@@ -1331,29 +1546,53 @@
 
                     const container = this.$refs.viewer;
 
-                    if (this.viewer) {
-                        try { this.viewer.destroy(); } catch (e) {}
-                        this.viewer = null;
-                    }
+                    const fade = document.createElement("div");
+                    fade.style.position = "absolute";
+                    fade.style.top = 0;
+                    fade.style.left = 0;
+                    fade.style.width = "100%";
+                    fade.style.height = "100%";
+                    fade.style.background = "black";
+                    fade.style.opacity = "0";
+                    fade.style.transition = "opacity 300ms ease";
+                    fade.style.zIndex = "9999";
 
-                    container.innerHTML = "";
+                    container.style.position = "relative";
+                    container.appendChild(fade);
 
-                    this.$nextTick(() => {
-                        requestAnimationFrame(() => {
-
-                            this.viewer = pannellum.viewer(container, {
-                                type: "equirectangular",
-                                panorama: scene.image,
-                                autoLoad: true,
-                                showControls: true,
-                                hotSpots: this.buildHotspots(scene)
-                            });
-
-                        });
+                    requestAnimationFrame(() => {
+                        fade.style.opacity = "1";
                     });
+
+                    setTimeout(() => {
+
+                        if (this.viewer) {
+                            try { this.viewer.destroy(); } catch (e) {}
+                            this.viewer = null;
+                        }
+
+                        container.innerHTML = "";
+
+                        this.viewer = pannellum.viewer(container, {
+                            type: "equirectangular",
+                            panorama: scene.image,
+                            autoLoad: true,
+                            showControls: true,
+                            hotSpots: this.buildHotspots(scene)
+                        });
+
+                        requestAnimationFrame(() => {
+                            fade.style.opacity = "0";
+                        });
+
+                        setTimeout(() => fade.remove(), 300);
+
+                    }, 250);
                 }
             }));
 
         });
     </script>
+
+    
 </div>

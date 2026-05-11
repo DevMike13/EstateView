@@ -9,6 +9,7 @@ use App\Models\TourHotSpot;
 use App\Models\TourScene;
 use App\Models\VirtualTour;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Illuminate\Support\Str;
@@ -87,15 +88,17 @@ class MapManagementPage extends Component
     public $newSceneName = '';
     public $activeScene = 0;
 
+    public $editingHotspot = null;
+
     // hotspot temp
-    public $tempPitch;
-    public $tempYaw;
-    public $tempLabel;
+    public $tempLabel = '';
+    public $tempPitch = null;
+    public $tempYaw = null;
     public $tempTargetScene = null;
     
     public $showHotspotForm = false;
-    public $hotspotX;
-    public $hotspotY;
+    // public $hotspotX;
+    // public $hotspotY;
     public $hotspotLabel;
 
     public $viewScenes = [];
@@ -353,28 +356,81 @@ class MapManagementPage extends Component
         $this->activeScene = count($this->scenes) - 1;
     }
 
-    public function startHotspot($x, $y)
-    {
-        $this->hotspotX = $x;
-        $this->hotspotY = $y;
-        $this->hotspotLabel = '';
-        $this->showHotspotForm = true;
-    }
+    // public function saveHotspot()
+    // {
+    //     $this->validate([
+    //         'tempLabel' => 'required|string|max:255',
+    //         'tempTargetScene' => 'required|integer',
+    //     ]);
 
-    public function saveInlineHotspot()
+    //     $data = [
+    //         'pitch' => $this->tempPitch,
+    //         'yaw' => $this->tempYaw,
+    //         'label' => $this->tempLabel,
+    //         'target_index' => (int) $this->tempTargetScene,
+    //     ];
+
+    //     // EDIT
+    //     if ($this->editingHotspot !== null) {
+
+    //         $this->scenes[$this->activeScene]['hotspots'][$this->editingHotspot] = $data;
+
+    //     } else {
+
+    //         $this->scenes[$this->activeScene]['hotspots'][] = $data;
+    //     }
+
+    //     $this->resetHotspotForm();
+    // }
+
+    public function saveHotspot()
     {
         $this->validate([
-            'hotspotLabel' => 'required|string|max:255',
+            'tempLabel' => 'required|string|max:255',
         ]);
 
         $this->scenes[$this->activeScene]['hotspots'][] = [
-            'x' => $this->hotspotX,
-            'y' => $this->hotspotY,
-            'label' => $this->hotspotLabel,
+            'label' => $this->tempLabel,
+            'pitch' => $this->tempPitch,
+            'yaw' => $this->tempYaw,
+            'target_index' => $this->tempTargetScene,
         ];
 
+        $this->resetHotspotForm();
+    }
+
+    public function resetHotspotForm()
+    {
+        $this->reset([
+            'tempLabel',
+            'tempPitch',
+            'tempYaw',
+            'tempTargetScene',
+        ]);
+
         $this->showHotspotForm = false;
-        $this->hotspotLabel = null;
+    }
+
+    public function editHotspot($index)
+    {
+        $hotspot = $this->scenes[$this->activeScene]['hotspots'][$index];
+
+        $this->editingHotspot = $index;
+
+        $this->tempPitch = $hotspot['pitch'];
+        $this->tempYaw = $hotspot['yaw'];
+        $this->tempLabel = $hotspot['label'];
+        $this->tempTargetScene = $hotspot['target_index'];
+
+        $this->showHotspotForm = true;
+    }
+
+    public function deleteHotspot($index)
+    {
+        unset($this->scenes[$this->activeScene]['hotspots'][$index]);
+
+        $this->scenes[$this->activeScene]['hotspots'] =
+            array_values($this->scenes[$this->activeScene]['hotspots']);
     }
 
     public function setActiveScene($index)
@@ -394,51 +450,52 @@ class MapManagementPage extends Component
 
     public function updatedScenes($value, $key)
     {
-        // $key example: "0.file"
         [$index, $field] = explode('.', $key);
 
         if ($field === 'file' && isset($this->scenes[$index]['file'])) {
 
+            $this->validate([
+                'scenes.*.file' => 'image|max:51200',
+            ]);
             $this->scenes[$index]['preview'] =
                 $this->scenes[$index]['file']->temporaryUrl();
 
-            // 🔥 send to frontend immediately
-            $this->dispatch('load-panorama', [
-                'image' => $this->scenes[$index]['preview']
+             $this->dispatch('init-editor-scenes', [
+                'scenes' => $this->scenes,
+                'activeScene' => $this->activeScene
             ]);
         }
     }
 
-    #[On('open-hotspot')]
-    public function openHotspot($pitch, $yaw)
+    public function prepareHotspot($pitch, $yaw)
     {
         $this->tempPitch = $pitch;
         $this->tempYaw = $yaw;
+
         $this->tempLabel = '';
         $this->tempTargetScene = null;
 
-        $this->dispatch('open-modal', name: 'hotspotModal');
+        $this->showHotspotForm = true;
     }
 
-    public function saveHotspot()
+    #[On('open-hotspot')]
+    public function openHotspot($pitch, $yaw, $scene): void
     {
-        $this->validate([
-            'tempLabel' => 'required|string|max:255',
-            'tempTargetScene' => 'required|integer',
+        Log::info('🔥 openHotspot TRIGGERED', [
+            'pitch' => $pitch,
+            'yaw' => $yaw,
+            'scene' => $scene,
         ]);
 
-        $this->scenes[$this->activeScene]['hotspots'][] = [
-            'pitch' => $this->tempPitch,
-            'yaw' => $this->tempYaw,
-            'label' => $this->tempLabel,
-            'target_index' => (int) $this->tempTargetScene,
-        ];
+        $this->tempPitch = (float) $pitch;
+        $this->tempYaw = (float) $yaw;
+        $this->activeScene = (int) $scene;
 
-        $this->reset([
-            'tempPitch',
-            'tempYaw',
-            'tempLabel',
-            'tempTargetScene'
+        $this->showHotspotForm = true;
+
+        Log::info('🔥 hotspot form state updated', [
+            'showHotspotForm' => $this->showHotspotForm,
+            'activeScene' => $this->activeScene,
         ]);
     }
 
@@ -505,8 +562,8 @@ class MapManagementPage extends Component
                 TourHotSpot::create([
                     'scene_id' => $dbScene->id,
                     'label' => $hotspot['label'],
-                    'pitch' => $hotspot['x'],
-                    'yaw' => $hotspot['y'],
+                    'pitch' => $hotspot['pitch'],
+                    'yaw' => $hotspot['yaw'],
                     'target_scene_id' => $targetSceneId,
                 ]);
             }
@@ -565,11 +622,38 @@ class MapManagementPage extends Component
     //     ]);
     // }
 
+    // public function viewHouseTour($id)
+    // {
+    //     $house = HouseModel::with('virtualTour.scenes.hotspots')->findOrFail($id);
+
+    //     $this->viewScenes = $house->virtualTour->scenes->map(fn ($scene) => [
+    //         'id' => $scene->id,
+    //         'name' => $scene->name,
+    //         'image' => asset('storage/' . $scene->image),
+    //         'hotspots' => $scene->hotspots->map(fn ($h) => [
+    //             'pitch' => $h->pitch,
+    //             'yaw' => $h->yaw,
+    //             'label' => $h->label,
+    //             'target_scene_id' => $h->target_scene_id,
+    //         ])->toArray(),
+    //     ])->values()->toArray();
+
+    //     $this->dispatch('open-viewer-modal');
+    // }
+
     public function viewHouseTour($id)
     {
         $house = HouseModel::with('virtualTour.scenes.hotspots')->findOrFail($id);
 
-        $this->viewScenes = $house->virtualTour->scenes->map(fn ($scene) => [
+        $tour = $house->virtualTour;
+
+        if (!$tour || !$tour->scenes || $tour->scenes->isEmpty()) {
+            $this->viewScenes = []; // important
+            $this->dispatch('open-viewer-modal');
+            return;
+        }
+
+        $this->viewScenes = $tour->scenes->map(fn ($scene) => [
             'id' => $scene->id,
             'name' => $scene->name,
             'image' => asset('storage/' . $scene->image),
@@ -583,7 +667,7 @@ class MapManagementPage extends Component
 
         $this->dispatch('open-viewer-modal');
     }
-
+    
     public function setViewScene($sceneId)
     {
         $this->dispatch('switch-view-scene', sceneId: $sceneId);
@@ -692,6 +776,13 @@ class MapManagementPage extends Component
 
         $this->dispatch('refreshMap');
         $this->dispatch('reload');
+    }
+
+    public function reloadWeb(){
+
+        $this->dispatch('reload');
+        return redirect()->back();
+
     }
 
     public function render()

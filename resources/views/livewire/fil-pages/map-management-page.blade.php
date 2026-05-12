@@ -63,107 +63,113 @@
                 <x-button icon="plus" primary label="Add Model" x-on:click="$openModal('newModelHouse')" />
             </div>
         </div>
+        @if ($houseModels->count())
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4">
+                @foreach($houseModels as $model)
+                    <div class="flex flex-col bg-card border border-card-line shadow-2xs rounded-xl">
+                        <img 
+                            class="w-full h-48 object-cover rounded-t-xl" 
+                            src="{{ $model->image 
+                            ? asset('storage/' . $model->image) 
+                            : 'https://images.unsplash.com/photo-1680868543815-b8666dba60f7' }}" 
+                            alt="{{ $model->model_name }}"
+                        >
+                        <div class="p-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-semibold text-foreground">
+                                    {{ $model->model_name }}
+                                </h3>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4">
-            @foreach($houseModels as $model)
-                <div class="flex flex-col bg-card border border-card-line shadow-2xs rounded-xl">
-                    <img 
-                        class="w-full h-48 object-cover rounded-t-xl" 
-                        src="{{ $model->image 
-                        ? asset('storage/' . $model->image) 
-                        : 'https://images.unsplash.com/photo-1680868543815-b8666dba60f7' }}" 
-                        alt="{{ $model->model_name }}"
-                    >
-                    <div class="p-4">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-semibold text-foreground">
-                                {{ $model->model_name }}
-                            </h3>
-
-                            <div>
-                                <x-button.circle xs onclick="$openModal('editModelHouse')" wire:click="getSelectedModelHouse({{$model->id}})" icon="pencil" />
-                                <x-button.circle 
-                                    xs 
-                                    wire:click="deleteModelHouseConfirmation({{$model->id}}, '{{$model->model_name}}')" 
-                                    negative icon="trash" 
-                                />
+                                <div>
+                                    <x-button.circle xs onclick="$openModal('editModelHouse')" wire:click="getSelectedModelHouse({{$model->id}})" icon="pencil" />
+                                    <x-button.circle 
+                                        xs 
+                                        wire:click="deleteModelHouseConfirmation({{$model->id}}, '{{$model->model_name}}')" 
+                                        negative icon="trash" 
+                                    />
+                                </div>
                             </div>
-                        </div>
-                       
-                        <p class="my-2 text-sm text-muted-foreground-1">
-                            {{ $model->floor_area }} sqm
-                        </p>
-
-                        <div class="flex justify-start items-center gap-3">
-                            <div class="flex items-center gap-1 text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" 
-                                    viewBox="0 0 512 512" 
-                                    class="w-4 h-4 text-gray-500">
-
-                                    <path d="M384 240H96V136a40.12 40.12 0 0140-40h240a40.12 40.12 0 0140 40v104zM48 416V304a64.19 64.19 0 0164-64h288a64.19 64.19 0 0164 64v112" 
-                                        fill="none" stroke="currentColor" stroke-linecap="round" 
-                                        stroke-linejoin="round" stroke-width="32"/>
-
-                                    <path d="M48 416v-8a24.07 24.07 0 0124-24h368a24.07 24.07 0 0124 24v8M112 240v-16a32.09 32.09 0 0132-32h80a32.09 32.09 0 0132 32v16M256 240v-16a32.09 32.09 0 0132-32h80a32.09 32.09 0 0132 32v16" 
-                                        fill="none" stroke="currentColor" stroke-linecap="round" 
-                                        stroke-linejoin="round" stroke-width="32"/>
-                                </svg>
-
-                                <span class="text-xs">{{ $model->bedrooms }} Bedrooms</span>
-                            </div>
-                            •
-                            <div class="flex items-center gap-2 text-sm text-gray-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" 
-                                    viewBox="0 0 512 512" 
-                                    class="w-4 h-4 text-gray-500">
-
-                                    <path d="M96 192V96a32 32 0 0132-32h256a32 32 0 0132 32v96" 
-                                        fill="none" stroke="currentColor" stroke-linecap="round" 
-                                        stroke-linejoin="round" stroke-width="32"/>
-
-                                    <path d="M64 224h384v64a96 96 0 01-96 96H160a96 96 0 01-96-96v-64z" 
-                                        fill="none" stroke="currentColor" stroke-linejoin="round" 
-                                        stroke-width="32"/>
-
-                                    <path d="M112 384v48M400 384v48M160 224v-32M352 224v-32" 
-                                        fill="none" stroke="currentColor" stroke-linecap="round" 
-                                        stroke-linejoin="round" stroke-width="32"/>
-
-                                </svg>
-
-                                <span class="text-xs">{{ $model->bathrooms }} Bathrooms</span>
-                            </div>
-                        </div>
                         
-                        <hr class="my-5">
+                            <p class="my-2 text-sm text-muted-foreground-1">
+                                {{ $model->floor_area }} sqm
+                            </p>
 
-                        <p class="text-muted-foreground-1 font-semibold text-lg">
-                            ₱{{ number_format($model->price, 2) }}
-                        </p>
-                        
+                            <div class="flex justify-start items-center gap-3">
+                                <div class="flex items-center gap-1 text-sm text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" 
+                                        viewBox="0 0 512 512" 
+                                        class="w-4 h-4 text-gray-500">
+
+                                        <path d="M384 240H96V136a40.12 40.12 0 0140-40h240a40.12 40.12 0 0140 40v104zM48 416V304a64.19 64.19 0 0164-64h288a64.19 64.19 0 0164 64v112" 
+                                            fill="none" stroke="currentColor" stroke-linecap="round" 
+                                            stroke-linejoin="round" stroke-width="32"/>
+
+                                        <path d="M48 416v-8a24.07 24.07 0 0124-24h368a24.07 24.07 0 0124 24v8M112 240v-16a32.09 32.09 0 0132-32h80a32.09 32.09 0 0132 32v16M256 240v-16a32.09 32.09 0 0132-32h80a32.09 32.09 0 0132 32v16" 
+                                            fill="none" stroke="currentColor" stroke-linecap="round" 
+                                            stroke-linejoin="round" stroke-width="32"/>
+                                    </svg>
+
+                                    <span class="text-xs">{{ $model->bedrooms }} Bedrooms</span>
+                                </div>
+                                •
+                                <div class="flex items-center gap-2 text-sm text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" 
+                                        viewBox="0 0 512 512" 
+                                        class="w-4 h-4 text-gray-500">
+
+                                        <path d="M96 192V96a32 32 0 0132-32h256a32 32 0 0132 32v96" 
+                                            fill="none" stroke="currentColor" stroke-linecap="round" 
+                                            stroke-linejoin="round" stroke-width="32"/>
+
+                                        <path d="M64 224h384v64a96 96 0 01-96 96H160a96 96 0 01-96-96v-64z" 
+                                            fill="none" stroke="currentColor" stroke-linejoin="round" 
+                                            stroke-width="32"/>
+
+                                        <path d="M112 384v48M400 384v48M160 224v-32M352 224v-32" 
+                                            fill="none" stroke="currentColor" stroke-linecap="round" 
+                                            stroke-linejoin="round" stroke-width="32"/>
+
+                                    </svg>
+
+                                    <span class="text-xs">{{ $model->bathrooms }} Bathrooms</span>
+                                </div>
+                            </div>
+                            
+                            <hr class="my-5">
+
+                            <p class="text-muted-foreground-1 font-semibold text-lg">
+                                ₱{{ number_format($model->price, 2) }}
+                            </p>
+                            
+                        </div>
+
+                        <x-button 
+                            class="mb-3 mx-auto w-[90%]"
+                            icon="viewfinder-circle" 
+                            rounded 
+                            positive 
+                            label="Create Virtual Tour" 
+                            wire:click="selectHouseModel({{ $model->id }})"
+                            x-on:click="$openModal('createVirtualTour')"
+                        />
+
+                        <x-button 
+                            class="mb-3 mx-auto w-[90%]"
+                            icon="eye" 
+                            rounded  
+                            label="Show Virtual Tour" 
+                            wire:click="viewHouseTour({{ $model->id }})"
+                            x-on:click="$openModal('viewTour')"
+                        />
                     </div>
-
-                    <x-button 
-                        class="mb-3 mx-auto w-[90%]"
-                        icon="viewfinder-circle" 
-                        rounded 
-                        positive 
-                        label="Create Virtual Tour" 
-                        wire:click="selectHouseModel({{ $model->id }})"
-                        x-on:click="$openModal('createVirtualTour')"
-                    />
-
-                    <x-button 
-                        class="mb-3 mx-auto w-[90%]"
-                        icon="eye" 
-                        rounded  
-                        label="Show Virtual Tour" 
-                        wire:click="viewHouseTour({{ $model->id }})"
-                        x-on:click="$openModal('viewTour')"
-                    />
-                </div>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
+        @else
+            <div class="col-span-3 text-center py-10 text-gray-500 border-2 border-dashed rounded-lg">
+                <p class="italic text-gray-400">No house models found.</p>
+            </div>
+        @endif
+        
 
         {{-- CREATE MODEL HOUSE --}}
         <x-modal blur name="newModelHouse" persistent align="center" max-width="xl">

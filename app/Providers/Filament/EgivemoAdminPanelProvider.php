@@ -27,6 +27,7 @@ class EgivemoAdminPanelProvider extends PanelProvider
             ->id('ev-admin')
             ->path('ev-admin')
             ->brandLogo(fn () => view('filament.admin.logo'))
+            // ->brandLogo(asset('images/estate-view-logo.png'))
             ->login()
             // ->registration()
             ->profile()

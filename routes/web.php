@@ -6,6 +6,7 @@ use App\Livewire\Auth\AccountVerification;
 use App\Livewire\Auth\ForgotPasswordPage;
 use App\Livewire\Auth\LoginPage;
 use App\Livewire\Auth\RegisterPage;
+use App\Livewire\Auth\ResendVerificationPage;
 use App\Livewire\Auth\ResetPasswordPage;
 use App\Livewire\Client\TermsAndCondition;
 use App\Livewire\ContactPage;
@@ -36,6 +37,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/reset/{token}', ResetPasswordPage::class)->name('password.reset');
     Route::get('/activate-account/{token}', AccountActivationPage::class)->name('activate-account');
     Route::get('/account-verification/{user_id}', AccountVerification::class)->name('account.verify');
+    Route::get('/account/resend-verification', ResendVerificationPage::class)->name('account.resend-verification');
     
 });
 

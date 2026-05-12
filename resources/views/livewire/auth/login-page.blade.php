@@ -53,6 +53,7 @@
                 <p class="text-gray-500">Don't have an account?</p>
                 <a href="{{ route('register') }}">Sign up here</a>
             </div>
+            <a href="{{ route('account.resend-verification') }}" class="mt-2 mx-auto">Haven’t verified yet?</a>
         </div>
         <div class="mx-auto">
             <a href="/" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-white text-black disabled:opacity-50 disabled:pointer-events-none">

@@ -15,27 +15,12 @@ class AccountSeeder extends Seeder
     public function run(): void
     {
         User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@admin.com',
-            'password' => Hash::make('admin@2024'),
+            'name' => 'EstateView Admin',
+            'email' => 'estateview@gmail.com',
+            'password' => Hash::make('estateview@2026'),
             'is_verified' => true,
+            'is_active' => true,
             'role' => 'admin',
-        ]);
-
-        User::create([
-            'name' => 'Secretary User',
-            'email' => 'secretary_1@secretary.com',
-            'password' => Hash::make('secretary@2024'),
-            'is_verified' => true,
-            'role' => 'secretary',
-        ]);
-
-        User::create([
-            'name' => 'Secretary User',
-            'email' => 'secretary_2@example.com',
-            'password' => Hash::make('secretary@2024'),
-            'is_verified' => true,
-            'role' => 'secretary',
         ]);
     }
 }

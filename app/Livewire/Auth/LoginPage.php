@@ -38,6 +38,29 @@ class LoginPage extends Component
             return;
         }
 
+        if (
+            auth()->user()->role === 'staff' &&
+            auth()->user()->is_active == false
+        ) {
+
+            auth()->logout();
+
+            $this->notification()->error(
+                $title = 'Error!',
+                $description = 'Your staff account is inactive. Please contact the administrator.'
+            );
+
+            return;
+        }
+
+        if (auth()->user()->role === 'admin') { 
+            return redirect()->route('filament.ev-admin.pages.dashboard');
+        }
+
+        if (auth()->user()->role === 'staff') { 
+            return redirect()->route('filament.ev-admin.pages.dashboard');
+        }
+
         return redirect()->intended();
     }
 

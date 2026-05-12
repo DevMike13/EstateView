@@ -29,6 +29,7 @@ class User extends Authenticatable
         'password',
         'otp', 
         'is_verified',
+        'is_active',
         'profile_picture'
     ];
 

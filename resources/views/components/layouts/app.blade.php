@@ -17,7 +17,13 @@
         <main>
             {{ $slot }}
         </main>
+        <x-dialog z-index="z-50" blur="md" align="center" />
         @livewire('partials.footer')
+        <script>
+            window.addEventListener('reload', event => {
+                window.location.reload();
+            })
+        </script>
         @livewireScripts
         @filepondScripts
         <script src="{{ asset('lodash-min.js') }}"></script>

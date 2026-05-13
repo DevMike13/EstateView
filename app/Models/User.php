@@ -55,4 +55,9 @@ class User extends Authenticatable
     public function info(): HasOne{
         return $this->hasOne(UserInfo::class);
     }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(ClientAppointment::class);
+    }
 }

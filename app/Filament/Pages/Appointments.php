@@ -9,4 +9,5 @@ class Appointments extends Page
     protected static ?string $navigationIcon = 'heroicon-o-calendar-date-range';
     protected static ?int $navigationSort = 4;
     protected static string $view = 'filament.pages.appointments';
+    protected ?string $subheading = 'Review and manage client appointments';
 }

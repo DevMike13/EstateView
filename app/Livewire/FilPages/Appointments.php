@@ -2,14 +2,23 @@
 
 namespace App\Livewire\FilPages;
 
+use App\Mail\AppointmentApprovedMail;
+use App\Mail\AppointmentCompletedMail;
+use App\Mail\AppointmentDeclinedMail;
 use App\Models\BlockedDate;
+use App\Models\ClientAppointment;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use WireUi\Traits\Actions;
 
 class Appointments extends Component
 {
     use Actions;
+
+    #[Url(as: 'tab')]
+    public $activeTab = 'pending';
 
     public $selectedDates = [];
     public $currentMonth;
@@ -19,6 +28,135 @@ class Appointments extends Component
         $this->currentMonth = Carbon::now()->startOfMonth();
     }
 
+    public function setTab($tab)
+    {
+        $this->activeTab = $tab;
+    }
+
+    public function getAppointmentsProperty()
+    {
+        return ClientAppointment::with('user.info')
+            ->where('status', $this->activeTab)
+            ->latest()
+            ->get();
+    }
+
+     public function getPendingCountProperty()
+    {
+        return ClientAppointment::where('status', 'pending')->count();
+    }
+
+    public function getApprovedCountProperty()
+    {
+        return ClientAppointment::where('status', 'approved')->count();
+    }
+
+    public function getCompletedCountProperty()
+    {
+        return ClientAppointment::where('status', 'completed')->count();
+    }
+
+    public function getDeclinedCountProperty()
+    {
+        return ClientAppointment::where('status', 'declined')->count();
+    }
+
+    // CHANGE STATUS
+    public function confirmApprove($id)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Approve Appointment?',
+            'description' => 'This will mark the appointment as approved.',
+            'acceptLabel' => 'Yes, approve',
+            'method' => 'approve',
+            'params' => $id,
+            'icon' => 'success',
+        ]);
+    }
+    public function approve($id)
+    {
+        $appointment = ClientAppointment::with('user')->findOrFail($id);
+
+        $appointment->update([
+            'status' => 'approved'
+        ]);
+
+        Mail::to($appointment->user->email)
+            ->send(new AppointmentApprovedMail($appointment));
+
+        $this->reloadWeb();
+    }
+
+    public function confirmDecline($id)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Decline Appointment?',
+            'description' => 'This will permanently mark it as declined.',
+            'acceptLabel' => 'Yes, decline',
+            'method' => 'decline',
+            'params' => $id,
+            'icon' => 'error',
+        ]);
+    }
+    public function decline($id)
+    {
+        $appointment = ClientAppointment::with('user')->findOrFail($id);
+
+        $appointment->update([
+            'status' => 'declined'
+        ]);
+
+        Mail::to($appointment->user->email)
+            ->send(new AppointmentDeclinedMail($appointment));
+
+        $this->reloadWeb();
+    }
+
+    public function confirmComplete($id)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Mark as Completed?',
+            'description' => 'This will move appointment to completed.',
+            'acceptLabel' => 'Yes, complete',
+            'method' => 'complete',
+            'params' => $id,
+            'icon' => 'success',
+        ]);
+    }
+    public function complete($id)
+    {
+        $appointment = ClientAppointment::with('user')->findOrFail($id);
+
+        $appointment->update([
+            'status' => 'completed'
+        ]);
+
+        Mail::to($appointment->user->email)
+            ->send(new AppointmentCompletedMail($appointment));
+
+        $this->reloadWeb();
+    }
+
+    public function confirmRestore($id)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Restore Appointment?',
+            'description' => 'This will move it back to pending.',
+            'acceptLabel' => 'Yes, restore',
+            'method' => 'restore',
+            'params' => $id,
+            'icon' => 'warning',
+        ]);
+    }
+    public function reopen($id)
+    {
+        ClientAppointment::findOrFail($id)->update([
+            'status' => 'pending'
+        ]);
+
+        $this->reloadWeb();
+    }
+    
     public function previousMonth()
     {
         $this->currentMonth = $this->currentMonth->copy()->subMonth();
@@ -117,6 +255,13 @@ class Appointments extends Component
             ->copy()
             ->startOfMonth()
             ->dayOfWeek;
+    }
+
+    public function reloadWeb(){
+
+        $this->dispatch('reload');
+        return redirect()->back();
+
     }
 
     public function render()

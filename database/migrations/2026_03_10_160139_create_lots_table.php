@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('map_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->text('coords'); // image map coordinates
+            $table->text('coords');
             $table->string('status')->default('available');
             $table->timestamps();
         });

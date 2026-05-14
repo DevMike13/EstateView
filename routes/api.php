@@ -12,7 +12,9 @@ use App\Livewire\Pages\CaseSubType;
 use App\Livewire\Pages\ClientPage;
 use App\Livewire\Pages\CourtPage;
 use App\Models\AppointmentsModel;
+use App\Models\HouseModel;
 use App\Models\PHRegions;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +38,42 @@ Route::get('/api/regions', [ApiController::class, 'getRegions'])->name('api.regi
 Route::get('/api/provinces', [ApiController::class, 'getProvinces'])->name('api.provinces.index');
 Route::get('/api/municipalities', [ApiController::class, 'getMunicipalities'])->name('api.municipalities.index');
 Route::get('/api/barangays', [ApiController::class, 'getBarangays'])->name('api.barangays.index');
+
+Route::get('/api/users', function (Request $request) {
+
+    return User::query()
+        ->when($request->search, function ($query, $search) {
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+        })
+        ->where('role', 'user')
+        ->select('id', 'name', 'email', 'profile_picture')
+        ->limit(20)
+        ->get();
+
+})->name('api.users.index');
+
+Route::get('/api/house-models', function (Request $request) {
+
+    return HouseModel::query()
+        ->when($request->search, function ($query, $search) {
+            $query->where('model_name', 'like', "%{$search}%");
+        })
+        ->select('id', 'model_name', 'price', 'floor_area', 'image')
+        ->limit(20)
+        ->get()
+        ->map(function ($model) {
+            return [
+                'id' => $model->id,
+                'name' => $model->model_name,
+                'description' => "₱{$model->price} • {$model->floor_area} sqm",
+                'image' => $model->image
+                    ? asset('storage/' . $model->image)
+                    : null,
+            ];
+        });
+
+})->name('api.house-models.index');
 
 // EDIT CLIENT
 Route::get('/api/client/regions', [ApiController::class, 'getRegions'])->name('api.regions.client');

@@ -26,14 +26,6 @@ class MapManagementPage extends Component
     // LOT MANAGEMENT
     public $map;
     public $lots;
-
-    public $lotName;
-    public $lotType;
-    public $lotImage;
-
-    public $lotCoordinates = '';
-    public $points = [];
-
     public $lotCounts = [];
     // LOT MANEGEMENT END
 
@@ -581,66 +573,6 @@ class MapManagementPage extends Component
         return redirect()->back();
     }
 
-    // public function viewHouseTour($houseModelId)
-    // {
-    //     $house = HouseModel::with('virtualTour.scenes.hotspots')
-    //         ->findOrFail($houseModelId);
-
-    //     $this->selectedTour = $house->virtualTour;
-
-    //     $this->viewScenes = $house->virtualTour?->scenes->map(function ($scene) {
-    //         return [
-    //             'id' => $scene->id,
-    //             'name' => $scene->name,
-    //             'image' => asset('storage/' . $scene->image),
-    //             'hotspots' => $scene->hotspots->map(function ($h) {
-    //                 return [
-    //                     'pitch' => $h->pitch,
-    //                     'yaw' => $h->yaw,
-    //                     'label' => $h->label,
-    //                     'target_scene_id' => $h->target_scene_id,
-    //                 ];
-    //             })->toArray(),
-    //         ];
-    //     })->toArray() ?? [];
-
-    //     $this->activeViewScene = 0;
-
-    //     $this->dispatch('open-viewer-modal');
-       
-    //     $this->dispatch('load-viewer-scene',
-    //         scene: $this->viewScenes[0] ?? null
-    //     );
-    // }
-
-    // public function setViewScene($index)
-    // {
-    //     $this->activeViewScene = $index;
-
-    //     $this->dispatch('load-viewer-scene', [
-    //         'scene' => $this->viewScenes[$index] ?? null
-    //     ]);
-    // }
-
-    // public function viewHouseTour($id)
-    // {
-    //     $house = HouseModel::with('virtualTour.scenes.hotspots')->findOrFail($id);
-
-    //     $this->viewScenes = $house->virtualTour->scenes->map(fn ($scene) => [
-    //         'id' => $scene->id,
-    //         'name' => $scene->name,
-    //         'image' => asset('storage/' . $scene->image),
-    //         'hotspots' => $scene->hotspots->map(fn ($h) => [
-    //             'pitch' => $h->pitch,
-    //             'yaw' => $h->yaw,
-    //             'label' => $h->label,
-    //             'target_scene_id' => $h->target_scene_id,
-    //         ])->toArray(),
-    //     ])->values()->toArray();
-
-    //     $this->dispatch('open-viewer-modal');
-    // }
-
     public function viewHouseTour($id)
     {
         $house = HouseModel::with('virtualTour.scenes.hotspots')->findOrFail($id);
@@ -698,84 +630,6 @@ class MapManagementPage extends Component
             ->toArray();
 
         $this->lotCounts = array_merge($this->lotCounts, $counts);
-    }
-
-    public function openLot($id)
-    {
-        $lot = Lot::find($id);
-
-        if (!$lot) {
-            return; // Safety check
-        }
-        
-        Notification::make()
-            ->title('Success!')
-            ->body("You clicked on lot: {$lot->name}")
-            ->success()
-            ->send();
-    }
-
-    public function addPoint($xPercent, $yPercent)
-    {
-        if (!$this->map || !$this->map->image_path) return;
-
-        [$naturalWidth, $naturalHeight] = getimagesize(public_path($this->map->image_path));
-
-        $x = round($xPercent * $naturalWidth);
-        $y = round($yPercent * $naturalHeight);
-
-        $this->points[] = ['x' => $x, 'y' => $y];
-
-        $flat = [];
-        foreach ($this->points as $p) {
-            $flat[] = $p['x'];
-            $flat[] = $p['y'];
-        }
-
-        $this->lotCoordinates = implode(',', $flat);
-
-        $this->dispatch('redraw-modal-points');
-    }
-
-    public function resetPoints()
-    {
-        $this->points = [];
-        $this->lotCoordinates = '';
-        $this->lotName = '';
-        $this->lotType = null;
-        $this->lotImage = null;
-
-        $this->dispatch('redraw-modal-points');
-    }
-
-    public function createLotArea()
-    {
-        $imagePath = null;
-
-        if ($this->lotImage) {
-
-            $imagePath = $this->lotImage->storeAs(
-                'modelImages',
-                Str::uuid() . '.' . $this->lotImage->getClientOriginalExtension(),
-                'public'
-            );
-        }
-
-        Lot::create([
-            'map_id' => $this->map->id,
-            'name' => $this->lotName,
-            'coords' => $this->lotCoordinates,
-            'type' => $this->lotType,
-            'image' => $imagePath,
-        ]);
-
-        $this->resetPoints();
-
-        $this->map = Map::with('lots')->first();
-        $this->lots = $this->map->lots;
-
-        $this->dispatch('refreshMap');
-        $this->dispatch('reload');
     }
 
     public function reloadWeb(){

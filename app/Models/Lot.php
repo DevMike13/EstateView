@@ -15,6 +15,10 @@ class Lot extends Model
         'coords',
         'status',
         'type',
+        'price',
+        'lot_area',
+        'user_id',
+        'house_model_id',
         'image',
     ];
 

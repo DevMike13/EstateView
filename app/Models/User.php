@@ -60,4 +60,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(ClientAppointment::class);
     }
+
+    public function lots(): HasMany
+    {
+        return $this->hasMany(Lot::class);
+    }
 }

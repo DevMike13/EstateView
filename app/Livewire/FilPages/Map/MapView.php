@@ -143,7 +143,7 @@ class MapView extends Component
 
             'lotStatus' => ['required', 'in:available,sold,reserved'],
 
-            'lotPrice' => ['nullable', 'string'],
+            'lotPrice' => ['nullable', 'numeric'],
             'lotArea' => ['nullable', 'numeric', 'min:0'],
 
             'userId' => ['nullable', 'exists:users,id'],
@@ -154,7 +154,7 @@ class MapView extends Component
                 'exists:house_models,id'
             ],
 
-            'lotImage' => ['nullable', 'image', 'max:5120'],
+            'lotImage' => ['nullable', 'image', 'max:20480'],
         ]);
 
         $imagePath = null;
@@ -204,7 +204,8 @@ class MapView extends Component
     }
     public function loadEditLot()
     {
-        $lot = Lot::findOrFail($this->activeLotId);
+        // $lot = Lot::findOrFail($this->activeLotId);
+        $lot = Lot::with(['user', 'houseModel'])->findOrFail($this->activeLotId);
 
         $this->editLotId = $lot->id;
         $this->editLotName = $lot->name;
@@ -215,8 +216,10 @@ class MapView extends Component
         $this->editLotPrice = $lot->price;
         $this->editLotStatus = $lot->status;
         $this->editLotArea = $lot->lot_area;
-        $this->editUserId = $lot->user_id;
-        $this->editHouseModelId = $lot->house_model_id;
+        // $this->editUserId = $lot->user_id;
+        // $this->editHouseModelId = $lot->house_model_id;
+        $this->editUserId = $lot->user?->id;
+        $this->editHouseModelId = $lot->houseModel?->id;
 
         $coords = explode(',', $lot->coords);
         $this->editPoints = [];
@@ -234,6 +237,28 @@ class MapView extends Component
     ==========================*/
     public function updateLot()
     {
+        $this->validate([
+            'editLotName' => ['required', 'string', 'max:255'],
+            'editLotType' => ['required', 'string'],
+
+            'editLotCoordinates' => ['required', 'string'],
+
+            'editLotStatus' => ['required', 'in:available,sold,reserved'],
+
+            'editLotPrice' => ['nullable', 'numeric'],
+            'editLotArea' => ['nullable', 'numeric', 'min:0'],
+
+            'editUserId' => ['nullable', 'exists:users,id'],
+
+            'editHouseModelId' => [
+                'nullable',
+                'required_if:editLotType,Model House',
+                'exists:house_models,id'
+            ],
+
+            'editLotImage' => ['nullable', 'image', 'max:20480'],
+        ]);
+
         $cleanPrice = $this->editLotPrice 
             ? str_replace(',', '', $this->editLotPrice) 
             : null;
@@ -245,7 +270,8 @@ class MapView extends Component
 
             'price' => $cleanPrice,
             'lot_area' => $this->editLotArea,
-            'user_id' => $this->editUserId,
+            'status' => $this->editLotStatus,
+            'user_id' => $this->editLotStatus != 'available' ? $this->editUserId : null,
             'house_model_id' => $this->editLotType === 'Model House'
                 ? $this->editHouseModelId
                 : null,
@@ -286,11 +312,18 @@ class MapView extends Component
             'description' => "Do you want to delete this lot: " .
                 html_entity_decode('<span class="text-red-600 underline">' . $lotName . '</span>') .
                 " ?",
-
-            'acceptLabel' => 'Yes, delete it',
-            'method' => 'deleteLot',
-            'params' => $id,
             'icon' => 'error',
+            'acceptLabel' => 'Yes, delete it',
+            'accept'      => [
+                'label'  => 'Yes, delete it',
+                'method' => 'deleteLot',
+                'params' => '$id',
+            ],
+            'reject' => [
+                'label'  => 'No, cancel',
+                'method' => 'reloadWeb',
+            ],
+            
         ]);
     }
 

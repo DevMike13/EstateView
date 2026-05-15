@@ -30,4 +30,9 @@ class HouseModel extends Model
     {
         return $this->hasOne(VirtualTour::class);
     }
+
+    public function lots()
+    {
+        return $this->hasMany(Lot::class);
+    }
 }

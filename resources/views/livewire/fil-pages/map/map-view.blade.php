@@ -27,7 +27,7 @@
                 ></canvas>
                 <div
                     id="lot-tooltip"
-                    class="absolute hidden z-50 bg-white shadow-2xl overflow-visible rounded-xl border
+                    class="absolute hidden z-10 bg-white shadow-2xl overflow-visible rounded-xl border
                         w-[80vw] max-w-[320px] sm:max-w-[380px]"
                 >
                     <div class="relative overflow-visible">
@@ -43,14 +43,85 @@
 
                             <div class="text-lg font-bold hidden" id="tooltip-id"></div>
 
-                            <div
-                                class="text-base sm:text-lg font-bold break-words"
-                                id="tooltip-name"
-                            ></div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <div
+                                        class="text-base sm:text-lg font-bold break-words"
+                                        id="tooltip-name"
+                                    ></div>
+                                    <div class="flex justify-center items-center -mt-1 gap-2">
+                                        <div
+                                            class="text-xs sm:text-sm text-gray-500 italic"
+                                            id="tooltip-type"
+                                        ></div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-2">
+                                            <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm6-2.438c0-.724.588-1.312 1.313-1.312h4.874c.725 0 1.313.588 1.313 1.313v4.874c0 .725-.588 1.313-1.313 1.313H9.564a1.312 1.312 0 0 1-1.313-1.313V9.564Z" clip-rule="evenodd" />
+                                        </svg>
+
+                                        <div
+                                            class="text-xs sm:text-sm text-gray-500"
+                                            id="tooltip-area"
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="text-xs sm:text-sm mt-1 capitalize bg-green-200 text-green-800 px-4 py-2 rounded-full"
+                                    id="tooltip-status"
+                                ></div>
+                            </div>
+                            
+
+                            <div class="border-2 border-dashed rounded-lg my-4 p-3 space-y-4">
+
+                                <div id="tooltip-extra-section">
+                                    <!-- USER -->
+                                    <div class="flex items-center gap-1">
+                                        <p id="tooltip-to" class="bg-blue-200 text-xs text-blue-800 px-2 rounded-full capitalize"></p>
+
+                                        <hr class="flex-1 border-t border-blue-500" />
+                                    </div>
+                                    <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-lg">
+                                        <img
+                                            id="tooltip-user-picture"
+                                            class="w-10 h-10 rounded-full object-cover border"
+                                            src=""
+                                            alt="User"
+                                        />
+
+                                        <div
+                                            id="tooltip-user-name"
+                                            class="text-sm font-semibold text-gray-800"
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <div id="tooltip-extra-section-model">
+                                    <!-- MODEL -->
+                                    <div class="flex items-center gap-1">
+                                        <p class="bg-blue-200 text-xs text-blue-800 px-2 rounded-full capitalize">Model Name</p>
+
+                                        <hr class="flex-1 border-t border-blue-500" />
+                                    </div>
+                                    <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-lg">
+                                        <img
+                                            id="tooltip-model-picture"
+                                            class="w-10 h-10 rounded object-cover border"
+                                            src=""
+                                            alt="Model"
+                                        />
+
+                                        <div
+                                            id="tooltip-model-name"
+                                            class="text-sm font-semibold text-gray-800"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div
-                                class="text-xs sm:text-sm text-gray-500 mt-1"
-                                id="tooltip-type"
+                                class="text-lg text-gray-800 text-right font-semibold"
+                                id="tooltip-price"
                             ></div>
 
                             <div
@@ -64,7 +135,7 @@
                                 <x-button
                                     icon="pencil-square"
                                     label="Edit"
-                                    class="w-full sm:w-auto"
+                                    class="w-full sm:w-auto rounded-lg"
                                     x-on:click="
                                         $wire.set(
                                             'activeLotId',
@@ -78,7 +149,7 @@
                                <x-button
                                     icon="trash"
                                     label="Delete"
-                                    class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
+                                    class="w-full sm:w-auto bg-red-600 hover:bg-red-600 text-white rounded-lg"
                                     x-on:click="
                                         const id = document.getElementById('tooltip-id').textContent;
                                         const name = document.getElementById('tooltip-name').textContent;
@@ -101,13 +172,22 @@
                             title="Click to show info"
                             data-id="{{ $lot->id }}"
                             data-type="{{ $lot->type }}"
+                            data-price="{{ $lot->price }}"
+                            data-status="{{ $lot->status }}"
+                            data-area="{{ $lot->lot_area }}"
                             data-name="{{ $lot->name }}"
                             data-image="{{ $lot->image ? asset('storage/' . $lot->image) : '' }}"
                             data-coords="{{ $lot->coords }}"
+
+                            data-user-name="{{ $lot->user?->name }}"
+                            data-user-picture="{{ asset($lot->user?->profile_picture) }}"
+
+                            data-model-name="{{ $lot->houseModel?->model_name }}"
+                            data-model-image="{{  asset('storage/' . $lot->houseModel?->image) }}"
                         />
                     @endforeach
                 </map>
-
+                
             @endif
         </div>
 
@@ -430,6 +510,19 @@
                     </div>
 
                     <div class="mt-3">
+                        <x-input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            class="pr-28"
+                            label="Lot Area"
+                            placeholder="100"
+                            suffix="sqm"
+                            wire:model.defer="editLotArea"
+                        />
+                    </div>
+
+                    <div class="mt-3">
                         <x-native-select
                             label="Lot Type"
                             wire:model="editLotType"
@@ -442,6 +535,100 @@
                             <option value="Sold">Sold</option>
                         </x-native-select>
                     </div>
+
+                    <div class="mt-3">
+                        <x-inputs.currency
+                            label="Price"
+                            placeholder="Enter price"
+                            icon="banknotes"
+                            currency="PHP"
+                            thousands=","
+                            decimal="."
+                            precision="2"
+                            wire:model.defer="editLotPrice"
+                        />
+                    </div>
+
+                    <div class="mt-3">
+                        <h2 class="text-[#15233C] font-tertiary font-medium text-sm mb-1">
+                            Status
+                        </h2>
+
+                        <div class="grid w-full gap-2 grid-cols-3">
+                            @php
+                                $options = [
+                                    'available' => 'Available',
+                                    'sold' => 'Sold',
+                                    'reserved' => 'Reserved',
+                                ];
+                            @endphp
+
+                            @foreach($options as $value => $label)
+                                <div>
+                                    <input
+                                        wire:model.live="editLotStatus"
+                                        type="radio"
+                                        id="editLotStatus{{ $value }}"
+                                        name="editLotStatus"
+                                        value="{{ $value }}"
+                                        class="hidden peer"
+                                    >
+
+                                    <label
+                                        for="editLotStatus{{ $value }}"
+                                        class="inline-flex items-center justify-center w-full p-3 text-gray-500 bg-white border border-gray-200 rounded-lg cursor-pointer
+                                            peer-checked:border-2 peer-checked:border-blue-600 peer-checked:text-blue-600
+                                            hover:text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
+                                    >
+                                        {{ $label }}
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        @error('editLotStatus')
+                            <span class="text-red-500 text-[10px] italic">
+                                {{ $message }}
+                            </span>
+                        @enderror
+                    </div>
+
+                    @if ($editLotStatus && $editLotStatus !== 'available')
+                        <div class="mt-3">
+                            <x-select
+                                label="Client Name"
+                                wire:model.defer="editUserId"
+                                placeholder="Select some client"
+                                :async-data="route('api.users.index')"
+                                :template="[
+                                    'name'   => 'user-option',
+                                    'config' => ['src' => 'profile_picture']
+                                ]"
+                                option-label="name"
+                                option-value="id"
+                                option-description="email"
+                            />
+                        </div>
+                    @endif
+                   
+                    
+                    @if ($editLotType && $editLotType == 'Model House')
+                        <div class="mt-3">
+                            <x-select
+                                label="House Model"
+                                wire:model.defer="editHouseModelId"
+                                placeholder="Select some client"
+                                :async-data="route('api.house-models.index')"
+                                :template="[
+                                    'name'   => 'user-option',
+                                    'config' => ['src' => 'image']
+                                ]"
+                                option-label="name"
+                                option-value="id"
+                                option-description="description"
+                            />
+                        </div>
+                    @endif
 
                     <div class="mt-4">
                         @if($editLotImagePreview)
@@ -758,6 +945,22 @@
             const tImage = document.getElementById('tooltip-image');
             const tCoords = document.getElementById('tooltip-coords');
             const tID = document.getElementById('tooltip-id');
+            
+            const tPrice = document.getElementById('tooltip-price');
+            const tStatus = document.getElementById('tooltip-status');
+            const tLotArea = document.getElementById('tooltip-area');
+
+            const extraSection = document.getElementById('tooltip-extra-section');
+            const extraSectionModel = document.getElementById('tooltip-extra-section-model');
+
+            const tTo = document.getElementById('tooltip-to');
+            const tUserPicture = document.getElementById('tooltip-user-picture');
+            const tUserName = document.getElementById('tooltip-user-name');
+
+            // const tUserPicture = document.getElementById('tooltip-user-picture');
+            const tModelPicture = document.getElementById('tooltip-model-picture');
+            const tModelName = document.getElementById('tooltip-model-name');
+        
 
             const img = document.getElementById('map-image');
 
@@ -776,6 +979,52 @@
                 tType.textContent = area.dataset.type ?? 'No Type';
                 tCoords.textContent = area.dataset.coords ?? '';
                 tID.textContent = area.dataset.id ?? '';
+
+                tPrice.textContent = '₱' + Number(area.dataset.price).toLocaleString() ?? '';
+                tStatus.textContent = area.dataset.status ?? '';
+                // tLotArea.textContent = area.dataset.area + ' sqm' ?? '';
+                tLotArea.innerHTML = `
+                    <span style="display:flex; align-items:center; gap:6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        </svg>
+
+
+                        <span>${area.dataset.area ?? ''} sqm</span>
+                    </span>
+                `;
+
+                tTo.textContent = area.dataset.status + ' to'  ?? '';
+                
+                const status = (area.dataset.status ?? '').toLowerCase().trim();
+
+                if (status === 'available') {
+                    extraSection.style.display = 'none';
+
+                    tModelPicture.src = area.dataset.modelImage || '/default-model.png';
+                    tModelName.textContent = area.dataset.modelName || 'No Model';
+                } else {
+                    extraSection.style.display = 'block';
+
+                    tUserPicture.src = area.dataset.userPicture || '/default-user.png';
+                    tUserName.textContent = area.dataset.userName || 'No User';
+
+                    tModelPicture.src = area.dataset.modelImage || '/default-model.png';
+                    tModelName.textContent = area.dataset.modelName || 'No Model';
+
+                }
+
+                if (area.dataset.type === 'Model House'){
+                    extraSectionModel.style.display = 'block';
+                    tModelPicture.src = area.dataset.modelImage || '/default-model.png';
+                    tModelName.textContent = area.dataset.modelName || 'No Model';
+                } else {
+                    extraSectionModel.style.display = 'none';
+                    tModelPicture.src = '';
+                    tModelName.textContent = '';
+                }
+
+                
 
                 tooltip.classList.remove('hidden');
 

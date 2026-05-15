@@ -1,4 +1,4 @@
-<div>
+<div class="pb-80">
 
     <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         @foreach($lotCounts as $type => $count)

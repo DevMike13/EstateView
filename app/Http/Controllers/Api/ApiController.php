@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Lot;
 use App\Models\PHBarangays;
 use App\Models\PHCities;
 use App\Models\PHProvinces;
@@ -147,5 +148,37 @@ class ApiController extends Controller
         }
 
         return response()->json($barangays);
+    }
+
+    public function getDynamicLot(Request $request)
+    {
+        $lots = Lot::query()
+
+            ->when($request->search, function ($q, $search) {
+                $q->where('name', 'like', "%{$search}%")
+                ->orWhere('type', 'like', "%{$search}%");
+            })
+
+            ->when($request->type, function ($q, $type) {
+                $q->where('type', $type);
+            })
+
+            ->where('status', 'available')
+
+            ->get();
+
+        return response()->json($lots->map(function ($lot) {
+            return [
+                'id' => $lot->id,
+                'name' => $lot->name,
+                'type' => $lot->type,
+                'description' =>
+                    "₱" . number_format($lot->price, 2)
+                    . " • {$lot->lot_area} sqm",
+                'image' => $lot->image
+                    ? asset('storage/' . $lot->image)
+                    : null,
+            ];
+        }));
     }
 }

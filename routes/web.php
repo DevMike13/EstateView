@@ -9,6 +9,7 @@ use App\Livewire\Auth\RegisterPage;
 use App\Livewire\Auth\ResendVerificationPage;
 use App\Livewire\Auth\ResetPasswordPage;
 use App\Livewire\Client\AppointmentPage;
+use App\Livewire\Client\ReservationPage;
 use App\Livewire\Client\TermsAndCondition;
 use App\Livewire\ContactPage;
 use App\Livewire\HomePage;
@@ -50,5 +51,9 @@ Route::middleware('auth')->group(function (){
     // CLIENT
     Route::prefix('client')->group(function () {
         Route::get('/appointments', AppointmentPage::class)->name('client.appointment');
+    });
+
+     Route::prefix('client')->group(function () {
+        Route::get('/reservations', ReservationPage::class)->name('client.reservation');
     });
 });

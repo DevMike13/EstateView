@@ -37,4 +37,9 @@ class Lot extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function reservations()
+    {
+        return $this->hasMany(LotReservation::class);
+    }
 }

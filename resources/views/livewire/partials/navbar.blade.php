@@ -42,6 +42,17 @@
                                 >
                                     {{ __('Appointments') }}
                                 </a>
+
+                                <a
+                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
+                                    {{ request()->is('client/reservations')
+                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
+                                    }}"
+                                    href="{{ route('client.reservation') }}"
+                                >
+                                    {{ __('Reservations') }}
+                                </a>
                               {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.account') }}">
                                   {{ __('My Account' )}}
                               </a>

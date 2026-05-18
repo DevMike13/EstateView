@@ -13,6 +13,7 @@ use App\Livewire\Pages\ClientPage;
 use App\Livewire\Pages\CourtPage;
 use App\Models\AppointmentsModel;
 use App\Models\HouseModel;
+use App\Models\Lot;
 use App\Models\PHRegions;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -74,6 +75,47 @@ Route::get('/api/house-models', function (Request $request) {
         });
 
 })->name('api.house-models.index');
+
+Route::get('/api/lots', function (Request $request) {
+
+    return Lot::query()
+
+        ->when($request->search, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('type', 'like', "%{$search}%");
+            });
+        })
+
+        // ✅ dynamic type filter (SAFE + clean)
+        ->when($request->type, function ($query, $type) {
+            $query->where('type', $type);
+        })
+
+        ->where('status', 'available')
+
+        ->select('id', 'name', 'price', 'lot_area', 'image', 'type')
+
+        ->limit(20)
+
+        ->get()
+
+        ->map(function ($lot) {
+
+            return [
+                'id' => $lot->id,
+                'name' => $lot->name,
+                'type' => $lot->type,
+                'description' =>
+                    "₱" . number_format($lot->price, 2)
+                    . " • {$lot->lot_area} sqm",
+                'image' => $lot->image
+                    ? asset('storage/' . $lot->image)
+                    : null,
+            ];
+        });
+
+})->name('api.lots.index');
 
 // EDIT CLIENT
 Route::get('/api/client/regions', [ApiController::class, 'getRegions'])->name('api.regions.client');

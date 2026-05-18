@@ -4,14 +4,18 @@ namespace App\Livewire\Client;
 
 use App\Models\LotReservation;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Spatie\LivewireFilepond\WithFilePond;
 use WireUi\Traits\Actions;
 
+#[Title('Reservation')]
 class ReservationPage extends Component
 {
     use WithFilePond, Actions, WithFileUploads;
+
+    public $activeTab = 'pending';
     
     public $reservationType, $houseModelId, $lotLocationId, $preferredPayment, $reservationNotes;
 
@@ -38,6 +42,46 @@ class ReservationPage extends Component
                 session()->get('reservation_success')
             );
         }
+    }
+
+    public function setTab($tab)
+    {
+        $this->activeTab = $tab;
+    }
+
+    public function getReservationsProperty()
+    {
+        return LotReservation::with([
+                'lot',
+                'preferredPayment',
+                'requiredDocuments',
+                'houseModel',
+            ])
+            ->where('user_id', auth()->id())
+            ->where('status', $this->activeTab)
+            ->latest()
+            ->get();
+    }
+
+    public function getPendingCountProperty()
+    {
+        return LotReservation::where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->count();
+    }
+
+    public function getApprovedCountProperty()
+    {
+        return LotReservation::where('user_id', auth()->id())
+            ->where('status', 'approved')
+            ->count();
+    }
+
+    public function getRejectedCountProperty()
+    {
+        return LotReservation::where('user_id', auth()->id())
+            ->where('status', 'rejected')
+            ->count();
     }
 
     public function updatedReservationType()
@@ -134,12 +178,9 @@ class ReservationPage extends Component
             'doc_tin',
         ]);
 
-        session()->flash(
-            'reservation_success',
-            'Thank you for submitting your reservation. Your reservation is currently under review.'
-        );
-
-        return $this->redirect(url()->current(), navigate: true);
+        session()->flash('reservation_success', 'Thank you for submitting your reservation. Your reservation is currently under review.');
+        
+        return $this->redirect(request()->header('referer'), navigate: false);
     }
 
     public function render()

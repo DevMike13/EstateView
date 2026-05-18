@@ -38,4 +38,9 @@ class LotReservation extends Model
     {
         return $this->hasMany(RequiredDocument::class);
     }
+
+    public function houseModel()
+    {
+        return $this->belongsTo(HouseModel::class);
+    }
 }

@@ -81,7 +81,7 @@
 
                                         <hr class="flex-1 border-t border-blue-500" />
                                     </div>
-                                    <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-lg">
+                                    <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-lg mt-2">
                                         <img
                                             id="tooltip-user-picture"
                                             class="w-10 h-10 rounded-full object-cover border"
@@ -103,7 +103,7 @@
 
                                         <hr class="flex-1 border-t border-blue-500" />
                                     </div>
-                                    <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-lg">
+                                    <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-lg mt-2">
                                         <img
                                             id="tooltip-model-picture"
                                             class="w-10 h-10 rounded object-cover border"

@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use WireUi\Traits\Actions;
+use Illuminate\Support\Facades\Auth;
 
 #[Title('Appointment')]
 class AppointmentPage extends Component
@@ -24,12 +25,19 @@ class AppointmentPage extends Component
     public $name;
     public $phone;
 
+    public $activeTab = 'pending';
+
     public function mount()
     {
         $this->currentMonth = Carbon::now()->startOfMonth();
         $this->blockedDates = BlockedDate::pluck('date')->toArray();
 
         $this->selectedDate = session('selectedDate', null);
+    }
+
+    public function setTab($tab)
+    {
+        $this->activeTab = $tab;
     }
 
     public function previousMonth()
@@ -174,6 +182,73 @@ class AppointmentPage extends Component
         ]);
     }
 
+    public function getAppointmentsProperty()
+    {
+        return ClientAppointment::where('user_id', auth()->id())
+            ->where('status', $this->activeTab)
+            ->latest()
+            ->get();
+    }
+
+    public function getPendingCountProperty()
+    {
+        return ClientAppointment::where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->count();
+    }
+
+    public function getApprovedCountProperty()
+    {
+        return ClientAppointment::where('user_id', auth()->id())
+            ->where('status', 'approved')
+            ->count();
+    }
+
+    public function getCompletedCountProperty()
+    {
+        return ClientAppointment::where('user_id', auth()->id())
+            ->where('status', 'completed')
+            ->count();
+    }
+
+    public function getCancelledCountProperty()
+    {
+        return ClientAppointment::where('user_id', auth()->id())
+            ->where('status', 'cancelled')
+            ->count();
+    }
+
+    public function cancelAppointment($id)
+    {
+        $appointment = ClientAppointment::where('user_id', auth()->id())
+            ->findOrFail($id);
+
+        if ($appointment->status !== 'pending') {
+            return;
+        }
+
+        $appointment->update([
+            'status' => 'cancelled'
+        ]);
+
+        $this->notification()->success(
+            'Appointment Cancelled',
+            'Your appointment has been cancelled.'
+        );
+    }
+
+    public function confirmCancelAppointment($id)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Cancel Appointment?',
+            'description' => 'Are you sure you want to cancel this appointment?',
+            'acceptLabel' => 'Yes, Cancel',
+            'method' => 'cancelAppointment',
+            'params' => $id,
+            'icon' => 'warning',
+        ]);
+    }
+
     public function reloadWeb(){
 
         $this->dispatch('reload');
@@ -187,6 +262,7 @@ class AppointmentPage extends Component
             'dates' => $this->dates,
             'startDay' => $this->startDay,
             'timeSlots' => $this->timeSlots,
+            'appointments' => $this->appointments,
         ]);
     }
 }

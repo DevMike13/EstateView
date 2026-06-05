@@ -298,10 +298,20 @@
             
 
             <div class="mt-3">
-                <x-select
+                {{-- <x-select
                     key="{{ $lotApiUrl }}"
                     label="Lot Location"
                     wire:model.defer="lotLocationId"
+                    placeholder="Select lot location"
+                    :async-data="$lotApiUrl"
+                    option-label="name"
+                    option-value="id"
+                    option-description="description"
+                /> --}}
+                <x-select
+                    key="lot-select-{{ $reservationType }}"
+                    label="Lot Location"
+                    wire:model.live="lotLocationId"
                     placeholder="Select lot location"
                     :async-data="$lotApiUrl"
                     option-label="name"

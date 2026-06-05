@@ -76,7 +76,7 @@
           <div class="flex flex-col gap-8 lg:gap-12 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5">
             <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] {{ request()->is('/') ? 'text-black' : 'text-gray-400'  }}" href="/" aria-current="page">HOME</a>
             <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.about') ? 'text-black' : 'text-gray-400' }}" href="{{ route('user.about') }}">ABOUT</a>
-            <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.contact') ? 'text-black' : 'text-gray-400'}}" href="{{ route('user.contact') }}">PROPERTIES</a>
+            <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.contact') ? 'text-black' : 'text-gray-400'}}" href="{{ route('user.properties') }}">PROPERTIES</a>
 
             <div class="flex justify-center lg:hidden md:ml-10">
               {{-- <a href="{{ route('login') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-transparent text-[#2b2b31] hover:bg-slate-300 disabled:opacity-50 disabled:pointer-events-none">

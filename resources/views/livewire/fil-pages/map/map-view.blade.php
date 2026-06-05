@@ -49,6 +49,13 @@
                                         class="text-base sm:text-lg font-bold break-words"
                                         id="tooltip-name"
                                     ></div>
+                                    <div id="tooltip-under-construction" class="flex items-center gap-2 text-orange-600 text-xs font-semibold mb-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
+                                        </svg>
+
+                                        Under Construction
+                                    </div>
                                     <div class="flex justify-center items-center -mt-1 gap-2">
                                         <div
                                             class="text-xs sm:text-sm text-gray-500 italic"
@@ -184,6 +191,8 @@
 
                             data-model-name="{{ $lot->houseModel?->model_name }}"
                             data-model-image="{{  asset('storage/' . $lot->houseModel?->image) }}"
+
+                            data-under-construction="{{ $lot->is_under_construction ? 1 : 0 }}"
                         />
                     @endforeach
                 </map>
@@ -327,7 +336,7 @@
                     @endif
                    
                     
-                    @if ($lotType && $lotType == 'Model House')
+                    @if ($lotType && ($lotType == 'Model House' || $lotType == 'House & Lot'))
                         <div class="mt-3">
                             <x-select
                                 label="House Model"
@@ -344,6 +353,20 @@
                             />
                         </div>
                     @endif
+
+
+                    <div class="mt-3 flex items-center justify-between bg-gray-50 p-3 rounded-lg border">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700">
+                                Under Construction
+                            </h3>
+                            <p class="text-xs text-gray-400">
+                                Mark this lot as under construction
+                            </p>
+                        </div>
+
+                        <x-toggle wire:model.defer="isUnderConstruction" />
+                    </div>
 
                     <div class="mt-4">
                         <label class="block text-sm font-medium mb-2">
@@ -612,7 +635,7 @@
                     @endif
                    
                     
-                    @if ($editLotType && $editLotType == 'Model House')
+                    @if ($editLotType && ($editLotType == 'Model House' || $editLotType == 'House & Lot'))
                         <div class="mt-3">
                             <x-select
                                 label="House Model"
@@ -629,6 +652,19 @@
                             />
                         </div>
                     @endif
+
+                    <div class="mt-3 flex items-center justify-between bg-gray-50 p-3 rounded-lg border">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700">
+                                Under Construction
+                            </h3>
+                            <p class="text-xs text-gray-400">
+                                Mark this lot as under construction
+                            </p>
+                        </div>
+
+                        <x-toggle wire:model.defer="editIsUnderConstruction" />
+                    </div>
 
                     <div class="mt-4">
                         @if($editLotImagePreview)
@@ -960,6 +996,8 @@
             // const tUserPicture = document.getElementById('tooltip-user-picture');
             const tModelPicture = document.getElementById('tooltip-model-picture');
             const tModelName = document.getElementById('tooltip-model-name');
+
+            const tUnderConstruction = document.getElementById('tooltip-under-construction');
         
 
             const img = document.getElementById('map-image');
@@ -974,6 +1012,8 @@
                 currentLotId = area.dataset.id;
                 const panoContainer = document.getElementById('tooltip-panorama');
                 panoContainer.innerHTML = "";
+
+                
 
                 tName.textContent = area.dataset.name ?? 'No Name';
                 tType.textContent = area.dataset.type ?? 'No Type';
@@ -1014,7 +1054,7 @@
 
                 }
 
-                if (area.dataset.type === 'Model House'){
+                if (area.dataset.type === 'Model House' || area.dataset.type === 'House & Lot'){
                     extraSectionModel.style.display = 'block';
                     tModelPicture.src = area.dataset.modelImage || '/default-model.png';
                     tModelName.textContent = area.dataset.modelName || 'No Model';
@@ -1024,6 +1064,13 @@
                     tModelName.textContent = '';
                 }
 
+                const isUnderConstruction = area.dataset.underConstruction === "1";
+
+                if (isUnderConstruction) {
+                    tUnderConstruction.classList.remove('hidden');
+                } else {
+                    tUnderConstruction.classList.add('hidden');
+                }
                 
 
                 tooltip.classList.remove('hidden');

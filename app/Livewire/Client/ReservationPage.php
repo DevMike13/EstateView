@@ -30,11 +30,21 @@ class ReservationPage extends Component
 
     public function mount()
     {
-        $this->reservationType = "House & Lot";
+        $this->reservationType = in_array(request('type'), ['House & Lot', 'Lot Only'])
+            ? request('type')
+            : "House & Lot";
 
         $this->lotApiUrl = route('api.lots.index', [
             'type' => $this->reservationType
         ]);
+
+        if (request()->has('lot_id')) {
+            $this->lotLocationId = request('lot_id');
+        }
+
+        if (request()->has('house_model_id')) {
+            $this->houseModelId = request('house_model_id');
+        }
 
         if (session()->has('reservation_success')) {
             $this->notification()->success(
@@ -84,14 +94,30 @@ class ReservationPage extends Component
             ->count();
     }
 
-    public function updatedReservationType()
-    {
-        $this->lotLocationId = null;
-        $this->houseModelId = null;
+    // public function updatedReservationType()
+    // {
+    //     $this->lotLocationId = null;
+    //     $this->houseModelId = null;
 
+    //     $this->lotApiUrl = route('api.lots.index', [
+    //         'type' => $this->reservationType
+    //     ]);
+    // }
+    public function updatedReservationType($value)
+    {
         $this->lotApiUrl = route('api.lots.index', [
-            'type' => $this->reservationType
+            'type' => $value
         ]);
+
+        if ($this->lotLocationId) {
+            $exists = \App\Models\Lot::where('id', $this->lotLocationId)
+                ->where('type', $value)
+                ->exists();
+
+            if (! $exists) {
+                $this->lotLocationId = null;
+            }
+        }
     }
 
     public function confirmReservation()

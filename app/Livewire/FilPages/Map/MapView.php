@@ -26,6 +26,7 @@ class MapView extends Component
     public $lotArea;
     public $userId;
     public $houseModelId;
+    public $isUnderConstruction = false;
     public $lotStatus = 'available';
     public $lotCoordinates = '';
     public $points = [];
@@ -46,6 +47,7 @@ class MapView extends Component
     public $editUserId;
     public $editHouseModelId;
     public $editLotStatus;
+    public $editIsUnderConstruction;
     public $editLotCoordinates = '';
     public $editPoints = [];
 
@@ -124,10 +126,11 @@ class MapView extends Component
         $this->lotName = '';
         $this->lotType = null;
         $this->lotImage = null;
-        $this->lotStatus = null; // ✅ ADD THIS
+        $this->lotStatus = null; 
         $this->lotPrice = null;
         $this->lotArea = null;
         $this->userId = null;
+        $this->isUnderConstruction = false;
         $this->houseModelId = null;
 
         $this->dispatch('redraw-modal-points');
@@ -147,6 +150,8 @@ class MapView extends Component
             'lotArea' => ['nullable', 'numeric', 'min:0'],
 
             'userId' => ['nullable', 'exists:users,id'],
+
+            'isUnderConstruction' => ['nullable', 'boolean'],
 
             'houseModelId' => [
                 'nullable',
@@ -184,6 +189,7 @@ class MapView extends Component
             'price' => $cleanPrice,
             'lot_area' => $this->lotArea,
             'user_id' => $this->userId,
+            'is_under_construction' => $this->isUnderConstruction ?? false,
             'house_model_id' => $this->lotType === 'Model House'
                 ? $this->houseModelId
                 : null,
@@ -220,6 +226,7 @@ class MapView extends Component
         // $this->editHouseModelId = $lot->house_model_id;
         $this->editUserId = $lot->user?->id;
         $this->editHouseModelId = $lot->houseModel?->id;
+        $this->editIsUnderConstruction = (bool) $lot->is_under_construction;
 
         $coords = explode(',', $lot->coords);
         $this->editPoints = [];
@@ -252,9 +259,12 @@ class MapView extends Component
 
             'editHouseModelId' => [
                 'nullable',
-                'required_if:editLotType,Model House',
+                 'required_if:editLotType,Model House',
+                'required_if:editLotType,House & Lot',
                 'exists:house_models,id'
             ],
+
+            'editIsUnderConstruction' => ['nullable', 'boolean'],
 
             'editLotImage' => ['nullable', 'image', 'max:20480'],
         ]);
@@ -272,9 +282,11 @@ class MapView extends Component
             'lot_area' => $this->editLotArea,
             'status' => $this->editLotStatus,
             'user_id' => $this->editLotStatus != 'available' ? $this->editUserId : null,
-            'house_model_id' => $this->editLotType === 'Model House'
+            'house_model_id' => in_array($this->editLotType, ['Model House', 'House & Lot'])
                 ? $this->editHouseModelId
                 : null,
+
+            'is_under_construction' => $this->editIsUnderConstruction ?? false,
         ];
 
         if ($this->editLotImage) {
@@ -352,6 +364,7 @@ class MapView extends Component
         $this->editLotType = null;
         $this->editLotImage = null;
         $this->editLotCoordinates = '';
+        $this->editIsUnderConstruction = false;
         $this->editPoints = [];
     }
 

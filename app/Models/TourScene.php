@@ -23,7 +23,7 @@ class TourScene extends Model
     public function hotspots()
     {
         return $this->hasMany(
-            TourHotspot::class,
+            TourHotSpot::class,
             'scene_id'
         );
     }

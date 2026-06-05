@@ -61,6 +61,11 @@ class Appointments extends Component
         return ClientAppointment::where('status', 'declined')->count();
     }
 
+    public function getCancelledCountProperty()
+    {
+        return ClientAppointment::where('status', 'cancelled')->count();
+    }
+
     // CHANGE STATUS
     public function confirmApprove($id)
     {

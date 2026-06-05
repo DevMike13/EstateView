@@ -18,6 +18,7 @@ class Lot extends Model
         'type',
         'price',
         'lot_area',
+        'is_under_construction',
         'user_id',
         'house_model_id',
         'image',

@@ -53,6 +53,17 @@
                     </span>
                 </button>
 
+                <button wire:click="setTab('cancelled')"
+                    class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2
+                    {{ $activeTab === 'cancelled'
+                        ? 'border-[#129c45] text-[#129c45]'
+                        : 'border-transparent text-gray-500' }}">
+                    <span>Cancelled</span>
+                    <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
+                        {{ $this->cancelledCount }}
+                    </span>
+                </button>
+
             </nav>
         </div>
         <!-- End Tab Nav -->
@@ -76,7 +87,19 @@
                         <div>
                             <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
                             <h3 class="text-base md:text-lg font-semibold text-gray-900">{{ $appointment->name }}</h3>
-                            <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">{{ $appointment->status === 'pending' ? 'Pending Review' : ucfirst($appointment->status) }}</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium
+                                {{
+                                    match($appointment->status) {
+                                        'pending' => 'bg-yellow-100 text-yellow-700',
+                                        'approved' => 'bg-green-100 text-green-700',
+                                        'completed' => 'bg-blue-100 text-blue-700',
+                                        'cancelled' => 'bg-red-100 text-red-700',
+                                        'rejected' => 'bg-red-100 text-red-700',
+                                        default => 'bg-gray-100 text-gray-700',
+                                    }
+                                }}">
+                                {{ $appointment->status === 'pending' ? 'Pending Review' : ucfirst($appointment->status) }}
+                            </span>
                             </div>
                             <div class="text-xs md:text-sm text-gray-600 space-y-1">
                             <div class="flex items-center gap-2">

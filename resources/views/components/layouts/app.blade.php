@@ -8,6 +8,7 @@
         @wireUiScripts
         @vite(['resources/css/custom.css', 'resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css">
     </head>
     <body class="bg-[#f1f4f6]">
         <x-notifications />
@@ -28,6 +29,7 @@
         @filepondScripts
         <script src="{{ asset('lodash-min.js') }}"></script>
         <script src="{{ asset('dropzone-min.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
           
         {{-- <script src="https://cdn.jsdelivr.net/npm/preline@2.0.2/dist/preline.min.js"></script> --}}
     </body>

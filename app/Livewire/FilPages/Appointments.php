@@ -17,8 +17,16 @@ class Appointments extends Component
 {
     use Actions;
 
-    #[Url(as: 'tab')]
+    #[Url]
     public $activeTab = 'pending';
+
+    #[Url]
+    public $highlight = null;
+
+    protected $queryString = [
+        'activeTab',
+        'highlight',
+    ];
 
     public $selectedDates = [];
     public $currentMonth;
@@ -26,11 +34,16 @@ class Appointments extends Component
     public function mount()
     {
         $this->currentMonth = Carbon::now()->startOfMonth();
+
+        if (!in_array($this->activeTab, ['pending', 'approved', 'completed', 'declined', 'cancelled'])) {
+            $this->activeTab = 'pending';
+        }
     }
 
     public function setTab($tab)
     {
         $this->activeTab = $tab;
+        $this->highlight = null;
     }
 
     public function getAppointmentsProperty()

@@ -5,6 +5,7 @@ namespace App\Livewire\FilPages;
 use App\Models\LotReservation;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use WireUi\Traits\Actions;
 
@@ -12,11 +13,30 @@ class Reservations extends Component
 {
     use Actions;
 
+    #[Url]
     public $activeTab = 'pending';
+
+    #[Url]
+    public $highlight = null;
+
+    protected $queryString = [
+        'activeTab',
+        'highlight',
+    ];
+
 
     public function setTab($tab)
     {
         $this->activeTab = $tab;
+        $this->highlight = null;
+    }
+
+    public function mount()
+    {
+        // ensure tab is valid
+        if (!in_array($this->activeTab, ['pending', 'approved', 'rejected'])) {
+            $this->activeTab = 'pending';
+        }
     }
 
     public function getReservationsProperty()

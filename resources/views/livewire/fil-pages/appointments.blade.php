@@ -73,7 +73,19 @@
 
             @forelse($this->appointments as $appointment)
 
-                <div class="bg-white rounded-xl p-5 shadow border mb-4">
+                <div 
+                    x-data="{
+                            shouldScroll: @js($highlight == $appointment->id),
+                    }"
+                    x-init="
+                        if (shouldScroll) {
+                            setTimeout(() => {
+                                $el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 500);
+                        }
+                    "
+                    class="bg-white rounded-xl p-5 shadow border mb-4 {{ $highlight == $appointment->id ? 'ring-2 ring-green-500' : '' }}"
+                >
                     
                     <div class="flex items-start mb-4 gap-3 md:gap-4">
                         <div class="h-10 w-10 md:h-12 md:w-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">

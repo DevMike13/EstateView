@@ -58,7 +58,19 @@
 
             @forelse($this->reservations as $reservation)
 
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-5">
+                <div
+                    x-data="{
+                        shouldScroll: @js($highlight == $reservation->id),
+                    }"
+                    x-init="
+                        if (shouldScroll) {
+                            setTimeout(() => {
+                                $el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 500);
+                        }
+                    "
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-5 {{ $highlight == $reservation->id ? 'ring-2 ring-green-500' : '' }}"
+                >
 
                     {{-- HEADER --}}
                     <div class="p-4 md:p-6 bg-gradient-to-r from-green-50 to-blue-50 border-b">

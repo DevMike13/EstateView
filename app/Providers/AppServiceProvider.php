@@ -5,6 +5,13 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Filament\Http\Responses\Auth\Contracts\LogoutResponse as LogoutResponseContract;
 use App\Http\Responses\LogoutResponse;
+use App\Models\ClientAppointment;
+use App\Models\LotReservation;
+use App\Observers\AppointmentObserver;
+use App\Observers\LotReservationObserver;
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,10 +28,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        LotReservation::observe(LotReservationObserver::class);
+        ClientAppointment::observe(AppointmentObserver::class);
+        
         $this->loadMigrationsFrom(database_path('migrations'));
  
         if (is_dir(database_path('migrations/prpcmblmts'))) {
             $this->loadMigrationsFrom(database_path('migrations/prpcmblmts'));
         }
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn (): string => Blade::render('<livewire:components.dashboard.custom-notification />')
+        );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::USER_MENU_BEFORE,
+            fn (): string => Blade::render('<livewire:components.dashboard.notification-bell />')
+        );
     }
 }

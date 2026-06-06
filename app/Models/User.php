@@ -65,4 +65,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(Lot::class);
     }
+
+    public function notifications()
+    {
+        return $this->belongsToMany(Notification::class)
+            ->withPivot('read_at')
+            ->withTimestamps();
+    }
 }

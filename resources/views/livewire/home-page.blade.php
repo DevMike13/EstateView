@@ -14,14 +14,14 @@
                 <h2 class="text-6xl mb-4">Discover Your</h2>
                 <h2 class="font-semibold text-6xl mb-4">Dream Home</h2>
                 <p class="mb-4">Experience refined living in our thoughtfully designed residences</p>
-                <div class="flex items-center gap-3 mt-10">
-                    <a href="#" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-white text-black disabled:opacity-50 disabled:pointer-events-none">
+                <div class="flex flex-col md:flex-row items-center gap-3 mt-10">
+                    <a href="{{ route('user.properties') }}" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-white text-black disabled:opacity-50 disabled:pointer-events-none">
                         VIEW PROPERTIES
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                         </svg>
                     </a>
-                    <a href="#"
+                    <a href="{{ route('client.appointment') }}"
                         class="py-4 px-10 inline-flex items-center gap-x-2 text-sm text-white
                             bg-white/10 backdrop-blur-md border border-white/20
                             hover:bg-white/20 transition">

@@ -8,7 +8,10 @@ use App\Livewire\Auth\LoginPage;
 use App\Livewire\Auth\RegisterPage;
 use App\Livewire\Auth\ResendVerificationPage;
 use App\Livewire\Auth\ResetPasswordPage;
+use App\Livewire\Client\AccountSettingsPage;
 use App\Livewire\Client\AppointmentPage;
+use App\Livewire\Client\CostBreakdownPage;
+use App\Livewire\Client\Notification;
 use App\Livewire\Client\ReservationPage;
 use App\Livewire\Client\TermsAndCondition;
 use App\Livewire\ContactPage;
@@ -55,7 +58,19 @@ Route::middleware('auth')->group(function (){
         Route::get('/appointments', AppointmentPage::class)->name('client.appointment');
     });
 
-     Route::prefix('client')->group(function () {
+    Route::prefix('client')->group(function () {
         Route::get('/reservations', ReservationPage::class)->name('client.reservation');
+    });
+
+    Route::prefix('client')->group(function () {
+        Route::get('/notifications', Notification::class)->name('client.notification');
+    });
+
+    Route::prefix('client')->group(function () {
+        Route::get('/cost-breakdown', CostBreakdownPage::class)->name('client.cost.breakdown');
+    });
+
+    Route::prefix('client')->group(function () {
+        Route::get('/account', AccountSettingsPage::class)->name('client.account');
     });
 });

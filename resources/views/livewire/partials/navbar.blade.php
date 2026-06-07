@@ -24,14 +24,32 @@
                       <div class="hs-dropdown relative inline-flex md:flex md:items-center md:justify-center">
                           <button id="hs-dropdown-default" type="button" class="hs-dropdown-toggle py-2 inline-flex items-center gap-x-2 text-base font-medium rounded-lg text-[#2b2b31]">
                             <div class="flex justify-center items-center gap-2">
-                                <img src="{{ asset(auth()->user()->profile_picture) }}" alt="{{ auth()->user()->name }}" class="w-10 h-10">
+                                {{-- <img src="{{ asset(auth()->user()->profile_picture) }}" alt="{{ auth()->user()->name }}" class="w-10 h-10"> --}}
+                                @if(auth()->user()->profile_picture)
+                                    <img src="{{ asset(auth()->user()->profile_picture) }}" 
+                                        alt="{{ auth()->user()->name }}" 
+                                        class="w-10 h-10 rounded-full object-cover">
+                                @else
+                                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" 
+                                            class="w-6 h-6 text-gray-500" 
+                                            fill="none" 
+                                            viewBox="0 0 24 24" 
+                                            stroke="currentColor">
+                                            <path stroke-linecap="round" 
+                                                stroke-linejoin="round" 
+                                                stroke-width="2" 
+                                                d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </div>
+                                @endif
                                 {{ auth()->user()->name }}
                             </div>
                               
                             <svg class="hs-dropdown-open:rotate-180 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                           </button>
                       
-                          <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full z-50" aria-labelledby="hs-dropdown-default">
+                          <div wire:ignore class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full z-50" aria-labelledby="hs-dropdown-default">
                                 <a
                                     class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
                                     {{ request()->is('client/appointments')
@@ -53,6 +71,17 @@
                                 >
                                     {{ __('Reservations') }}
                                 </a>
+
+                                <a
+                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
+                                    {{ request()->is('client/account')
+                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
+                                    }}"
+                                    href="{{ route('client.account') }}"
+                                >
+                                    {{ __('Account') }}
+                                </a>
                               {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.account') }}">
                                   {{ __('My Account' )}}
                               </a>
@@ -62,9 +91,9 @@
                               <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.invoice') }}">
                                 {{ __('My Invoice' )}}
                               </a> --}}
-                              <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="/logout">
+                              {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="/logout">
                                   {{ __('Logout' )}}
-                              </a>
+                              </a> --}}
                           </div>
                       </div>
                   </div>
@@ -73,11 +102,15 @@
         </div>
         
         <div id="navbar-alignment" class="hs-collapse hidden overflow-hidden transition-all duration-300 basis-full grow sm:grow-0 sm:basis-auto sm:block sm:order-2 lg:ml-auto lg:mr-12">
-          <div class="flex flex-col gap-8 lg:gap-12 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5">
-            <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] {{ request()->is('/') ? 'text-black' : 'text-gray-400'  }}" href="/" aria-current="page">HOME</a>
-            <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.about') ? 'text-black' : 'text-gray-400' }}" href="{{ route('user.about') }}">ABOUT</a>
-            <a class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.contact') ? 'text-black' : 'text-gray-400'}}" href="{{ route('user.properties') }}">PROPERTIES</a>
-
+          <div class="flex flex-col gap-3 lg:gap-8 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5">
+            <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] {{ request()->is('/') ? 'text-black' : 'text-gray-400'  }}" href="/" aria-current="page">HOME</a>
+            <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.about') ? 'text-black' : 'text-gray-400' }}" href="{{ route('user.about') }}">ABOUT</a>
+            <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.properties') ? 'text-black' : 'text-gray-400'}}" href="{{ route('user.properties') }}">PROPERTIES</a>
+            @auth
+                <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.cost.breakdown') ? 'text-black' : 'text-gray-400'}}" href="{{ route('client.cost.breakdown') }}">COST BREAKDOWN</a>
+                
+                <livewire:partials.notification-badge />
+            @endauth
             <div class="flex justify-center lg:hidden md:ml-10">
               {{-- <a href="{{ route('login') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-transparent text-[#2b2b31] hover:bg-slate-300 disabled:opacity-50 disabled:pointer-events-none">
                   Login
@@ -94,14 +127,35 @@
                   </a> --}}
               @endguest
               @auth
-                  <div class="flex items-center justify-center">
-                      <div class="hs-dropdown relative inline-flex md:flex md:items-center md:justify-center">
-                          <button id="hs-dropdown-default" type="button" class="hs-dropdown-toggle py-2 inline-flex items-center gap-x-2 text-base font-medium rounded-lg text-[#2b2b31]">
-                              {{ auth()->user()->name }}
+                  <div wire:ignore class="flex items-center justify-center">
+                      <div wire:ignore class="hs-dropdown relative inline-flex md:flex md:items-center md:justify-center">
+                          <button wire:ignore id="hs-dropdown-default" type="button" class="hs-dropdown-toggle py-2 inline-flex items-center gap-x-2 text-base font-medium rounded-lg text-[#2b2b31]">
+                                <div class="flex justify-center items-center gap-2">
+                                    {{-- <img src="{{ asset(auth()->user()->profile_picture) }}" alt="{{ auth()->user()->name }}" class="w-10 h-10"> --}}
+                                    @if(auth()->user()->profile_picture)
+                                        <img src="{{ asset(auth()->user()->profile_picture) }}" 
+                                            alt="{{ auth()->user()->name }}" 
+                                            class="w-10 h-10 rounded-full object-cover">
+                                    @else
+                                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" 
+                                                class="w-6 h-6 text-gray-500" 
+                                                fill="none" 
+                                                viewBox="0 0 24 24" 
+                                                stroke="currentColor">
+                                                <path stroke-linecap="round" 
+                                                    stroke-linejoin="round" 
+                                                    stroke-width="2" 
+                                                    d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </div>
+                                    @endif
+                                    {{ auth()->user()->name }}
+                                </div>
                               <svg class="hs-dropdown-open:rotate-180 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                           </button>
                       
-                          <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full z-50" aria-labelledby="hs-dropdown-default">
+                          <div wire:ignore class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full z-50" aria-labelledby="hs-dropdown-default">
                               {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="#">
                                   {{ __('Appointments') }}
                               </a> --}}
@@ -111,9 +165,42 @@
                               <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.invoice') }}">
                                 {{ __('My Invoice' )}}
                               </a> --}}
-                              <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="/logout">
-                                  {{ __('Logout' )}}
-                              </a>
+                                <a
+                                class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
+                                    {{ request()->is('client/appointments')
+                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
+                                    }}"
+                                    href="{{ route('client.appointment') }}"
+                                >
+                                    {{ __('Appointments') }}
+                                </a>
+
+                                <a
+                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
+                                    {{ request()->is('client/reservations')
+                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
+                                    }}"
+                                    href="{{ route('client.reservation') }}"
+                                >
+                                    {{ __('Reservations') }}
+                                </a>
+
+                                <a
+                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
+                                    {{ request()->is('client/account')
+                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
+                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
+                                    }}"
+                                    href="{{ route('client.account') }}"
+                                >
+                                    {{ __('Account') }}
+                                </a>
+
+                                {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="/logout">
+                                    {{ __('Logout' )}}
+                                </a> --}}
                           </div>
                       </div>
                   </div>

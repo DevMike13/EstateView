@@ -138,9 +138,11 @@ class AppointmentObserver
             'created_by' => auth()->id(),
         ]);
 
-        // Send to all users (same as reservations)
+        $staffAdmins = \App\Models\User::whereIn('role', ['admin', 'staff'])->pluck('id');
+        $client = $appointment->user_id;
+
         $notification->users()->attach(
-            \App\Models\User::pluck('id')->toArray()
+            $staffAdmins->merge([$client])->unique()->toArray()
         );
     }
 }

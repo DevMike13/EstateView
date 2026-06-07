@@ -220,8 +220,11 @@ class LotReservationObserver
             'created_by' => auth()->id(),
         ]);
 
+        $staffAdmins = \App\Models\User::whereIn('role', ['admin', 'staff'])->pluck('id');
+        $client = $lotReservation->user_id;
+
         $notification->users()->attach(
-            \App\Models\User::pluck('id')->toArray()
+            $staffAdmins->merge([$client])->unique()->toArray()
         );
     }
 }

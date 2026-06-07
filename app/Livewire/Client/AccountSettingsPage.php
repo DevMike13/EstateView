@@ -1,0 +1,183 @@
+<?php
+
+namespace App\Livewire\Client;
+
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use App\Models\User;
+use Livewire\Attributes\Title;
+use WireUi\Traits\Actions;
+
+#[Title('Account')]
+class AccountSettingsPage extends Component
+{
+    use WithFileUploads, Actions;
+
+    // Profile Fields
+    public $firstName;
+    public $middleName;
+    public $lastName;
+    public $suffix;
+    public $email;
+    public $phone;
+    public $photo;
+
+    // Security Password Fields
+    public $currentPassword;
+    public $newPassword;
+    public $confirmPassword;
+
+    public function mount()
+    {
+        $user = Auth::user();
+        // Load joined relationship data
+        $info = $user->info; 
+
+        $this->firstName = $info->first_name ?? '';
+        $this->middleName = $info->middle_name ?? '';
+        $this->lastName = $info->last_name ?? '';
+        $this->suffix = $info->suffix ?? '';
+        $this->email = $user->email;
+        
+        // Strip out "+63" if present for cleaner visual editing
+        $rawPhone = $info->phone ?? '';
+        $this->phone = str_replace('+63', '', $rawPhone);
+    }
+
+    public function confirmProfileUpdate()
+    {
+        // First validate before showing the dialog box
+        $this->validate([
+            'firstName'  => 'required|string|max:255',
+            'middleName' => 'required|string|max:255',
+            'lastName'   => 'required|string|max:255',
+            'suffix'     => 'nullable|string|max:255',
+            'email'      => 'required|email|max:255|unique:users,email,' . Auth::id(),
+            'phone'      => 'required|string|max:20',
+        ]);
+
+        $this->dialog()->confirm([
+            'title'       => 'Save Account Changes?',
+            'description' => 'Are you sure you want to update your profile information?',
+            'icon'        => 'question',
+            'acceptLabel' => 'Yes, save changes',
+            'rejectLabel' => 'Cancel',
+            'method'      => 'updateProfile',
+        ]);
+    }
+
+    public function updateProfile()
+    {
+        $user = Auth::user();
+
+        // 1. Update Core User Info Table Record
+        $user->update([
+            'name'  => $this->lastName . ", " . $this->firstName,
+            'email' => $this->email,
+        ]);
+
+        // 2. Update Secondary Profile Info Table Record
+        $user->info()->update([
+            'first_name'  => $this->firstName,
+            'middle_name' => $this->middleName,
+            'last_name'   => $this->lastName,
+            'suffix'      => $this->suffix,
+            'phone'       => '+63' . ltrim($this->phone, '0'),
+        ]);
+
+       
+        $this->notification()->success(
+            $title = 'Profile Updated',
+            $description = 'Your personal details have been updated successfully!'
+        );
+    }
+
+    public function updatePassword()
+    {
+        $user = Auth::user();
+
+        $this->validate([
+            'currentPassword' => 'required|string',
+            'newPassword'     => 'required|string|min:8|max:255',
+            'confirmPassword' => 'required|same:newPassword',
+        ]);
+
+        if (!Hash::check($this->currentPassword, $user->password)) {
+            $this->addError('currentPassword', 'The provided password does not match our records.');
+            return;
+        }
+
+        $user->update([
+            'password' => Hash::make($this->newPassword),
+        ]);
+
+        $this->reset(['currentPassword', 'newPassword', 'confirmPassword']);
+
+        $this->notification()->success(
+            $title = 'Password Changed',
+            $description = 'Your security password has been updated successfully!'
+        );
+    }
+
+    public function updatedPhoto()
+    {
+        $this->validate([
+            'photo' => 'image|max:2048', // 2MB Max Size Check
+        ]);
+
+        $user = Auth::user();
+
+        // Remove old avatar image file asset if it exists in local storage
+        if ($user->profile_picture) {
+            $oldPath = str_replace(asset('storage/'), '', $user->profile_picture);
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        // Store and assign new picture link path
+        $path = $this->photo->store('avatars', 'public');
+        $user->update([
+            'profile_picture' => asset('storage/' . $path),
+        ]);
+
+        $this->notification()->success(
+            $title = 'Photo Uploaded',
+            $description = 'Your profile picture has been updated.'
+        );
+    }
+
+    public function removePhoto()
+    {
+        $user = Auth::user();
+
+        if ($user->profile_picture) {
+            $oldPath = str_replace(asset('storage/'), '', $user->profile_picture);
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $user->update([
+            'profile_picture' => null,
+        ]);
+
+        $this->notification()->success(
+            $title = 'Photo Removed',
+            $description = 'Your profile photo has been completely removed.'
+        );
+    }
+
+    public function logout()
+    {
+        Auth::logout();
+        session()->invalidate();
+        session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
+
+    public function render()
+    {
+        return view('livewire.client.account-settings-page');
+    }
+}

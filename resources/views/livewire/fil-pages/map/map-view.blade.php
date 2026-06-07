@@ -187,6 +187,7 @@
                             data-coords="{{ $lot->coords }}"
 
                             data-user-name="{{ $lot->user?->name }}"
+                            data-user-id="{{ $lot->user?->id }}"
                             data-user-picture="{{ asset($lot->user?->profile_picture) }}"
 
                             data-model-name="{{ $lot->houseModel?->model_name }}"
@@ -393,7 +394,7 @@
 
                     <x-slot name="footer" class="flex justify-end gap-x-4">
                         <div class="flex justify-end gap-x-4">
-                            <x-button flat label="Cancel" @click="closeModal()" x-on:click="close"/>
+                            <x-button flat label="Cancel" @click="closeModal()" x-on:click="close" wire:click="reloadWeb" />
                             <x-button primary label="Save" type="submit" @click="$wire.lotCoordinates = coordsString" />
                         </div>
                     </x-slot>

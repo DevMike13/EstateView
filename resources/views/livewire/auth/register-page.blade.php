@@ -4,13 +4,13 @@
             <img src="{{ asset('/images/estate-view-logo.png') }}" alt="" class="h-12">
         </a>
     </div>
-    <div class="w-[90%] md:w-[55%] h-auto flex flex-col justify-center items-center gap-1 md:gap-0 mt-28 md:mt-0 md:pt-12 md:pb-10 bg-white mx-auto rounded-2xl">
+    <div class="w-[90%] md:w-[55%] h-auto flex flex-col justify-center items-center gap-1 md:gap-0 mt-28 md:mt-0 py-5 px-5 md:pt-12 md:pb-10 bg-white mx-auto rounded-2xl">
         <h1 class="md:text-3xl text-2xl font-medium text-center">Create Account</h1>
         <p class="text-center">Register as a new client</p>
         <div class="w-full flex flex-col justify-center items-center">
             <form wire:submit.prevent="register" class="w-full flex justify-center">
                 <div  class="w-full md:w-[90%]">
-                    <ul class="relative flex flex-row gap-x-2 mb-3 md:mb-10 mt-10">
+                    <ul class="relative flex flex-row gap-x-2 mb-3 md:mb-10 mt-10 overflow-x-auto">
                         <li class="flex items-center gap-x-2 shrink basis-0 flex-1 group">
                             <span class="min-w-7 min-h-7 group inline-flex items-center text-xs align-middle">
                             <span class="size-7 flex justify-center items-center flex-shrink-0 font-medium text-gray-800 rounded-full {{ $currentStep == 1 || $isFinishedStepOne == true ? 'bg-[#101727] text-white' : 'text-gray-800'}}">
@@ -234,12 +234,12 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="w-full flex gap-2 mt-4 mb-4">
+                                <div class="w-full flex flex-col md:flex-row gap-2 mt-4 mb-4">
                                     <div class="w-full space-y-3">
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-input type="password" label="Password" placeholder="Enter your password" class="py-3 -mt-1" wire:model="password" />
+                                                <x-inputs.password label="Password" placeholder="Enter your password" class="py-3 -mt-1" wire:model="password" />
                                             </div>
                                         </div>
                                     </div>
@@ -247,7 +247,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative whitespace-nowrap">
-                                                <x-input type="password" label="Confirm Password" placeholder="Confirm password" class="py-3 -mt-1" wire:model="confirmPassword" />
+                                                <x-inputs.password label="Confirm Password" placeholder="Confirm password" class="py-3 -mt-1" wire:model="confirmPassword" />
                                             </div>
                                         </div>
                                     </div>

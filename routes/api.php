@@ -18,6 +18,7 @@ use App\Models\PHRegions;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Arr;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,18 +41,41 @@ Route::get('/api/provinces', [ApiController::class, 'getProvinces'])->name('api.
 Route::get('/api/municipalities', [ApiController::class, 'getMunicipalities'])->name('api.municipalities.index');
 Route::get('/api/barangays', [ApiController::class, 'getBarangays'])->name('api.barangays.index');
 
-Route::get('/api/users', function (Request $request) {
+// Route::get('/api/users', function (Request $request) {
 
+//     return User::query()
+//         ->when($request->search, function ($query, $search) {
+//             $query->where('name', 'like', "%{$search}%")
+//                   ->orWhere('email', 'like', "%{$search}%");
+//         })
+//         ->where('role', 'user')
+//         ->select('id', 'name', 'email', 'profile_picture')
+//         ->limit(20)
+//         ->get();
+
+// })->name('api.users.index');
+
+Route::get('/api/users', function (Request $request) {
     return User::query()
-        ->when($request->search, function ($query, $search) {
-            $query->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-        })
         ->where('role', 'user')
         ->select('id', 'name', 'email', 'profile_picture')
-        ->limit(20)
+        // 1. If WireUI is looking for the currently saved user(s)
+        ->when($request->selected, function ($query, $selected) {
+            // WireUI can send 'selected' as an array or a single ID; Arr::wrap handles both safely
+            $query->whereIn('id', Arr::wrap($selected));
+        })
+        // 2. If the user is typing into the search bar input field
+        ->when($request->search, function ($query, $search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        })
+        // 3. Prevent crashing if thousands of rows exist
+        ->unless($request->selected, function ($query) {
+            $query->limit(20);
+        })
         ->get();
-
 })->name('api.users.index');
 
 Route::get('/api/house-models', function (Request $request) {

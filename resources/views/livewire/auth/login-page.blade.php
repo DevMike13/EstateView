@@ -1,4 +1,4 @@
-<div class="flex justify-center md:flex h-auto">
+<div class="flex justify-center md:flex h-auto py-10 md:py-0">
     <div class="hidden md:block w-1/2 h-screen sticky top-0 bg-cover bg-center relative" style="background-image: url('{{ asset('images/login-banner.jpg') }}');">
         <div class="absolute inset-0 bg-black/50"></div>
         <div class="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-10">
@@ -13,14 +13,14 @@
 
         </div>
     </div>
-    <div class="md:w-[50%] flex flex-col justify-center px-20 gap-3 bg-white h-full">
+    <div class="md:w-[50%] flex flex-col justify-center px-0 py-5 md:py-0 md:px-20 gap-3 bg-white h-full">
         <div class="flex justify-center items-center md:mt-24">
             <a href="/">
                 <img src="{{ asset('/images/estate-view-logo.png') }}" alt="" class="h-12">
             </a>
         </div>
-        <h1 class="text-4xl md:text-4xl font-medium text-left">Sign In</h1>
-        <p class="text-sm text-left">Access your account</p>
+        <h1 class="text-4xl md:text-4xl font-medium text-center md:text-left">Sign In</h1>
+        <p class="text-sm text-center md:text-left">Access your account</p>
         <form wire:submit.prevent="login" class="w-full flex flex-col justify-center items-center mt-10">
             <div class="w-full flex flex-col justify-center items-center">
                 <div class="space-y-6 w-[90%] md:w-full">

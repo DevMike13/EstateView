@@ -3,6 +3,7 @@
 namespace App\Livewire\FilPages;
 
 use App\Models\LotReservation;
+use App\Models\ReservationPayment;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
@@ -34,7 +35,13 @@ class Reservations extends Component
     public function mount()
     {
         // ensure tab is valid
-        if (!in_array($this->activeTab, ['pending', 'approved', 'rejected'])) {
+        if (!in_array($this->activeTab, [
+            'pending',
+            'awaiting_reservation_fee',
+            'reservation_fee_submitted',
+            'approved',
+            'rejected'
+        ])) {
             $this->activeTab = 'pending';
         }
     }
@@ -42,10 +49,12 @@ class Reservations extends Component
     public function getReservationsProperty()
     {
         return LotReservation::with([
+                'user.info',
                 'lot',
                 'preferredPayment',
                 'requiredDocuments',
                 'houseModel',
+                'latestReservationPayment',
             ])
             ->where('status', $this->activeTab)
             ->latest()
@@ -70,12 +79,28 @@ class Reservations extends Component
             ->count();
     }
 
+    public function getAwaitingReservationFeeCountProperty()
+    {
+        return LotReservation::where(
+            'status',
+            'awaiting_reservation_fee'
+        )->count();
+    }
+
+    public function getReservationFeeSubmittedCountProperty()
+    {
+        return LotReservation::where(
+            'status',
+            'reservation_fee_submitted'
+        )->count();
+    }
+
     public function confirmApprove($reservationId)
     {
         $this->dialog()->confirm([
-            'title' => 'Approve Reservation?',
-            'description' => 'This will reserve the selected lot for the client.',
-            'acceptLabel' => 'Yes, approve',
+            'title' => 'Approve Requirements?',
+            'description' => 'This will notify the client to pay the reservation fee.',
+            'acceptLabel' => 'Yes, approve requirements',
             'method' => 'approveReservation',
             'params' => $reservationId,
             'icon' => 'success',
@@ -83,34 +108,25 @@ class Reservations extends Component
     }
 
     public function approveReservation($reservationId)
-    {   
+    {
         DB::transaction(function () use ($reservationId) {
 
-            $reservation = LotReservation::with([
-                'lot',
-                'houseModel',
-            ])->findOrFail($reservationId);
-
-            $reservation->lot->update([
-                'status' => 'reserved',
-                'user_id' => $reservation->user_id,
-                'house_model_id' => $reservation->house_model_id,
-            ]);
+            $reservation = LotReservation::findOrFail($reservationId);
 
             $reservation->update([
-                'status' => 'approved',
+                'status' => 'awaiting_reservation_fee',
             ]);
         });
 
         Notification::make()
-            ->title('Reservation Approved')
-            ->body("The reservation has been approved successfully.")
+            ->title('Requirements Approved')
+            ->body('Reservation fee payment is now required.')
             ->success()
             ->send();
 
         $this->dispatch('reload');
+
         return redirect()->back();
-        
     }
 
     public function confirmReject($reservationId)
@@ -140,6 +156,93 @@ class Reservations extends Component
             ->send();
 
         $this->dispatch('reload');
+        return redirect()->back();
+    }
+
+    public function confirmApproveReservationFee($paymentId)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Verify Reservation Fee?',
+            'description' => 'This will approve the reservation fee and officially reserve the lot.',
+            'acceptLabel' => 'Yes, verify payment',
+            'method' => 'approveReservationFee',
+            'params' => $paymentId,
+            'icon' => 'success',
+        ]);
+    }
+
+    public function approveReservationFee($paymentId)
+    {
+        DB::transaction(function () use ($paymentId) {
+
+            $payment = ReservationPayment::with([
+                'reservation.lot',
+            ])->findOrFail($paymentId);
+
+            $payment->update([
+                'status' => 'verified',
+            ]);
+
+            $reservation = $payment->reservation;
+
+            $reservation->lot->update([
+                'status' => 'reserved',
+                'user_id' => $reservation->user_id,
+                'house_model_id' => $reservation->house_model_id,
+            ]);
+
+            $reservation->update([
+                'status' => 'approved',
+            ]);
+        });
+
+        Notification::make()
+            ->title('Reservation Fee Verified')
+            ->body('The lot is now officially reserved for the client.')
+            ->success()
+            ->send();
+
+        $this->dispatch('reload');
+
+        return redirect()->back();
+    }
+
+    public function confirmRejectReservationFee($paymentId)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Reject Reservation Fee?',
+            'description' => 'This will reject the uploaded payment proof.',
+            'acceptLabel' => 'Yes, reject payment',
+            'method' => 'rejectReservationFee',
+            'params' => $paymentId,
+            'icon' => 'error',
+        ]);
+    }
+
+    public function rejectReservationFee($paymentId)
+    {
+        DB::transaction(function () use ($paymentId) {
+
+            $payment = ReservationPayment::with('reservation')
+                ->findOrFail($paymentId);
+
+            $payment->update([
+                'status' => 'rejected',
+            ]);
+
+            $payment->reservation->update([
+                'status' => 'awaiting_reservation_fee',
+            ]);
+        });
+
+        Notification::make()
+            ->title('Reservation Fee Rejected')
+            ->body('The client needs to upload a valid payment proof again.')
+            ->danger()
+            ->send();
+
+        $this->dispatch('reload');
+
         return redirect()->back();
     }
 

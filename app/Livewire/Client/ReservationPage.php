@@ -3,6 +3,7 @@
 namespace App\Livewire\Client;
 
 use App\Models\LotReservation;
+use App\Models\ReservationPayment;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -27,6 +28,11 @@ class ReservationPage extends Component
     public $doc_tin = [];
 
     public $lotApiUrl;
+
+    public $reservationId;
+    public $paymentMethod;
+    public $referenceNo;
+    public $proofOfPayment;
 
     public function mount()
     {
@@ -54,6 +60,13 @@ class ReservationPage extends Component
         }
     }
 
+    private function calculateReservationFee(LotReservation $reservation): float
+    {
+        return $reservation->type === 'House & Lot'
+            ? 50000
+            : 20000;
+    }
+
     public function setTab($tab)
     {
         $this->activeTab = $tab;
@@ -66,6 +79,7 @@ class ReservationPage extends Component
                 'preferredPayment',
                 'requiredDocuments',
                 'houseModel',
+                'latestReservationPayment',
             ])
             ->where('user_id', auth()->id())
             ->where('status', $this->activeTab)
@@ -77,6 +91,20 @@ class ReservationPage extends Component
     {
         return LotReservation::where('user_id', auth()->id())
             ->where('status', 'pending')
+            ->count();
+    }
+
+    public function getAwaitingReservationFeeCountProperty()
+    {
+        return LotReservation::where('user_id', auth()->id())
+            ->where('status', 'awaiting_reservation_fee')
+            ->count();
+    }
+
+    public function getReservationFeeSubmittedCountProperty()
+    {
+        return LotReservation::where('user_id', auth()->id())
+            ->where('status', 'reservation_fee_submitted')
             ->count();
     }
 
@@ -207,6 +235,57 @@ class ReservationPage extends Component
         session()->flash('reservation_success', 'Thank you for submitting your reservation. Your reservation is currently under review.');
         
         return $this->redirect(request()->header('referer'), navigate: false);
+    }
+
+    public function submitReservationPayment()
+    {
+        $this->validate([
+            'reservationId' => 'required|exists:lot_reservations,id',
+            'paymentMethod' => 'required|in:cash,bank_transfer,gcash,maya',
+            'referenceNo' => 'nullable|string|max:255',
+            'proofOfPayment' => 'required|file|max:20480',
+        ]);
+
+        DB::transaction(function () {
+            $reservation = LotReservation::where('user_id', auth()->id())
+                ->where('status', 'awaiting_reservation_fee')
+                ->findOrFail($this->reservationId);
+
+            $path = $this->proofOfPayment->store(
+                "reservation-payments/{$reservation->id}",
+                'public'
+            );
+
+            ReservationPayment::create([
+                'lot_reservation_id' => $reservation->id,
+                'amount' => $this->calculateReservationFee($reservation),
+                'payment_method' => $this->paymentMethod,
+                'reference_no' => $this->referenceNo,
+                'proof_of_payment' => $path,
+                'paid_at' => now(),
+                'status' => 'pending',
+            ]);
+
+            $reservation->update([
+                'status' => 'reservation_fee_submitted',
+            ]);
+        });
+
+        $this->reset([
+            'reservationId',
+            'paymentMethod',
+            'referenceNo',
+            'proofOfPayment',
+        ]);
+
+        $this->notification()->success(
+            'Payment Submitted',
+            'Your reservation fee payment is now waiting for admin verification.'
+        );
+
+        $this->dispatch('close-modal', name: 'reservationPayment');
+
+        $this->activeTab = 'reservation_fee_submitted';
     }
 
     public function render()

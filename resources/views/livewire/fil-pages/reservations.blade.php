@@ -20,6 +20,34 @@
                     </span>
                 </button>
 
+                <button
+                    wire:click="setTab('awaiting_reservation_fee')"
+                    class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2
+                    {{ $activeTab === 'awaiting_reservation_fee'
+                        ? 'border-[#129c45] text-[#129c45]'
+                        : 'border-transparent text-gray-500' }}"
+                >
+                    <span>Awaiting Fee</span>
+
+                    <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
+                        {{ $this->awaitingReservationFeeCount }}
+                    </span>
+                </button>
+
+                <button
+                    wire:click="setTab('reservation_fee_submitted')"
+                    class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2
+                    {{ $activeTab === 'reservation_fee_submitted'
+                        ? 'border-[#129c45] text-[#129c45]'
+                        : 'border-transparent text-gray-500' }}"
+                >
+                    <span>Fee Verification</span>
+
+                    <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
+                        {{ $this->reservationFeeSubmittedCount }}
+                    </span>
+                </button>
+
                 {{-- Approved --}}
                 <button
                     wire:click="setTab('approved')"
@@ -115,10 +143,12 @@
                             {{-- STATUS --}}
                             <span class="px-3 py-1 rounded-full text-sm font-medium
                                 {{ $reservation->status === 'pending' ? 'bg-yellow-100 text-yellow-700' : '' }}
+                                {{ $reservation->status === 'awaiting_reservation_fee' ? 'bg-blue-100 text-blue-700' : '' }}
+                                {{ $reservation->status === 'reservation_fee_submitted' ? 'bg-purple-100 text-purple-700' : '' }}
                                 {{ $reservation->status === 'approved' ? 'bg-green-100 text-green-700' : '' }}
                                 {{ $reservation->status === 'rejected' ? 'bg-red-100 text-red-700' : '' }}
                             ">
-                                {{ ucfirst($reservation->status) }}
+                                {{ Str::headline($reservation->status) }}
                             </span>
 
                         </div>
@@ -269,7 +299,69 @@
 
                             </div>
                         @endif
+                        
+                        @if(in_array($reservation->status, ['reservation_fee_submitted', 'approved']) && $reservation->latestReservationPayment)
+                            <div class="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
 
+                                <div class="flex items-center gap-2 mb-3">
+                                    <x-icon name="banknotes" class="h-5 w-5 text-purple-600" />
+
+                                    <h4 class="font-medium text-gray-900">
+                                        Reservation Fee Payment
+                                    </h4>
+                                </div>
+
+                                <div class="grid md:grid-cols-2 gap-4 text-sm">
+
+                                    <div>
+                                        <div class="text-xs text-gray-500 mb-1">Amount</div>
+                                        <div class="font-semibold text-gray-900">
+                                            ₱{{ number_format($reservation->latestReservationPayment->amount, 2) }}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500 mb-1">Payment Status</div>
+                                        <div class="font-semibold text-gray-900">
+                                            {{ Str::headline($reservation->latestReservationPayment->status) }}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div class="text-xs text-gray-500 mb-1">Payment Method</div>
+                                        <div class="font-semibold text-gray-900">
+                                            {{ Str::headline($reservation->latestReservationPayment->payment_method) }}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div class="text-xs text-gray-500 mb-1">Reference No.</div>
+                                        <div class="font-semibold text-gray-900">
+                                            {{ $reservation->latestReservationPayment->reference_no ?? 'N/A' }}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div class="text-xs text-gray-500 mb-1">Paid At</div>
+                                        <div class="font-semibold text-gray-900">
+                                            {{ optional($reservation->latestReservationPayment->paid_at)->format('M d, Y h:i A') ?? 'N/A' }}
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                @if($reservation->latestReservationPayment->proof_of_payment)
+                                    <a
+                                        href="{{ asset('storage/' . $reservation->latestReservationPayment->proof_of_payment) }}"
+                                        target="_blank"
+                                        class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-purple-700 hover:text-purple-900"
+                                    >
+                                        <x-icon name="arrow-top-right-on-square" class="w-4 h-4" />
+                                        View Proof of Payment
+                                    </a>
+                                @endif
+
+                            </div>
+                        @endif
                         {{-- ACTIONS --}}
                         <div class="flex flex-col sm:flex-row gap-3">
 
@@ -292,7 +384,26 @@
                                         class="w-full border border-red-400 text-red-900 rounded-lg font-semibold"
                                     />
                                 </div>
+                            @elseif($reservation->status === 'reservation_fee_submitted' && $reservation->latestReservationPayment)
 
+                                <div class="sm:w-4/5 w-full">
+                                    <x-button
+                                        wire:click="confirmApproveReservationFee({{ $reservation->latestReservationPayment->id }})"
+                                        icon="check"
+                                        label="Verify Reservation Fee"
+                                        class="w-full bg-[#00a73e] hover:text-[#101727] text-white rounded-lg font-semibold"
+                                    />
+                                </div>
+
+                                <div class="sm:w-1/5 w-full">
+                                    <x-button
+                                        wire:click="confirmRejectReservationFee({{ $reservation->latestReservationPayment->id }})"
+                                        icon="x-mark"
+                                        label="Reject"
+                                        class="w-full border border-red-400 text-red-900 rounded-lg font-semibold"
+                                    />
+                                </div>
+                                
                             @elseif($reservation->status === 'rejected')
 
                                 <x-button

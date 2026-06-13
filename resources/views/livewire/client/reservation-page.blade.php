@@ -24,6 +24,36 @@
                     </span>
                 </button>
 
+                {{-- Awaiting Fee --}}
+                <button
+                    wire:click="setTab('awaiting_reservation_fee')"
+                    class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2
+                    {{ $activeTab === 'awaiting_reservation_fee'
+                        ? 'border-[#129c45] text-[#129c45]'
+                        : 'border-transparent text-gray-500' }}"
+                >
+                    <span>Awaiting Fee</span>
+
+                    <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
+                        {{ $this->awaitingReservationFeeCount }}
+                    </span>
+                </button>
+
+                {{-- Fee Submitted --}}
+                <button
+                    wire:click="setTab('reservation_fee_submitted')"
+                    class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2
+                    {{ $activeTab === 'reservation_fee_submitted'
+                        ? 'border-[#129c45] text-[#129c45]'
+                        : 'border-transparent text-gray-500' }}"
+                >
+                    <span>Fee Submitted</span>
+
+                    <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
+                        {{ $this->reservationFeeSubmittedCount }}
+                    </span>
+                </button>
+
                 {{-- Approved --}}
                 <button
                     wire:click="setTab('approved')"
@@ -82,10 +112,16 @@
                                 <span class="px-3 py-1 rounded-full text-xs font-medium
                                     @if($reservation->status === 'pending')
                                         bg-yellow-100 text-yellow-700
+
+                                    @elseif($reservation->status === 'awaiting_reservation_fee')
+                                        bg-blue-100 text-blue-700
+
+                                    @elseif($reservation->status === 'reservation_fee_submitted')
+                                        bg-purple-100 text-purple-700
+
                                     @elseif($reservation->status === 'approved')
                                         bg-green-100 text-green-700
-                                    @elseif($reservation->status === 'completed')
-                                        bg-blue-100 text-blue-700
+
                                     @else
                                         bg-red-100 text-red-700
                                     @endif
@@ -180,6 +216,167 @@
                         </div>
                     @endif
 
+                    {{-- AWAITING PAYMENT --}}
+                    @if($reservation->status === 'awaiting_reservation_fee')
+
+                        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+
+                            <div class="flex justify-between items-center">
+
+                                <div>
+
+                                    <div class="text-xs text-blue-700">
+                                        Reservation Fee Required
+                                    </div>
+
+                                    <div class="text-xl font-bold text-blue-900">
+                                        ₱{{ number_format(
+                                            $reservation->type === 'House & Lot'
+                                                ? 50000
+                                                : 20000,
+                                            2
+                                        ) }}
+                                    </div>
+
+                                </div>
+
+                                <x-button
+                                    label="Upload Payment"
+                                    icon="banknotes"
+                                    x-on:click="
+                                        $wire.reservationId = {{ $reservation->id }};
+                                        $openModal('reservationPayment')
+                                    "
+                                    class="bg-[#101727] text-white"
+                                />
+
+                            </div>
+
+                        </div>
+
+                    @endif
+
+                    {{-- PAYMENT DETAILS --}}
+                    @if(
+                        in_array($reservation->status, [
+                            'reservation_fee_submitted',
+                            'approved'
+                        ])
+                        && $reservation->latestReservationPayment
+                    )
+
+                        <div class="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+
+                            <div class="text-sm font-semibold mb-3">
+
+                                @if($reservation->status === 'approved')
+                                    Reservation Fee Verified
+                                @else
+                                    Payment Verification In Progress
+                                @endif
+
+                            </div>
+
+                            <div class="grid md:grid-cols-3 gap-4">
+
+                                <div>
+                                    <div class="text-xs text-gray-500">
+                                        Amount
+                                    </div>
+
+                                    <div class="font-semibold">
+                                        ₱{{ number_format(
+                                            $reservation->latestReservationPayment->amount,
+                                            2
+                                        ) }}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs text-gray-500">
+                                        Payment Status
+                                    </div>
+
+                                    <div class="font-semibold">
+                                        {{ Str::headline($reservation->latestReservationPayment->status) }}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs text-gray-500">
+                                        Method
+                                    </div>
+
+                                    <div class="font-semibold">
+                                        {{ Str::headline(
+                                            $reservation->latestReservationPayment->payment_method
+                                        ) }}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs text-gray-500">
+                                        Reference
+                                    </div>
+
+                                    <div class="font-semibold">
+                                        {{ $reservation->latestReservationPayment->reference_no ?? 'N/A' }}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-xs text-gray-500">
+                                        Verified Date
+                                    </div>
+
+                                    <div class="font-semibold">
+                                        {{ $reservation->updated_at->format('M d, Y h:i A') }}
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <a
+                                href="{{ asset('storage/' . $reservation->latestReservationPayment->proof_of_payment) }}"
+                                target="_blank"
+                                class="mt-3 inline-flex text-purple-700 font-medium"
+                            >
+                                View Uploaded Proof
+                            </a>
+
+                        </div>
+
+                    @endif
+                    
+                    {{-- APPROVED SUCCESS MESSAGE --}}
+                    @if($reservation->status === 'approved')
+
+                        <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+
+                            <div class="flex items-start gap-3">
+
+                                <x-icon
+                                    name="check-circle"
+                                    class="w-6 h-6 text-green-600"
+                                />
+
+                                <div>
+
+                                    <div class="font-semibold text-green-900">
+                                        Reservation Approved
+                                    </div>
+
+                                    <div class="text-sm text-green-700">
+                                        Your reservation fee has been verified and your lot is now officially reserved.
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    @endif
                     {{-- DOCUMENTS --}}
                     <div class="border border-dashed rounded-lg p-4">
 
@@ -320,14 +517,18 @@
                 />
             </div>
 
-            <div class="mt-3">
-                <x-select
-                    label="Preferred Payment"
-                    placeholder="Select preferred payment"
-                    :options="['Loanable', 'Deferred']"
-                    wire:model.live="preferredPayment"
-                />
-            </div>
+            <x-select
+                label="Preferred Payment"
+                placeholder="Select preferred payment"
+                :options="[
+                    ['id' => 'cash', 'name' => 'Cash'],
+                    ['id' => 'bank_loan', 'name' => 'Bank Loan'],
+                    ['id' => 'deferred_payment', 'name' => 'Deferred Payment'],
+                ]"
+                option-label="name"
+                option-value="id"
+                wire:model.live="preferredPayment"
+            />
 
             <div class="mt-3 border-[1.5px] border-gray-100 border-dashed p-5 rounded-lg">
                 <h2 class="font-semibold text-sm mb-3">
@@ -401,4 +602,80 @@
 
         </x-card>
     </x-modal>
+
+    <x-modal blur name="reservationPayment" align="center">
+
+        <x-card title="Reservation Fee Payment">
+
+            <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+
+                <div class="text-xs text-blue-600">
+                    Reservation Fee
+                </div>
+
+                <div class="text-2xl font-bold text-blue-900">
+                    Amount will be verified automatically
+                </div>
+
+                <div class="text-sm text-gray-600 mt-1">
+                    Lot Only = ₱20,000
+                    <br>
+                    House & Lot = ₱50,000
+                </div>
+
+            </div>
+
+            <x-select
+                label="Payment Method"
+                wire:model="paymentMethod"
+                :options="[
+                    ['id' => 'cash', 'name' => 'Cash'],
+                    ['id' => 'bank_transfer', 'name' => 'Bank Transfer'],
+                    ['id' => 'gcash', 'name' => 'GCash'],
+                    ['id' => 'maya', 'name' => 'Maya'],
+                ]"
+                option-label="name"
+                option-value="id"
+            />
+
+            <div class="mt-4">
+                <x-input
+                    label="Reference Number"
+                    wire:model="referenceNo"
+                />
+            </div>
+
+            <div class="mt-4">
+                <label class="text-sm font-medium">
+                    Proof of Payment
+                </label>
+
+                <x-filepond::upload
+                    wire:model="proofOfPayment"
+                />
+            </div>
+
+            <x-slot name="footer">
+
+                <div class="flex justify-end gap-2">
+
+                    <x-button
+                        flat
+                        label="Cancel"
+                        x-on:click="close"
+                    />
+
+                    <x-button
+                        primary
+                        label="Submit Payment"
+                        wire:click="submitReservationPayment"
+                    />
+
+                </div>
+
+            </x-slot>
+
+        </x-card>
+
+    </x-modal>      
 </div>

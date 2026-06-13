@@ -43,4 +43,20 @@ class LotReservation extends Model
     {
         return $this->belongsTo(HouseModel::class);
     }
+
+    public function reservationPayments()
+    {
+        return $this->hasMany(ReservationPayment::class);
+    }
+
+    public function latestReservationPayment()
+    {
+        return $this->hasOne(ReservationPayment::class)
+            ->latestOfMany();
+    }
+
+    public function purchaseAccount()
+    {
+        return $this->hasOne(PurchaseAccount::class);
+    }
 }

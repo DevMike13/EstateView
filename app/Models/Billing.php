@@ -27,4 +27,14 @@ class Billing extends Model
     {
         return $this->belongsTo(PurchaseAccount::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(BillingPayment::class);
+    }
+
+    public function latestPayment()
+    {
+        return $this->hasOne(BillingPayment::class)->latestOfMany();
+    }
 }

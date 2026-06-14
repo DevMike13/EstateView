@@ -1,0 +1,178 @@
+<?php
+
+namespace App\Observers;
+
+use App\Mail\BillingPaymentApprovedMail;
+use App\Mail\BillingPaymentRejectedMail;
+use App\Mail\BillingPaymentSubmittedMail;
+use App\Models\BillingPayment;
+use App\Models\Notification;
+use App\Models\User;
+use Illuminate\Support\Facades\Mail;
+
+class BillingPaymentObserver
+{
+    /**
+     * Handle the BillingPayment "created" event.
+     */
+    public function created(BillingPayment $billingPayment): void
+    {
+        $billingPayment->loadMissing([
+            'user',
+            'billing',
+            'purchaseAccount.user',
+            'purchaseAccount.lot',
+        ]);
+
+        if ($billingPayment->source === 'client_upload') {
+            $this->notifyAdmins(
+                $billingPayment,
+                'Client Payment Submitted',
+                "{$billingPayment->user?->name} submitted a payment proof for {$billingPayment->billing?->title}.",
+                'billing_payment_submitted'
+            );
+
+            $admins = User::whereIn('role', ['admin', 'staff'])->get();
+
+            foreach ($admins as $admin) {
+                Mail::to($admin->email)
+                    ->send(new BillingPaymentSubmittedMail($billingPayment));
+            }
+        }
+
+        if ($billingPayment->source === 'office_payment') {
+            $this->notifyClientAndAdmins(
+                $billingPayment,
+                'Office Payment Recorded',
+                "An office payment was recorded for {$billingPayment->billing?->title}.",
+                'office_payment_recorded'
+            );
+        }
+    }
+
+    /**
+     * Handle the BillingPayment "updated" event.
+     */
+    public function updated(BillingPayment $billingPayment): void
+    {
+        if (! $billingPayment->wasChanged('status')) {
+            return;
+        }
+
+        $billingPayment->loadMissing([
+            'user',
+            'billing',
+            'purchaseAccount.user',
+        ]);
+
+        if ($billingPayment->status === 'verified') {
+            $this->notifyClientAndAdmins(
+                $billingPayment,
+                'Payment Approved',
+                "Payment for {$billingPayment->billing?->title} was approved.",
+                'billing_payment_approved'
+            );
+
+            Mail::to($billingPayment->purchaseAccount->user->email)
+                ->send(new BillingPaymentApprovedMail($billingPayment));
+        }
+
+        if ($billingPayment->status === 'rejected') {
+            $this->notifyClientAndAdmins(
+                $billingPayment,
+                'Payment Rejected',
+                "Payment for {$billingPayment->billing?->title} was rejected.",
+                'billing_payment_rejected'
+            );
+
+            Mail::to($billingPayment->purchaseAccount->user->email)
+                ->send(new BillingPaymentRejectedMail($billingPayment));
+        }
+    }
+
+    private function notifyAdmins(
+        BillingPayment $payment,
+        string $title,
+        string $message,
+        string $type
+    ): void {
+        $notification = Notification::create([
+            'title' => $title,
+            'message' => $message,
+            'type' => $type,
+            'url' => route('filament.ev-admin.pages.client-ledgers'),
+            'data' => [
+                'billing_payment_id' => $payment->id,
+                'billing_id' => $payment->billing_id,
+                'purchase_account_id' => $payment->purchase_account_id,
+                'client_name' => $payment->purchaseAccount?->user?->name,
+                'amount' => $payment->amount,
+                'status' => $payment->status,
+                'source' => $payment->source,
+            ],
+            'created_by' => auth()->id(),
+        ]);
+
+        $users = User::whereIn('role', ['admin', 'staff'])
+            ->pluck('id')
+            ->toArray();
+
+        $notification->users()->attach($users);
+    }
+
+    private function notifyClientAndAdmins(
+        BillingPayment $payment,
+        string $title,
+        string $message,
+        string $type
+    ): void {
+        $notification = Notification::create([
+            'title' => $title,
+            'message' => $message,
+            'type' => $type,
+            'url' => route('filament.ev-admin.pages.client-ledgers'),
+            'data' => [
+                'billing_payment_id' => $payment->id,
+                'billing_id' => $payment->billing_id,
+                'purchase_account_id' => $payment->purchase_account_id,
+                'client_name' => $payment->purchaseAccount?->user?->name,
+                'amount' => $payment->amount,
+                'status' => $payment->status,
+                'source' => $payment->source,
+            ],
+            'created_by' => auth()->id(),
+        ]);
+
+        $users = User::whereIn('role', ['admin', 'staff'])
+            ->pluck('id')
+            ->merge([$payment->purchaseAccount->user_id])
+            ->unique()
+            ->toArray();
+
+        $notification->users()->attach($users);
+    }
+
+    /**
+     * Handle the BillingPayment "deleted" event.
+     */
+    public function deleted(BillingPayment $billingPayment): void
+    {
+        //
+    }
+
+    /**
+     * Handle the BillingPayment "restored" event.
+     */
+    public function restored(BillingPayment $billingPayment): void
+    {
+        //
+    }
+
+    /**
+     * Handle the BillingPayment "force deleted" event.
+     */
+    public function forceDeleted(BillingPayment $billingPayment): void
+    {
+        //
+    }
+}

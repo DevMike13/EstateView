@@ -4,14 +4,33 @@ namespace App\Livewire\FilPages;
 
 use App\Models\AccountLedger;
 use App\Models\Billing;
+use App\Models\BillingPayment;
 use App\Models\LotReservation;
 use App\Models\PurchaseAccount;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Spatie\LivewireFilepond\WithFilePond;
+use WireUi\Traits\Actions;
+use Livewire\Attributes\Url;
 
 class ClientLedgers extends Component
 {
+    use WithFilePond, Actions, WithFileUploads;
+    
+    #[Url]
+    public $search = '';
+
+    #[Url]
+    public $statusFilter = '';
+
+    #[Url]
+    public $paymentSchemeFilter = '';
+
+    #[Url]
+    public $paymentReviewFilter = '';
+
     public $reservationId;
     public $loanTermYears = 15;
     public $dueDate;
@@ -22,6 +41,10 @@ class ClientLedgers extends Component
     public $accountStatus;
 
     public $billingId;
+
+    public $officePaymentMethod;
+    public $officeReferenceNo;
+    public $officeProofOfPayment;
 
     public function mount()
     {
@@ -103,22 +126,21 @@ class ClientLedgers extends Component
             }
 
             if ($paymentScheme === 'bank_loan') {
-                $downpayment = $tcp * 0.20;
-                $loanableAmount = $tcp * 0.80;
+                $downpaymentPercentage = (float) ($reservation->downpayment_percentage ?? 20);
+                $downpaymentRate = $downpaymentPercentage / 100;
+
+                $downpayment = $tcp * $downpaymentRate;
+                $loanableAmount = $tcp - $downpayment;
+
                 $remainingDownpayment = max($downpayment - $reservationFee, 0);
 
-                $annualRate = 0.07;
-                $monthlyRate = $annualRate / 12;
-                $totalMonths = $this->loanTermYears * 12;
+                $dpTermMonths = (int) ($reservation->downpayment_term_months ?? 12);
 
-                $monthlyAmortization = $loanableAmount *
-                    (
-                        ($monthlyRate * pow(1 + $monthlyRate, $totalMonths))
-                        /
-                        (pow(1 + $monthlyRate, $totalMonths) - 1)
-                    );
+                $monthlyAmortization = $remainingDownpayment > 0
+                    ? $remainingDownpayment / $dpTermMonths
+                    : 0;
 
-                $remainingBalance = $remainingDownpayment + $loanableAmount;
+                $remainingBalance = $remainingDownpayment;
 
                 $status = $remainingDownpayment <= 0
                     ? 'bank_processing'
@@ -195,28 +217,21 @@ class ClientLedgers extends Component
             }
 
             if ($paymentScheme === 'bank_loan') {
-                if ($remainingDownpayment > 0) {
+                $dpTermMonths = (int) ($reservation->downpayment_term_months ?? 12);
+
+                $monthlyDownpayment = $remainingDownpayment > 0
+                    ? $remainingDownpayment / $dpTermMonths
+                    : 0;
+
+                $startDate = \Carbon\Carbon::parse($this->dueDate);
+
+                for ($month = 1; $month <= $dpTermMonths; $month++) {
                     Billing::create([
                         'purchase_account_id' => $account->id,
-                        'billing_no' => 'DP-' . now()->format('YmdHis') . '-' . $account->id,
-                        'title' => 'Remaining Downpayment',
-                        'due_date' => $this->dueDate,
-                        'amount_due' => $remainingDownpayment,
-                        'amount_paid' => 0,
-                        'status' => 'unpaid',
-                    ]);
-                }
-
-                $startDate = \Carbon\Carbon::parse($this->dueDate)->addMonth();
-                $totalMonths = $this->loanTermYears * 12;
-
-                for ($month = 1; $month <= $totalMonths; $month++) {
-                    Billing::create([
-                        'purchase_account_id' => $account->id,
-                        'billing_no' => 'MA-' . $account->id . '-' . str_pad($month, 3, '0', STR_PAD_LEFT),
-                        'title' => 'Monthly Amortization #' . $month,
+                        'billing_no' => 'DP-' . $account->id . '-' . str_pad($month, 3, '0', STR_PAD_LEFT),
+                        'title' => 'Downpayment #' . $month,
                         'due_date' => $startDate->copy()->addMonths($month - 1),
-                        'amount_due' => $monthlyAmortization,
+                        'amount_due' => $monthlyDownpayment,
                         'amount_paid' => 0,
                         'status' => 'unpaid',
                     ]);
@@ -264,6 +279,9 @@ class ClientLedgers extends Component
             'billingId' => 'required|exists:billings,id',
             'paymentAmount' => 'required|numeric|min:1',
             'paymentDescription' => 'nullable|string|max:255',
+            'officePaymentMethod' => 'required|in:cash,bank_transfer,gcash,maya',
+            'officeReferenceNo' => 'nullable|string|max:255',
+            'officeProofOfPayment' => 'nullable|file|max:20480',
         ]);
 
         DB::transaction(function () {
@@ -277,6 +295,15 @@ class ClientLedgers extends Component
             $amount = (float) $this->paymentAmount;
             $billingBalance = $billing->amount_due - $billing->amount_paid;
             $amountToApply = min($amount, $billingBalance);
+
+            $proofPath = null;
+
+            if ($this->officeProofOfPayment) {
+                $proofPath = $this->officeProofOfPayment->store(
+                    "billing-payments/{$billing->id}",
+                    'public'
+                );
+            }
 
             $billing->update([
                 'amount_paid' => $billing->amount_paid + $amountToApply,
@@ -292,7 +319,7 @@ class ClientLedgers extends Component
             if (
                 $account->payment_scheme === 'bank_loan'
                 && $account->billings()
-                    ->where('title', 'Remaining Downpayment')
+                    ->where('title', 'like', 'Downpayment%')
                     ->whereIn('status', ['unpaid', 'partial'])
                     ->doesntExist()
             ) {
@@ -309,6 +336,21 @@ class ClientLedgers extends Component
                 'status' => $newStatus,
             ]);
 
+            BillingPayment::create([
+                'billing_id' => $billing->id,
+                'purchase_account_id' => $account->id,
+                'user_id' => $account->user_id,
+                'amount' => $amountToApply,
+                'payment_method' => $this->officePaymentMethod,
+                'reference_no' => $this->officeReferenceNo,
+                'proof_of_payment' => $proofPath,
+                'status' => 'verified',
+                'source' => 'office_payment',
+                'paid_at' => now(),
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
+            ]);
+
             AccountLedger::create([
                 'purchase_account_id' => $account->id,
                 'type' => 'credit',
@@ -323,6 +365,9 @@ class ClientLedgers extends Component
             'billingId',
             'paymentAmount',
             'paymentDescription',
+            'officePaymentMethod',
+            'officeReferenceNo',
+            'officeProofOfPayment',
         ]);
 
         $this->dispatch('close-modal', name: 'recordPayment');
@@ -330,6 +375,70 @@ class ClientLedgers extends Component
         Notification::make()
             ->title('Payment Recorded')
             ->success()
+            ->send();
+    }
+
+    public function approveBillingPayment($paymentId)
+    {
+        DB::transaction(function () use ($paymentId) {
+            $payment = BillingPayment::with(['billing', 'purchaseAccount'])
+                ->findOrFail($paymentId);
+
+            if ($payment->status !== 'pending') {
+                return;
+            }
+
+            $billing = $payment->billing;
+            $account = $payment->purchaseAccount;
+
+            $billingBalance = $billing->amount_due - $billing->amount_paid;
+            $amountToApply = min($payment->amount, $billingBalance);
+
+            $billing->update([
+                'amount_paid' => $billing->amount_paid + $amountToApply,
+                'status' => ($billing->amount_paid + $amountToApply) >= $billing->amount_due
+                    ? 'paid'
+                    : 'partial',
+            ]);
+
+            $newRemainingBalance = max($account->remaining_balance - $amountToApply, 0);
+
+            $account->update([
+                'total_paid' => $account->total_paid + $amountToApply,
+                'remaining_balance' => $newRemainingBalance,
+                'status' => $newRemainingBalance <= 0 ? 'fully_paid' : $account->status,
+            ]);
+
+            AccountLedger::create([
+                'purchase_account_id' => $account->id,
+                'type' => 'credit',
+                'description' => 'Verified client payment for ' . $billing->title,
+                'amount' => $amountToApply,
+                'balance_after' => $newRemainingBalance,
+            ]);
+
+            $payment->update([
+                'status' => 'verified',
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
+            ]);
+        });
+
+        Notification::make()
+            ->title('Payment Approved')
+            ->success()
+            ->send();
+    }
+
+    public function rejectBillingPayment($paymentId)
+    {
+        BillingPayment::findOrFail($paymentId)->update([
+            'status' => 'rejected',
+        ]);
+
+        Notification::make()
+            ->title('Payment Rejected')
+            ->danger()
             ->send();
     }
 
@@ -358,19 +467,73 @@ class ClientLedgers extends Component
         $this->dispatch('close-modal', name: 'changeStatus');
     }
 
+    public function setPaymentReviewFilter(string $filter): void
+    {
+        $this->paymentReviewFilter = $filter;
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->statusFilter = '';
+        $this->paymentSchemeFilter = '';
+        $this->paymentReviewFilter = '';
+    }
+
     public function render()
     {
+        $accounts = PurchaseAccount::query()
+            ->with([
+                'user',
+                'lot',
+                'houseModel',
+                'reservation',
+                'billings' => fn ($query) => $query->orderBy('due_date'),
+                'billings.payments',
+                'billings.latestPayment',
+                'ledgers',
+            ])
+
+            ->when($this->search, function ($query) {
+                $query->where(function ($query) {
+                    $query->whereHas('user', function ($q) {
+                        $q->where('name', 'like', '%' . $this->search . '%')
+                            ->orWhere('email', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('lot', function ($q) {
+                        $q->where('name', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('reservation', function ($q) {
+                        $q->where('type', 'like', '%' . $this->search . '%');
+                    });
+                });
+            })
+
+            ->when($this->statusFilter, function ($query) {
+                $query->where('status', $this->statusFilter);
+            })
+
+            ->when($this->paymentSchemeFilter, function ($query) {
+                $query->where('payment_scheme', $this->paymentSchemeFilter);
+            })
+
+            ->when($this->paymentReviewFilter === 'pending_review', function ($query) {
+                $query->whereHas('billings.payments', function ($q) {
+                    $q->where('status', 'pending');
+                });
+            })
+
+            ->when($this->paymentReviewFilter === 'has_verified', function ($query) {
+                $query->whereHas('billings.payments', function ($q) {
+                    $q->where('status', 'verified');
+                });
+            })
+
+            ->latest()
+            ->get();
+
         return view('livewire.fil-pages.client-ledgers', [
-            'accounts' => PurchaseAccount::with([
-                    'user',
-                    'lot',
-                    'houseModel',
-                    'reservation',
-                    'billings' => fn ($query) => $query->orderBy('due_date'),
-                    'ledgers',
-                ])
-                ->latest()
-                ->get(),
+            'accounts' => $accounts,
         ]);
     }
 }

@@ -11,6 +11,7 @@ use App\Livewire\Auth\ResetPasswordPage;
 use App\Livewire\Client\AccountSettingsPage;
 use App\Livewire\Client\AppointmentPage;
 use App\Livewire\Client\CostBreakdownPage;
+use App\Livewire\Client\MyBillsPage;
 use App\Livewire\Client\Notification;
 use App\Livewire\Client\ReservationPage;
 use App\Livewire\Client\TermsAndCondition;
@@ -72,5 +73,9 @@ Route::middleware('auth')->group(function (){
 
     Route::prefix('client')->group(function () {
         Route::get('/account', AccountSettingsPage::class)->name('client.account');
+    });
+
+    Route::prefix('client')->group(function () {
+        Route::get('/my-bills', MyBillsPage::class)->name('client.bills');
     });
 });

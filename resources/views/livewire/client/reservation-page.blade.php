@@ -517,18 +517,78 @@
                 />
             </div>
 
-            <x-select
-                label="Preferred Payment"
-                placeholder="Select preferred payment"
-                :options="[
-                    ['id' => 'cash', 'name' => 'Cash'],
-                    ['id' => 'bank_loan', 'name' => 'Bank Loan'],
-                    ['id' => 'deferred_payment', 'name' => 'Deferred Payment'],
-                ]"
-                option-label="name"
-                option-value="id"
-                wire:model.live="preferredPayment"
-            />
+            <div class="mt-3">
+                <x-select
+                    label="Preferred Payment"
+                    placeholder="Select preferred payment"
+                    :options="[
+                        ['id' => 'cash', 'name' => 'Cash'],
+                        ['id' => 'bank_loan', 'name' => 'Bank Loan'],
+                        ['id' => 'deferred_payment', 'name' => 'Deferred Payment'],
+                    ]"
+                    option-label="name"
+                    option-value="id"
+                    wire:model.live="preferredPayment"
+                />
+             </div>
+
+
+            @if($preferredPayment === 'bank_loan')
+
+                <div
+                    x-data="{
+                        percentage: @entangle('downpaymentPercentage').live
+                    }"
+                    class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                >
+
+                    <div class="mb-4">
+
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-medium text-blue-900">
+                                Downpayment Percentage
+                            </label>
+
+                            <span class="text-sm font-semibold text-blue-900">
+                                <span x-text="percentage"></span>%
+                            </span>
+                        </div>
+
+                        <input
+                            type="range"
+                            min="20"
+                            max="100"
+                            step="5"
+                            x-model="percentage"
+                            class="w-full accent-blue-700"
+                        >
+
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>20%</span>
+                            <span>100%</span>
+                        </div>
+
+                        <div class="mt-2 text-xs text-blue-700">
+                            Minimum downpayment is 20%. Adjustments are by 5%.
+                        </div>
+
+                    </div>
+
+                    <x-select
+                        label="Downpayment Term"
+                        wire:model.live="downpaymentTermMonths"
+                        :options="[
+                            ['id' => 12, 'name' => '12 Months'],
+                            ['id' => 18, 'name' => '18 Months'],
+                            ['id' => 24, 'name' => '24 Months'],
+                        ]"
+                        option-label="name"
+                        option-value="id"
+                    />
+
+                </div>
+
+            @endif
 
             <div class="mt-3 border-[1.5px] border-gray-100 border-dashed p-5 rounded-lg">
                 <h2 class="font-semibold text-sm mb-3">

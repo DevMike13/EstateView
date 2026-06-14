@@ -4,6 +4,7 @@ namespace App\Livewire\Client;
 
 use App\Models\LotReservation;
 use App\Models\ReservationPayment;
+use App\Models\PurchaseAccount;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -34,6 +35,9 @@ class ReservationPage extends Component
     public $referenceNo;
     public $proofOfPayment;
 
+    public $downpaymentPercentage = 20;
+    public $downpaymentTermMonths = 12;
+
     public function mount()
     {
         $this->reservationType = in_array(request('type'), ['House & Lot', 'Lot Only'])
@@ -58,6 +62,28 @@ class ReservationPage extends Component
                 session()->get('reservation_success')
             );
         }
+    }
+
+    private function hasOngoingReservationOrPayment(): bool
+    {
+        $hasActiveReservation = LotReservation::where('user_id', auth()->id())
+            ->whereIn('status', [
+                'pending',
+                'awaiting_reservation_fee',
+                'reservation_fee_submitted',
+                'approved',
+            ])
+            ->exists();
+
+        $hasOngoingPurchaseAccount = PurchaseAccount::where('user_id', auth()->id())
+            ->whereIn('status', [
+                'active',
+                'downpayment_pending',
+                'bank_processing',
+            ])
+            ->exists();
+
+        return $hasActiveReservation || $hasOngoingPurchaseAccount;
     }
 
     private function calculateReservationFee(LotReservation $reservation): float
@@ -150,22 +176,43 @@ class ReservationPage extends Component
 
     public function confirmReservation()
     {
+        if ($this->hasOngoingReservationOrPayment()) {
+
+            $this->notification()->error(
+                'Reservation Not Allowed',
+                'You already have an active reservation.'
+            );
+
+            return;
+        }
+
         $this->dialog()->confirm([
-            'title' => 'Confirm Appointment?',
+            'title' => 'Confirm Reservation?',
             'description' => 'Do you want to book this reservation?',
             'acceptLabel' => 'Yes, confirm reservation',
             'method' => 'saveReservation',
-            'icon' => 'question'
+            'icon' => 'question',
         ]);
-
     }
 
     public function saveReservation()
     {
+        if ($this->hasOngoingReservationOrPayment()) {
+            $this->notification()->error(
+                'Reservation Not Allowed',
+                'You already have an active reservation or ongoing payment account.'
+            );
+
+            return;
+        }
+
         $this->validate([
             'reservationType' => 'required',
             'lotLocationId' => 'required',
             'preferredPayment' => 'required',
+
+            'downpaymentPercentage' => 'required_if:preferredPayment,bank_loan|nullable|numeric|min:20|max:100',
+            'downpaymentTermMonths' => 'required_if:preferredPayment,bank_loan|nullable|in:12,18,24',
 
             'doc_1x1' => 'required|array|min:1',
             'doc_primary_ids' => 'required|array|min:1',
@@ -193,6 +240,13 @@ class ReservationPage extends Component
                 'notes' => $this->reservationNotes,
                 'house_model_id' => $this->houseModelId,
                 'reserved_at' => now(),
+                'downpayment_percentage' => $this->preferredPayment === 'bank_loan'
+                    ? $this->downpaymentPercentage
+                    : null,
+
+                'downpayment_term_months' => $this->preferredPayment === 'bank_loan'
+                    ? $this->downpaymentTermMonths
+                    : null,
             ]);
 
             $reservation->preferredPayment()->create([

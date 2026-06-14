@@ -17,6 +17,8 @@ class LotReservation extends Model
         'notes',
         'house_model_id',
         'reserved_at',
+        'downpayment_percentage',
+        'downpayment_term_months',
     ];
 
     public function lot()

@@ -1,6 +1,7 @@
 <div class="w-full h-auto">
     <div class="w-full max-w-6xl mx-auto p-4">
 
+        
         <div class="flex justify-between items-center mb-5">
             <h1 class="text-xl font-bold text-gray-900">
                 Client Ledgers
@@ -12,6 +13,93 @@
                 x-on:click="$openModal('createLedger')"
                 class="bg-[#101727] text-white"
             />
+        </div>
+
+        <div class="mb-5 rounded-2xl border bg-white p-4 shadow-sm">
+
+            <div class="grid gap-3 md:grid-cols-4">
+
+                <div class="md:col-span-2">
+                    <x-input
+                        icon="magnifying-glass"
+                        placeholder="Search client, email, lot, or reservation type..."
+                        wire:model.live.debounce.500ms="search"
+                    />
+                </div>
+
+                <x-select
+                    placeholder="Account Status"
+                    wire:model.live="statusFilter"
+                    :options="[
+                        
+                        ['id' => 'active', 'name' => 'Active'],
+                        ['id' => 'downpayment_pending', 'name' => 'Downpayment Pending'],
+                        ['id' => 'bank_processing', 'name' => 'Bank Processing'],
+                        ['id' => 'fully_paid', 'name' => 'Fully Paid'],
+                        ['id' => 'cancelled', 'name' => 'Cancelled'],
+                    ]"
+                    option-label="name"
+                    option-value="id"
+                />
+
+                <x-select
+                    placeholder="Payment Scheme"
+                    wire:model.live="paymentSchemeFilter"
+                    :options="[
+                        
+                        ['id' => 'cash', 'name' => 'Cash'],
+                        ['id' => 'bank_loan', 'name' => 'Bank Loan'],
+                        ['id' => 'deferred_payment', 'name' => 'Deferred Payment'],
+                    ]"
+                    option-label="name"
+                    option-value="id"
+                />
+
+            </div>
+
+            <div class="mt-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+
+                <div class="flex flex-wrap gap-2">
+
+                    {{-- <button
+                        type="button"
+                        wire:click="setPaymentReviewFilter('')"
+                        class="rounded-full px-4 py-2 text-xs font-medium transition
+                            {{ $paymentReviewFilter === '' ? 'bg-[#101727] text-white' : 'bg-gray-100 text-gray-600' }}"
+                    >
+                        All Payments
+                    </button>
+
+                    <button
+                        type="button"
+                        wire:click="setPaymentReviewFilter('pending_review')"
+                        class="rounded-full px-4 py-2 text-xs font-medium transition
+                            {{ $paymentReviewFilter === 'pending_review' ? 'bg-violet-600 text-white' : 'bg-violet-50 text-violet-700' }}"
+                    >
+                        Pending Review
+                    </button>
+
+                    <button
+                        type="button"
+                        wire:click="setPaymentReviewFilter('has_verified')"
+                        class="rounded-full px-4 py-2 text-xs font-medium transition
+                            {{ $paymentReviewFilter === 'has_verified' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700' }}"
+                    >
+                        Verified Payments
+                    </button> --}}
+
+                </div>
+
+                <x-button
+                    flat
+                    xs
+                    icon="x-mark"
+                    label="Clear Filters"
+                    wire:click="resetFilters"
+                />
+
+            </div>
+
         </div>
 
         <div class="grid gap-4">
@@ -62,7 +150,9 @@
                         </div>
 
                         <div>
-                            <div class="text-xs text-gray-500">Monthly Amortization</div>
+                            <div class="text-xs text-gray-500">
+                                {{ $account->payment_scheme === 'bank_loan' ? 'Monthly Downpayment' : 'Monthly Amortization' }}
+                            </div>
                             <div class="font-semibold">
                                 ₱{{ number_format($account->monthly_amortization, 2) }}
                             </div>
@@ -77,9 +167,9 @@
 
                     </div>
 
-                    <div class="flex gap-2 mt-4">
+                    {{-- <div class="flex gap-2 mt-4">
 
-                        {{-- <x-button
+                        <x-button
                             label="Record Office Payment"
                             icon="banknotes"
                             x-on:click="
@@ -87,7 +177,7 @@
                                 $openModal('recordPayment')
                             "
                             class="bg-[#101727] text-white"
-                        /> --}}
+                        />
 
                         <x-button
                             label="Change Status"
@@ -100,7 +190,7 @@
                             class="border border-gray-300 text-gray-700"
                         />
 
-                    </div>
+                    </div> --}}
 
                     {{-- PAYMENT SCHEDULE --}}
                     <div
@@ -198,6 +288,115 @@
                                             </div>
                                         </div>
 
+                                        @php
+                                            $pendingPayment = $billing->payments
+                                                ->where('status', 'pending')
+                                                ->first();
+                                        @endphp
+
+                                        @if($pendingPayment)
+                                            <div class="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+
+                                                <div class="flex items-start justify-between gap-3">
+
+                                                    <div>
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="h-2 w-2 rounded-full bg-violet-500"></span>
+
+                                                            <h4 class="text-sm font-semibold text-gray-900">
+                                                                Payment Waiting for Review
+                                                            </h4>
+                                                        </div>
+
+                                                        <p class="mt-1 text-xs text-gray-500">
+                                                            Submitted proof requires admin verification.
+                                                        </p>
+                                                    </div>
+
+                                                    <span class="rounded-full bg-white px-3 py-1 text-xs font-medium text-violet-700 shadow-sm">
+                                                        Pending
+                                                    </span>
+
+                                                </div>
+
+                                                <div class="mt-4 bg-white rounded-xl p-4 space-y-3 text-sm">
+
+                                                    <div class="grid grid-cols-2 gap-3">
+
+                                                        <div>
+                                                            <div class="text-gray-400 text-xs">
+                                                                Amount
+                                                            </div>
+
+                                                            <div class="font-semibold text-gray-900">
+                                                                ₱{{ number_format($pendingPayment->amount, 2) }}
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <div class="text-gray-400 text-xs">
+                                                                Method
+                                                            </div>
+
+                                                            <div class="font-semibold text-gray-900">
+                                                                {{ Str::headline($pendingPayment->payment_method) }}
+                                                            </div>
+                                                        </div>
+
+                                                    </div>
+
+                                                    <div class="border-t pt-3">
+                                                        <div class="text-gray-400 text-xs">
+                                                            Reference Number
+                                                        </div>
+
+                                                        <div class="font-semibold text-gray-900 break-all mt-1">
+                                                            {{ $pendingPayment->reference_no ?? 'N/A' }}
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                                <div class="mt-4 space-y-3">
+
+                                                    @if($pendingPayment->proof_of_payment)
+                                                        <a
+                                                            href="{{ asset('storage/' . $pendingPayment->proof_of_payment) }}"
+                                                            target="_blank"
+                                                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-medium text-violet-700 hover:text-violet-900"
+                                                        >
+                                                            <x-icon name="arrow-top-right-on-square" class="h-4 w-4" />
+                                                            View Proof
+                                                        </a>
+                                                    @else
+                                                        <div class="text-center text-sm text-gray-400">
+                                                            No proof uploaded
+                                                        </div>
+                                                    @endif
+
+                                                    <div class="grid grid-cols-2 gap-2">
+
+                                                        <x-button
+                                                            label="Reject"
+                                                            icon="x-mark"
+                                                            wire:click="rejectBillingPayment({{ $pendingPayment->id }})"
+                                                            class="w-full border border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-700"
+                                                        />
+
+                                                        <x-button
+                                                            label="Approve"
+                                                            icon="check"
+                                                            wire:click="approveBillingPayment({{ $pendingPayment->id }})"
+                                                            class="w-full bg-[#101727] text-white"
+                                                        />
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+                                        @endif
+
                                         <div class="mt-4">
                                             <x-button
                                                 label="{{ $billing->status === 'paid' ? 'Paid' : 'Pay' }}"
@@ -210,7 +409,7 @@
                                                     $openModal('recordPayment')
                                                 "
                                                 class="w-full bg-[#101727] text-white"
-                                                :disabled="! $isPayable || $billing->status === 'paid'"
+                                                :disabled="! $isPayable || $billing->status === 'paid' || $pendingPayment"
                                             />
                                         </div>
 
@@ -285,13 +484,15 @@
                 </div>
             @endif
 
-            @if(in_array($selectedPayment, ['bank_loan', 'Loanable', 'Bank Loan']))
-                <div class="mt-4">
-                    <x-input
-                        label="Loan Term Years"
-                        type="number"
-                        wire:model.live="loanTermYears"
-                    />
+            @if(in_array($selectedPayment, ['bank_loan', 'Loanable', 'Bank Loan']) && $selectedReservation)
+                <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="text-xs text-blue-700">Downpayment Setup</div>
+
+                    <div class="font-semibold text-blue-900">
+                        {{ $selectedReservation->downpayment_percentage ?? 20 }}%
+                        downpayment payable in
+                        {{ $selectedReservation->downpayment_term_months ?? 12 }} months
+                    </div>
                 </div>
             @endif
 
@@ -328,6 +529,39 @@
                 type="number"
                 wire:model="paymentAmount"
             />
+
+            <div class="mt-4">
+                <x-select
+                    label="Payment Method"
+                    wire:model="officePaymentMethod"
+                    :options="[
+                        ['id' => 'cash', 'name' => 'Cash'],
+                        ['id' => 'bank_transfer', 'name' => 'Bank Transfer'],
+                        ['id' => 'gcash', 'name' => 'GCash'],
+                        ['id' => 'maya', 'name' => 'Maya'],
+                    ]"
+                    option-label="name"
+                    option-value="id"
+                />
+            </div>
+
+            <div class="mt-4">
+                <x-input
+                    label="Reference Number"
+                    placeholder="Optional for cash"
+                    wire:model="officeReferenceNo"
+                />
+            </div>
+
+            <div class="mt-4">
+                <label class="text-sm font-medium">
+                    Proof / Receipt Image
+                </label>
+
+                <x-filepond::upload
+                    wire:model="officeProofOfPayment"
+                />
+            </div>
 
             <div class="mt-4">
                 <x-input

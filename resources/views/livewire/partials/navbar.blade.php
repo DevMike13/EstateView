@@ -109,6 +109,8 @@
             @auth
                 <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.cost.breakdown') ? 'text-black' : 'text-gray-400'}}" href="{{ route('client.cost.breakdown') }}">COST BREAKDOWN</a>
                 
+                <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.bills') ? 'text-black' : 'text-gray-400'}}" href="{{ route('client.bills') }}">MY BILLS</a>
+
                 <livewire:partials.notification-badge />
             @endauth
             <div class="flex justify-center lg:hidden md:ml-10">

@@ -11,14 +11,14 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css">
     </head>
     <body class="bg-[#f1f4f6]">
-        <x-notifications />
+        <x-notifications z-index="z-[99999999]" />
+        <x-dialog z-index="z-50" blur="md" align="center" />
         @if (!request()->routeIs('login') && !request()->routeIs('register'))
             @livewire('partials.navbar')
         @endif
         <main>
             {{ $slot }}
         </main>
-        <x-dialog z-index="z-50" blur="md" align="center" />
         @livewire('partials.footer')
         <script>
             window.addEventListener('reload', event => {

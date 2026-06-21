@@ -200,7 +200,7 @@
 
                 <x-select
                     label="Payment Method"
-                    wire:model="paymentMethod"
+                    wire:model.live="paymentMethod"
                     :options="[
                         ['id' => 'bank_transfer', 'name' => 'Bank Transfer'],
                         ['id' => 'gcash', 'name' => 'GCash'],
@@ -210,6 +210,31 @@
                     option-label="name"
                     option-value="id"
                 />
+
+                @if($this->selectedQrCode)
+                    <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
+                        <div class="text-sm font-medium text-gray-900 mb-2">
+                            {{ Str::headline($this->selectedQrCode->payment_method) }} QR Code
+                        </div>
+
+                        <img
+                            src="{{ asset('storage/' . $this->selectedQrCode->qr_image) }}"
+                            class="mx-auto h-64 w-full object-contain rounded-lg border bg-white"
+                        >
+
+                        <div class="mt-3 text-sm text-gray-700">
+                            {{ $this->selectedQrCode->account_name }}
+                        </div>
+
+                        <div class="text-sm text-gray-500">
+                            {{ $this->selectedQrCode->account_number }}
+                        </div>
+                    </div>
+                @elseif($paymentMethod && $paymentMethod !== 'cash')
+                    <div class="mt-4 rounded-xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+                        No active QR code available for {{ Str::headline($paymentMethod) }}.
+                    </div>
+                @endif
 
                 <div class="mt-4">
                     <x-input

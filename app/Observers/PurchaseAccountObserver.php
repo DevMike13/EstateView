@@ -59,26 +59,72 @@ class PurchaseAccountObserver
     /**
      * Handle the PurchaseAccount "updated" event.
      */
+    // public function updated(PurchaseAccount $purchaseAccount): void
+    // {
+    //     if (! $purchaseAccount->wasChanged('status')) {
+    //         return;
+    //     }
+
+    //     $purchaseAccount->loadMissing(['user', 'lot']);
+
+    //     $message = "Ledger status for {$purchaseAccount->user?->name} was updated to "
+    //         . str($purchaseAccount->status)->headline() . ".";
+
+    //     $notification = Notification::create([
+    //         'title' => 'Ledger Status Updated',
+    //         'message' => $message,
+    //         'type' => 'ledger_status_updated',
+    //         'url' => route('filament.ev-admin.pages.client-ledgers'),
+    //         'data' => [
+    //             'purchase_account_id' => $purchaseAccount->id,
+    //             'client_name' => $purchaseAccount->user?->name,
+    //             'status' => $purchaseAccount->status,
+    //         ],
+    //         'created_by' => auth()->id(),
+    //     ]);
+
+    //     $users = User::whereIn('role', ['admin', 'staff'])
+    //         ->pluck('id')
+    //         ->merge([$purchaseAccount->user_id])
+    //         ->unique()
+    //         ->toArray();
+
+    //     $notification->users()->attach($users);
+    // }
     public function updated(PurchaseAccount $purchaseAccount): void
     {
-        if (! $purchaseAccount->wasChanged('status')) {
+        if (! auth()->check()) return;
+        if (! in_array(auth()->user()->role, ['admin', 'staff'])) return;
+
+        if (! $purchaseAccount->wasChanged([
+            'status',
+            'total_paid',
+            'remaining_balance',
+            'total_contract_price',
+        ])) {
             return;
         }
 
-        $purchaseAccount->loadMissing(['user', 'lot']);
+        $purchaseAccount->loadMissing(['user', 'lot', 'houseModel']);
 
-        $message = "Ledger status for {$purchaseAccount->user?->name} was updated to "
-            . str($purchaseAccount->status)->headline() . ".";
+        $message = "Client ledger for {$purchaseAccount->user?->name} was updated by "
+            . auth()->user()->name . ".";
 
         $notification = Notification::create([
-            'title' => 'Ledger Status Updated',
+            'title' => 'Client Ledger Updated',
             'message' => $message,
-            'type' => 'ledger_status_updated',
-            'url' => route('filament.ev-admin.pages.client-ledgers'),
+            'type' => 'client_ledger_updated',
+            'url' => route('filament.ev-admin.pages.client-records'),
             'data' => [
                 'purchase_account_id' => $purchaseAccount->id,
+                'client_id' => $purchaseAccount->user_id,
                 'client_name' => $purchaseAccount->user?->name,
+                'lot_name' => $purchaseAccount->lot?->name,
+                'house_model' => $purchaseAccount->houseModel?->model_name,
                 'status' => $purchaseAccount->status,
+                'total_paid' => $purchaseAccount->total_paid,
+                'remaining_balance' => $purchaseAccount->remaining_balance,
+                'changes' => $purchaseAccount->getChanges(),
             ],
             'created_by' => auth()->id(),
         ]);

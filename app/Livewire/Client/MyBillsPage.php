@@ -10,6 +10,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Spatie\LivewireFilepond\WithFilePond;
 use WireUi\Traits\Actions;
+use App\Models\PaymentQrCode;
 
 class MyBillsPage extends Component
 {
@@ -98,6 +99,18 @@ class MyBillsPage extends Component
             'Payment Submitted',
             'Your payment proof is now waiting for admin verification.'
         );
+    }
+
+    public function getSelectedQrCodeProperty()
+    {
+        if (! $this->paymentMethod || $this->paymentMethod === 'cash') {
+            return null;
+        }
+
+        return PaymentQrCode::where('payment_method', $this->paymentMethod)
+            ->where('is_active', true)
+            ->latest()
+            ->first();
     }
 
     public function render()

@@ -36,10 +36,69 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 
-Route::get('/api/regions', [ApiController::class, 'getRegions'])->name('api.regions.index');
+// Route::get('/api/regions', [ApiController::class, 'getRegions'])->name('api.regions.index');
 Route::get('/api/provinces', [ApiController::class, 'getProvinces'])->name('api.provinces.index');
 Route::get('/api/municipalities', [ApiController::class, 'getMunicipalities'])->name('api.municipalities.index');
 Route::get('/api/barangays', [ApiController::class, 'getBarangays'])->name('api.barangays.index');
+
+Route::get('/api/regions', function (Request $request) {
+    return \App\Models\PHRegions::query()
+        ->when($request->selected, function ($query, $selected) {
+            $query->whereIn('region_description', \Illuminate\Support\Arr::wrap($selected));
+        })
+        ->when($request->search, function ($query, $search) {
+            $query->where('region_description', 'like', "%{$search}%");
+        })
+        ->unless($request->selected, function ($query) {
+            $query->limit(20);
+        })
+        ->get();
+})->name('api.regions.index');
+
+Route::get('/location/province/{regionCode}', function (Request $request, $regionCode) {
+    return \App\Models\PHProvinces::query()
+        ->where('region_code', $regionCode)
+        ->when($request->selected, function ($query, $selected) {
+            $query->whereIn('province_description', \Illuminate\Support\Arr::wrap($selected));
+        })
+        ->when($request->search, function ($query, $search) {
+            $query->where('province_description', 'like', "%{$search}%");
+        })
+        ->unless($request->selected, function ($query) {
+            $query->limit(20);
+        })
+        ->get();
+})->name('location.province');
+
+Route::get('/location/municipalities/{provinceCode}', function (Request $request, $provinceCode) {
+    return \App\Models\PHCities::query()
+        ->where('province_code', $provinceCode)
+        ->when($request->selected, function ($query, $selected) {
+            $query->whereIn('city_municipality_description', \Illuminate\Support\Arr::wrap($selected));
+        })
+        ->when($request->search, function ($query, $search) {
+            $query->where('city_municipality_description', 'like', "%{$search}%");
+        })
+        ->unless($request->selected, function ($query) {
+            $query->limit(20);
+        })
+        ->get();
+})->name('location.municipality');
+
+Route::get('/location/barangay/{municipalityCode}', function (Request $request, $municipalityCode) {
+    return \App\Models\PHBarangays::query()
+        ->where('city_municipality_code', $municipalityCode)
+        ->when($request->selected, function ($query, $selected) {
+            $query->whereIn('barangay_description', \Illuminate\Support\Arr::wrap($selected));
+        })
+        ->when($request->search, function ($query, $search) {
+            $query->where('barangay_description', 'like', "%{$search}%");
+        })
+        ->unless($request->selected, function ($query) {
+            $query->limit(20);
+        })
+        ->get();
+})->name('location.barangay');
 
 // Route::get('/api/users', function (Request $request) {
 
@@ -147,9 +206,9 @@ Route::get('/api/client/provinces', [ApiController::class, 'getProvinces'])->nam
 Route::get('/api/client/municipalities', [ApiController::class, 'getMunicipalities'])->name('api.municipalities.client');
 Route::get('/api/client/barangays', [ApiController::class, 'getBarangays'])->name('api.barangays.client');
 
-Route::get('/location/province/{regionCode}', [ApiController::class, 'getProvincesByRegion'])->name('location.province');
-Route::get('/location/municipalities/{provinceCode}', [ApiController::class, 'getMunicipalitiesByProvince'])->name('location.municipality');
-Route::get('/location/barangay/{municipalityCode}', [ApiController::class, 'getBarangaysByMunicipality'])->name('location.barangay');
+// Route::get('/location/province/{regionCode}', [ApiController::class, 'getProvincesByRegion'])->name('location.province');
+// Route::get('/location/municipalities/{provinceCode}', [ApiController::class, 'getMunicipalitiesByProvince'])->name('location.municipality');
+// Route::get('/location/barangay/{municipalityCode}', [ApiController::class, 'getBarangaysByMunicipality'])->name('location.barangay');
 
 // CASE SUB TYPE
 // Route::get('/case/types', [ApiController::class, 'getCaseTypes'])->name('api.case.types');

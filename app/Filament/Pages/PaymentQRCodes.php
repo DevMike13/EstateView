@@ -11,4 +11,9 @@ class PaymentQRCodes extends Page
     protected static string $view = 'filament.pages.payment-q-r-codes';
 
     protected static ?string $navigationLabel = 'QR Codes';
+
+    public function getTitle(): string
+    {
+        return '';
+    }
 }

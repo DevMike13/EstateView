@@ -1,8 +1,8 @@
-<div>
-    <div class="max-w-7xl mx-auto p-6 space-y-6">
+<main class="flex-1 min-w-0">
+    <div class="w-full mx-auto space-y-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Payment QR Codes</h1>
-            <p class="text-sm text-gray-600">Upload QR codes for GCash, Maya, and bank payments.</p>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Payment QR Codes</h1>
+            <p class="text-sm md:text-base text-gray-600">Upload QR codes for GCash, Maya, and bank payments.</p>
         </div>
 
         <div class="bg-white rounded-xl border shadow-sm p-6">
@@ -178,4 +178,4 @@
             </x-card>
         </x-modal>
     </div>
-</div>
+</main>

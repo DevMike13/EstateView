@@ -1,5 +1,5 @@
-<div class="w-full h-auto">
-    <div class="w-full max-w-5xl my-5 mx-auto p-4 bg-[#f9fafc] rounded-xl shadow">
+<div class="flex-1 min-w-0">
+    <div class="w-full my-5 mx-auto p-4 bg-[#f9fafc] rounded-xl shadow">
 
         {{-- TAB NAV --}}
         <div class="border-b border-gray-200 overflow-x-auto">

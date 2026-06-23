@@ -9,4 +9,8 @@ class Dashboard extends Page
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
     protected static ?int $navigationSort = 1;
     protected static string $view = 'filament.pages.dashboard';
+    public function getTitle(): string
+    {
+        return '';
+    }
 }

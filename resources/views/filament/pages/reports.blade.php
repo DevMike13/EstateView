@@ -12,4 +12,6 @@
             window.location.reload();
         })
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </x-filament-panels::page>

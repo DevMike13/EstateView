@@ -1,9 +1,8 @@
-<div class="w-full h-auto">
-    <div class="w-full max-w-6xl mx-auto p-4">
+<div class="flex-1 min-w-0">
+    <div class="w-full mx-auto ">
 
-        
         <div class="flex justify-between items-center mb-5">
-            <h1 class="text-xl font-bold text-gray-900">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">
                 Client Ledgers
             </h1>
 

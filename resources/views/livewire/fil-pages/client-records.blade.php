@@ -1,5 +1,5 @@
-<div class="space-y-6">
-    <div class="w-full max-w-7xl mx-auto p-4 space-y-6">
+<main class="flex-1 min-w-0">
+    <div class="w-full mx-auto space-y-6">
         <div>
             <h1 class="text-2xl md:text-3xl font-bold text-gray-900">
                 Client Records
@@ -843,4 +843,4 @@
             </form>
         </x-card>
     </x-modal>
-</div>
+</main>

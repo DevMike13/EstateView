@@ -50,7 +50,7 @@
                           </button>
                       
                           <div wire:ignore class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full z-50" aria-labelledby="hs-dropdown-default">
-                                <a
+                                {{-- <a
                                     class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
                                     {{ request()->is('client/appointments')
                                         ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
@@ -81,7 +81,7 @@
                                     href="{{ route('client.account') }}"
                                 >
                                     {{ __('Account') }}
-                                </a>
+                                </a> --}}
                               {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.account') }}">
                                   {{ __('My Account' )}}
                               </a>
@@ -110,6 +110,30 @@
                 <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.cost.breakdown') ? 'text-black' : 'text-gray-400'}}" href="{{ route('client.cost.breakdown') }}">COST BREAKDOWN</a>
                 
                 <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.bills') ? 'text-black' : 'text-gray-400'}}" href="{{ route('client.bills') }}">MY BILLS</a>
+
+                <a
+                    wire:ignore 
+                    class="font-regular uppercase text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.appointment') ? 'text-black' : 'text-gray-400'}}"
+                    href="{{ route('client.appointment') }}"
+                >
+                    {{ __('Appointments') }}
+                </a>
+
+                <a
+                    wire:ignore 
+                    class="font-regular uppercase text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.reservation') ? 'text-black' : 'text-gray-400'}}"
+                    href="{{ route('client.reservation') }}"
+                >
+                    {{ __('Reservations') }}
+                </a>
+
+                <a
+                    wire:ignore 
+                    class="font-regular uppercase text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.account') ? 'text-black' : 'text-gray-400'}}"
+                    href="{{ route('client.account') }}"
+                >
+                    {{ __('Account') }}
+                </a>
 
                 <livewire:partials.notification-badge />
             @endauth

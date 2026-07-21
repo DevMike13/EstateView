@@ -215,6 +215,11 @@ class LotReservationObserver
                 'house_model' => $lotReservation->houseModel?->name,
                 'status' => $lotReservation->status,
                 'reservation_id' => $lotReservation->id,
+
+                'client_url' => route('client.reservation', [
+                    'activeTab' => $lotReservation->status,
+                    'highlight' => $lotReservation->id,
+                ]),
             ],
 
             'created_by' => auth()->id(),

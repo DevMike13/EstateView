@@ -369,18 +369,81 @@
                 
                 <div class="border-2 border-dashed rounded-lg mt-6 px-6">
                     {{-- SCENE SWITCH --}}
-                    <div class="flex gap-2 mt-4">
-                        @foreach($scenes as $i => $scene)
-                            <x-button
-                                xs 
-                                rounded
-                                icon="pencil"
-                                class="px-3 py-1 rounded {{ $activeScene == $i ? 'bg-blue-600 text-white' : 'bg-gray-200' }}"
-                                wire:click="setActiveScene({{ $i }})"
-                            >
-                                {{ $scene['name'] }}
-                            </x-button>
-                        @endforeach
+                    <div class="mt-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            @foreach($scenes as $i => $scene)
+                                <div
+                                    wire:key="scene-tab-{{ $i }}"
+                                    class="group inline-flex items-stretch overflow-hidden rounded-xl border shadow-sm transition
+                                        {{ $activeScene == $i
+                                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100'
+                                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow'
+                                        }}"
+                                >
+                                    {{-- Select scene --}}
+                                    <button
+                                        type="button"
+                                        wire:click="setActiveScene({{ $i }})"
+                                        class="flex items-center gap-2 px-4 py-1 text-sm font-medium transition
+                                            {{ $activeScene == $i
+                                                ? 'text-blue-700'
+                                                : 'text-gray-700 hover:bg-gray-50'
+                                            }}"
+                                    >
+                                        <span
+                                            class="flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold
+                                                {{ $activeScene == $i
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-100 text-gray-600'
+                                                }}"
+                                        >
+                                            {{ $i + 1 }}
+                                        </span>
+
+                                        <span class="max-w-[160px] text-xs truncate">
+                                            {{ $scene['name'] }}
+                                        </span>
+
+                                        {{-- @if($activeScene == $i)
+                                            <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                                        @endif --}}
+                                    </button>
+
+                                    {{-- Edit scene name --}}
+                                    <button
+                                        type="button"
+                                        wire:click="openEditScene({{ $i }})"
+                                        {{-- x-on:click="$openModal('editSceneName')" --}}
+                                        class="flex items-center justify-center border-l px-2 transition
+                                            {{ $activeScene == $i
+                                                ? 'border-blue-200 text-blue-600 hover:bg-blue-100'
+                                                : 'border-gray-200 text-gray-400 hover:bg-gray-100 hover:text-gray-700'
+                                            }}"
+                                        title="Rename {{ $scene['name'] }}"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke-width="1.8"
+                                            stroke="currentColor"
+                                            class="h-3 w-3"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931ZM19.5 7.125 16.875 4.5"
+                                            />
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="M19.5 13.5v4.125A2.625 2.625 0 0 1 16.875 20.25H6.375A2.625 2.625 0 0 1 3.75 17.625V7.125A2.625 2.625 0 0 1 6.375 4.5H10.5"
+                                            />
+                                        </svg>
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
 
                     <hr class="my-4">
@@ -812,6 +875,44 @@
                     <x-button flat label="Close" @click="closeModal()" x-on:click="close" wire:click="reloadWeb" />
                 </x-slot>
             </x-card>
+        </x-modal>
+
+        <x-modal
+            blur
+            name="editSceneName"
+            align="center"
+            persistent
+            max-width="md"
+            wire:model.defer="showEditSceneModal"
+        >
+            <form wire:submit.prevent="updateSceneName">
+                <x-card title="Edit Scene Name">
+
+                    <x-input
+                        label="Scene Name"
+                        wire:model.defer="editingSceneName"
+                    />
+
+                    <x-slot name="footer">
+                        <div class="flex justify-end gap-2">
+                            <x-button
+                                flat
+                                type="button"
+                                label="Cancel"
+                                wire:click="$set('showEditSceneModal', false)"
+                            />
+
+                            <x-button
+                                primary
+                                type="submit"
+                                label="Save"
+                                spinner="updateSceneName"
+                            />
+                        </div>
+                    </x-slot>
+
+                </x-card>
+            </form>
         </x-modal>
     </div>
 

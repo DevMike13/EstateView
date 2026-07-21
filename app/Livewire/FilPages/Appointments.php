@@ -85,7 +85,7 @@ class Appointments extends Component
         $this->dialog()->confirm([
             'title' => 'Approve Appointment?',
             'description' => 'This will mark the appointment as approved.',
-            'acceptLabel' => 'Yes, approve',
+            'acceptLabel' => 'Yes',
             'method' => 'approve',
             'params' => $id,
             'icon' => 'success',
@@ -110,7 +110,7 @@ class Appointments extends Component
         $this->dialog()->confirm([
             'title' => 'Decline Appointment?',
             'description' => 'This will permanently mark it as declined.',
-            'acceptLabel' => 'Yes, decline',
+            'acceptLabel' => 'Yes',
             'method' => 'decline',
             'params' => $id,
             'icon' => 'error',
@@ -135,7 +135,7 @@ class Appointments extends Component
         $this->dialog()->confirm([
             'title' => 'Mark as Completed?',
             'description' => 'This will move appointment to completed.',
-            'acceptLabel' => 'Yes, complete',
+            'acceptLabel' => 'Yes',
             'method' => 'complete',
             'params' => $id,
             'icon' => 'success',
@@ -160,7 +160,7 @@ class Appointments extends Component
         $this->dialog()->confirm([
             'title' => 'Restore Appointment?',
             'description' => 'This will move it back to pending.',
-            'acceptLabel' => 'Yes, restore',
+            'acceptLabel' => 'Yes',
             'method' => 'restore',
             'params' => $id,
             'icon' => 'warning',
@@ -222,7 +222,7 @@ class Appointments extends Component
         $this->dialog()->confirm([
             'title' => 'Block Selected Dates?',
             'description' => 'Are you sure you want to block the selected dates?',
-            'acceptLabel' => 'Yes, block them',
+            'acceptLabel' => 'Yes',
             'method' => 'saveBlockedDates',
             'icon' => 'error',
         ]);
@@ -233,7 +233,7 @@ class Appointments extends Component
         $this->dialog()->confirm([
             'title' => 'Unblock Date?',
             'description' => "Do you want to unblock {$date}?",
-            'acceptLabel' => 'Yes, unblock it',
+            'acceptLabel' => 'Yes',
             'method' => 'removeBlockedDate',
             'params' => $date,
             'icon' => 'warning',

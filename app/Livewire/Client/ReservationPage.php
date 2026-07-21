@@ -3,6 +3,7 @@
 namespace App\Livewire\Client;
 
 use App\Models\LotReservation;
+use App\Models\PaymentQrCode;
 use App\Models\ReservationPayment;
 use App\Models\PurchaseAccount;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,8 @@ class ReservationPage extends Component
     use WithFilePond, Actions, WithFileUploads;
 
     public $activeTab = 'pending';
+
+    public ?int $highlight = null;
     
     public $reservationType, $houseModelId, $lotLocationId, $preferredPayment, $reservationNotes;
 
@@ -40,6 +43,24 @@ class ReservationPage extends Component
 
     public function mount()
     {
+        $allowedTabs = [
+            'pending',
+            'awaiting_reservation_fee',
+            'reservation_fee_submitted',
+            'approved',
+            'rejected',
+        ];
+
+        $requestedTab = request()->query('activeTab', 'pending');
+
+        $this->activeTab = in_array($requestedTab, $allowedTabs, true)
+            ? $requestedTab
+            : 'pending';
+
+        $this->highlight = request()->query('highlight')
+            ? (int) request()->query('highlight')
+            : null;
+            
         $this->reservationType = in_array(request('type'), ['House & Lot', 'Lot Only'])
             ? request('type')
             : "House & Lot";
@@ -62,6 +83,18 @@ class ReservationPage extends Component
                 session()->get('reservation_success')
             );
         }
+    }
+
+    public function getSelectedQrCodeProperty()
+    {
+        if (! $this->paymentMethod || $this->paymentMethod === 'cash') {
+            return null;
+        }
+
+        return PaymentQrCode::where('payment_method', $this->paymentMethod)
+            ->where('is_active', true)
+            ->latest()
+            ->first();
     }
 
     private function hasOngoingReservationOrPayment(): bool
@@ -189,7 +222,7 @@ class ReservationPage extends Component
         $this->dialog()->confirm([
             'title' => 'Confirm Reservation?',
             'description' => 'Do you want to book this reservation?',
-            'acceptLabel' => 'Yes, confirm reservation',
+            'acceptLabel' => 'Confirm',
             'method' => 'saveReservation',
             'icon' => 'question',
         ]);

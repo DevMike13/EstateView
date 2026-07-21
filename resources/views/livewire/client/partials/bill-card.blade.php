@@ -29,9 +29,35 @@
     if ($billing->status === 'paid' && ! $verifiedPayment) {
         $paymentSource = 'Office / Admin Payment';
     }
+
+    $isHighlighted = isset($highlight)
+    && (int) $highlight === (int) $billing->id;
 @endphp
 
-<div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow active:scale-[0.98] transition-transform">
+<div
+    wire:key="billing-card-{{ $billing->id }}"
+    x-data="{
+        shouldScroll: @js($isHighlighted)
+    }"
+    x-init="
+        if (shouldScroll) {
+            setTimeout(() => {
+                $el.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }, 500);
+        }
+    "
+    class="
+        bg-white rounded-2xl shadow-sm p-5
+        hover:shadow-md active:scale-[0.98]
+        transition-all duration-300
+        {{ $isHighlighted
+            ? 'ring-2 ring-green-500 bg-green-50'
+            : '' }}
+    "
+>
 
     <div class="flex items-start justify-between gap-4">
 

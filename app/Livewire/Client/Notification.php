@@ -55,6 +55,30 @@ class Notification extends Component
             ->notifications()
             ->detach($notificationId);
     }
+
+    public function openNotification(int $notificationId)
+    {
+        $notification = auth()->user()
+            ->notifications()
+            ->where('notifications.id', $notificationId)
+            ->firstOrFail();
+
+        auth()->user()
+            ->notifications()
+            ->updateExistingPivot($notification->id, [
+                'read_at' => now(),
+            ]);
+
+        $data = $notification->data ?? [];
+
+        $clientUrl = $data['client_url'] ?? null;
+
+        if (!$clientUrl) {
+            return;
+        }
+
+        return redirect()->to($clientUrl);
+    }
     
     public function render()
     {

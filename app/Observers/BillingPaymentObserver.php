@@ -126,6 +126,16 @@ class BillingPaymentObserver
         string $message,
         string $type
     ): void {
+
+        $payment->loadMissing([
+            'billing',
+            'purchaseAccount.user',
+        ]);
+
+        $billingTab = $payment->billing?->status === 'paid'
+        ? 'paid'
+        : 'unpaid';
+
         $notification = Notification::create([
             'title' => $title,
             'message' => $message,
@@ -139,6 +149,12 @@ class BillingPaymentObserver
                 'amount' => $payment->amount,
                 'status' => $payment->status,
                 'source' => $payment->source,
+
+                'client_url' => route('client.bills', [
+                    'account' => $payment->purchase_account_id,
+                    'tab' => $billingTab,
+                    'highlight' => $payment->billing_id,
+                ]),
             ],
             'created_by' => auth()->id(),
         ]);

@@ -20,6 +20,7 @@
             @php
                 $isUnread = !$notification->pivot->read_at;
                 $data = $notification->data ?? [];
+                $clientUrl = $data['client_url'] ?? null;
 
                 $status = strtolower($data['status'] ?? '');
 
@@ -115,14 +116,15 @@
                                     </button>
                                 @endif
 
-                                {{-- @if($notification->url)
-                                    <a
-                                        href="{{ $notification->url }}"
-                                        class="text-xs text-green-600 hover:text-green-700 font-medium"
+                                @if($notification->title !== 'Client Ledger Updated')
+                                    <button
+                                        wire:click.stop="openNotification({{ $notification->id }})"
+                                        class="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
                                     >
+                                        <x-heroicon-o-arrow-top-right-on-square class="h-3 w-3" />
                                         Open
-                                    </a>
-                                @endif --}}
+                                    </button>
+                                @endif
 
                                 <button
                                     wire:click="deleteNotification({{ $notification->id }})"

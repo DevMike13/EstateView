@@ -67,7 +67,13 @@
                 @endphp
 
                 <div
-                    x-data="{ tab: 'unpaid' }"
+                    x-data="{
+                        tab: @js(
+                            (int) $highlightAccount === (int) $account->id
+                                ? $activeBillingTab
+                                : 'unpaid'
+                        )
+                    }"
                     class="mb-8"
                 >
 

@@ -92,7 +92,26 @@
 
             @forelse($this->reservations as $reservation)
 
-                <div class="bg-white rounded-xl p-5 shadow border mb-4">
+                <div
+                    wire:key="reservation-{{ $reservation->id }}"
+                    x-data="{
+                        shouldScroll: @js((int) $highlight === (int) $reservation->id)
+                    }"
+                    x-init="
+                        if (shouldScroll) {
+                            setTimeout(() => {
+                                $el.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                            }, 500);
+                        }
+                    "
+                    class="bg-white rounded-xl p-5 shadow border mb-4 transition-all
+                        {{ (int) $highlight === (int) $reservation->id
+                            ? 'ring-2 ring-green-500 bg-green-50'
+                            : '' }}"
+                >
 
                     {{-- HEADER --}}
                     <div class="flex items-start mb-4 gap-3 md:gap-4">
@@ -241,7 +260,7 @@
                                 </div>
 
                                 <x-button
-                                    label="Upload Payment"
+                                    label="Proceed to Payment"
                                     icon="banknotes"
                                     x-on:click="
                                         $wire.reservationId = {{ $reservation->id }};
@@ -687,7 +706,7 @@
 
             <x-select
                 label="Payment Method"
-                wire:model="paymentMethod"
+                wire:model.live="paymentMethod"
                 :options="[
                     ['id' => 'cash', 'name' => 'Cash'],
                     ['id' => 'bank_transfer', 'name' => 'Bank Transfer'],
@@ -697,6 +716,31 @@
                 option-label="name"
                 option-value="id"
             />
+
+            @if($this->selectedQrCode)
+                <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
+                    <div class="text-sm font-medium text-gray-900 mb-2">
+                        {{ Str::headline($this->selectedQrCode->payment_method) }} QR Code
+                    </div>
+
+                    <img
+                        src="{{ asset('storage/' . $this->selectedQrCode->qr_image) }}"
+                        class="mx-auto h-64 w-full object-contain rounded-lg border bg-white"
+                    >
+
+                    <div class="mt-3 text-sm text-gray-700">
+                        {{ $this->selectedQrCode->account_name }}
+                    </div>
+
+                    <div class="text-sm text-gray-500">
+                        {{ $this->selectedQrCode->account_number }}
+                    </div>
+                </div>
+            @elseif($paymentMethod && $paymentMethod !== 'cash')
+                <div class="mt-4 rounded-xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+                    No active QR code available for {{ Str::headline($paymentMethod) }}.
+                </div>
+            @endif
 
             <div class="mt-4">
                 <x-input

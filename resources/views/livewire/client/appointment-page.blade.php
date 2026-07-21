@@ -112,7 +112,25 @@
 
                     @endphp
 
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div
+                        x-data="{
+                            shouldScroll: @js((int) $highlight === (int) $appointment->id)
+                        }"
+                        x-init="
+                            if (shouldScroll) {
+                                setTimeout(() => {
+                                    $el.scrollIntoView({
+                                        behavior: 'smooth',
+                                        block: 'center'
+                                    });
+                                }, 500);
+                            }
+                        "
+                        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6
+                            {{ (int) $highlight === (int) $appointment->id
+                                ? 'ring-2 ring-green-500 bg-green-50/30'
+                                : '' }}"
+                    >
 
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 

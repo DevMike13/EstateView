@@ -32,7 +32,22 @@
                 >
                     <div class="relative overflow-visible">
 
-                        <div id="tooltip-arrow"></div>
+                        <div id="tooltip-arrow" class="absolute w-0 h-0 z-20 pointer-events-none"></div>
+
+                         <button
+                            id="tooltip-close"
+                            type="button"
+                            class="absolute top-2 right-2 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 hover:bg-white shadow transition"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="w-5 h-5 text-gray-600"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18"/>
+                            </svg>
+                        </button>
 
                         <div
                             id="tooltip-panorama"
@@ -977,6 +992,7 @@
         function initLotTooltip() {
 
             const tooltip = document.getElementById('lot-tooltip');
+            const closeBtn = document.getElementById('tooltip-close');
             const tName = document.getElementById('tooltip-name');
             const tType = document.getElementById('tooltip-type');
             const tImage = document.getElementById('tooltip-image');
@@ -1083,78 +1099,116 @@
 
                 // 👇 IMPORTANT: wait for layout BEFORE initializing pannellum
                 requestAnimationFrame(() => {
-
                     tooltipViewer = pannellum.viewer(panoContainer, {
                         type: "equirectangular",
                         panorama: area.dataset.image,
                         autoLoad: true,
                         showControls: false
                     });
-
                 });
 
-                move(e);
+                move(area);
             }
 
-            function move(e) {
+            function getAreaCenter(area) {
+                const coords = area.coords.split(',').map(Number);
 
-                const container = img.getBoundingClientRect();
+                const xValues = [];
+                const yValues = [];
+
+                for (let i = 0; i < coords.length; i += 2) {
+                    xValues.push(coords[i]);
+                    yValues.push(coords[i + 1]);
+                }
+
+                return {
+                    x: (Math.min(...xValues) + Math.max(...xValues)) / 2,
+                    y: (Math.min(...yValues) + Math.max(...yValues)) / 2
+                };
+            }
+
+            function move(area) {
+                const center = getAreaCenter(area);
+
+                const containerWidth = img.clientWidth;
+                const containerHeight = img.clientHeight;
 
                 const tooltipWidth = tooltip.offsetWidth;
                 const tooltipHeight = tooltip.offsetHeight;
 
-                let x = (e.clientX - container.left + 20);
-                let y = (e.clientY - container.top - tooltipHeight - 20);
+                const gap = 14;
+                const padding = 10;
 
                 let placedAbove = true;
 
-                // if not enough space above → place below cursor
-                if (y < 0) {
-                    y = (e.clientY - container.top + 20);
+                // Center tooltip horizontally over the lot
+                let x = center.x - tooltipWidth / 2;
+                let y = center.y - tooltipHeight - gap;
+
+                // Not enough space above, place it below
+                if (y < padding) {
+                    y = center.y + gap;
                     placedAbove = false;
                 }
 
-                // clamp horizontal
-                if (x + tooltipWidth > container.width) {
-                    x = container.width - tooltipWidth - 10;
-                }
+                // Keep tooltip inside map
+                x = Math.max(
+                    padding,
+                    Math.min(x, containerWidth - tooltipWidth - padding)
+                );
 
-                tooltip.style.left = x + "px";
-                tooltip.style.top = y + "px";
+                y = Math.max(
+                    padding,
+                    Math.min(y, containerHeight - tooltipHeight - padding)
+                );
 
-                // 🔥 HANDLE ARROW
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y}px`;
+
                 const arrow = document.getElementById('tooltip-arrow');
 
+                arrow.style.position = 'absolute';
+                arrow.style.width = '0';
+                arrow.style.height = '0';
+                arrow.style.transform = 'translateX(-50%)';
+
                 if (placedAbove) {
-                    // tooltip above cursor → arrow points DOWN
-                    arrow.style.bottom = "-10px";
-                    arrow.style.top = "auto";
+                    arrow.style.top = 'auto';
+                    arrow.style.bottom = '-10px';
 
-                    arrow.style.borderLeft = "10px solid transparent";
-                    arrow.style.borderRight = "10px solid transparent";
-                    arrow.style.borderTop = "10px solid white";
-                    arrow.style.borderBottom = "0";
+                    arrow.style.borderLeft = '10px solid transparent';
+                    arrow.style.borderRight = '10px solid transparent';
+                    arrow.style.borderTop = '10px solid white';
+                    arrow.style.borderBottom = '0';
                 } else {
-                    // tooltip below cursor → arrow points UP
-                    arrow.style.top = "-10px";
-                    arrow.style.bottom = "auto";
+                    arrow.style.top = '-10px';
+                    arrow.style.bottom = 'auto';
 
-                    arrow.style.borderLeft = "10px solid transparent";
-                    arrow.style.borderRight = "10px solid transparent";
-                    arrow.style.borderBottom = "10px solid white";
-                    arrow.style.borderTop = "0";
+                    arrow.style.borderLeft = '10px solid transparent';
+                    arrow.style.borderRight = '10px solid transparent';
+                    arrow.style.borderBottom = '10px solid white';
+                    arrow.style.borderTop = '0';
                 }
 
-                // center arrow under cursor
-                let arrowX = (e.clientX - container.left) - x;
-                arrowX = Math.max(20, Math.min(tooltipWidth - 20, arrowX));
+                // Lot center relative to tooltip
+                let arrowX = center.x - x;
 
-                arrow.style.left = arrowX + "px";
+                arrowX = Math.max(
+                    20,
+                    Math.min(arrowX, tooltipWidth - 20)
+                );
+
+                arrow.style.left = `${arrowX}px`;
             }
 
             function hide() {
                 tooltip.classList.add('hidden');
             }
+
+            closeBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                hide();
+            });
 
             function bind() {
                 let activeArea = null;

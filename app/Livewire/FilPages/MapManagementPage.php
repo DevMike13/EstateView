@@ -73,6 +73,10 @@ class MapManagementPage extends Component
     // MODEL HOUSE END
 
     // VIRTUAL TOUR CREATION
+    public $editingSceneIndex = null;
+    public $editingSceneName = '';
+    public bool $showEditSceneModal = false;
+
     public $selectedHouseModel;
 
     public $tourTitle;
@@ -313,7 +317,7 @@ class MapManagementPage extends Component
         $this->dialog()->confirm([
             'title'       => 'Are you Sure?',
             'description' => "Do you want to remove this model Name: ".  html_entity_decode('<span class="text-red-600 underline">' . $modelName . '</span>') . " ?",
-            'acceptLabel' => 'Yes, delete it',
+            'acceptLabel' => 'Yes',
             'method'      => 'deleteModelHouse',
             'icon'        => 'error',
             'params'      => $id
@@ -346,6 +350,48 @@ class MapManagementPage extends Component
 
         $this->newSceneName = '';
         $this->activeScene = count($this->scenes) - 1;
+    }
+
+    public function openEditScene($index)
+    {
+        if (!isset($this->scenes[$index])) {
+            return;
+        }
+
+        $this->editingSceneIndex = $index;
+        $this->editingSceneName = $this->scenes[$index]['name'];
+
+        $this->showEditSceneModal = true;
+    }
+
+    public function updateSceneName()
+    {
+        $this->validate([
+            'editingSceneName' => 'required|string|max:255',
+        ]);
+
+        if (
+            $this->editingSceneIndex === null ||
+            !isset($this->scenes[$this->editingSceneIndex])
+        ) {
+            return;
+        }
+
+        $this->scenes[$this->editingSceneIndex]['name'] =
+            trim($this->editingSceneName);
+
+        $this->showEditSceneModal = false;
+
+        $this->reset([
+            'editingSceneIndex',
+            'editingSceneName',
+        ]);
+
+        Notification::make()
+            ->title('Scene Updated')
+            ->body('Scene name updated successfully.')
+            ->success()
+            ->send();
     }
 
     // public function saveHotspot()

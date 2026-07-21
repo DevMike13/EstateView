@@ -27,12 +27,31 @@ class AppointmentPage extends Component
 
     public $activeTab = 'pending';
 
+    public ?int $highlight = null;
+
     public function mount()
     {
         $this->currentMonth = Carbon::now()->startOfMonth();
         $this->blockedDates = BlockedDate::pluck('date')->toArray();
 
         $this->selectedDate = session('selectedDate', null);
+
+        $allowedTabs = [
+            'pending',
+            'approved',
+            'completed',
+            'cancelled',
+        ];
+
+        $requestedTab = request()->query('activeTab', 'pending');
+
+        $this->activeTab = in_array($requestedTab, $allowedTabs, true)
+            ? $requestedTab
+            : 'pending';
+
+        $this->highlight = request()->query('highlight')
+            ? (int) request()->query('highlight')
+            : null;
     }
 
     public function setTab($tab)

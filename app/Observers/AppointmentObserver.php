@@ -133,6 +133,11 @@ class AppointmentObserver
                 'appointment_type' => $appointment->appointment_type,
                 'status' => $appointment->status,
                 'appointment_id' => $appointment->id,
+
+                'client_url' => route('client.appointment', [
+                    'activeTab' => $appointment->status,
+                    'highlight' => $appointment->id,
+                ]),
             ],
 
             'created_by' => auth()->id(),

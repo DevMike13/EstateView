@@ -21,6 +21,33 @@ class MyBillsPage extends Component
     public $referenceNo;
     public $proofOfPayment;
 
+    public ?int $highlight = null;
+
+    public ?int $highlightAccount = null;
+
+    public string $activeBillingTab = 'unpaid';
+
+    public function mount(): void
+    {
+        $this->highlight = request()->query('highlight')
+            ? (int) request()->query('highlight')
+            : null;
+
+        $this->highlightAccount = request()->query('account')
+            ? (int) request()->query('account')
+            : null;
+
+        $requestedTab = request()->query('tab', 'unpaid');
+
+        $this->activeBillingTab = in_array(
+            $requestedTab,
+            ['unpaid', 'paid'],
+            true
+        )
+            ? $requestedTab
+            : 'unpaid';
+    }
+
     public function getAccountsProperty()
     {
         return PurchaseAccount::with([

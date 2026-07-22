@@ -6,7 +6,9 @@ use App\Models\LotReservation;
 use App\Models\PaymentQrCode;
 use App\Models\ReservationPayment;
 use App\Models\PurchaseAccount;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -22,7 +24,7 @@ class ReservationPage extends Component
 
     public ?int $highlight = null;
     
-    public $reservationType, $houseModelId, $lotLocationId, $preferredPayment, $reservationNotes;
+    public $reservationType, $houseModelId, $lotLocationId, $preferredPayment, $reservationNotes, $agentId;
 
     public $doc_1x1 = [];
     public $doc_primary_ids = [];
@@ -85,6 +87,25 @@ class ReservationPage extends Component
         }
     }
 
+    public function getAgentsProperty()
+    {
+        return User::query()
+            ->where('role', 'agent')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'profile_picture'])
+            ->map(function ($agent) {
+                return [
+                    'id' => $agent->id,
+                    'name' => $agent->name,
+                    'email' => $agent->email,
+                    'profile_picture' => $agent->profile_picture
+                        ? asset(ltrim($agent->profile_picture, '/'))
+                        : asset('images/default-avatar.png'),
+                ];
+            })
+            ->toArray();
+    }
+
     public function getSelectedQrCodeProperty()
     {
         if (! $this->paymentMethod || $this->paymentMethod === 'cash') {
@@ -135,6 +156,7 @@ class ReservationPage extends Component
     {
         return LotReservation::with([
                 'lot',
+                'agent',
                 'preferredPayment',
                 'requiredDocuments',
                 'houseModel',
@@ -244,6 +266,13 @@ class ReservationPage extends Component
             'lotLocationId' => 'required',
             'preferredPayment' => 'required',
 
+            'agentId' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(
+                    fn ($query) => $query->where('role', 'agent')
+                ),
+            ],
+
             'downpaymentPercentage' => 'required_if:preferredPayment,bank_loan|nullable|numeric|min:20|max:100',
             'downpaymentTermMonths' => 'required_if:preferredPayment,bank_loan|nullable|in:12,18,24',
 
@@ -269,6 +298,7 @@ class ReservationPage extends Component
                 'type' => $this->reservationType,
                 'lot_id' => $this->lotLocationId,
                 'user_id' => auth()->id(),
+                'agent_id' => $this->agentId ?: null,
                 'status' => 'pending',
                 'notes' => $this->reservationNotes,
                 'house_model_id' => $this->houseModelId,
@@ -311,6 +341,7 @@ class ReservationPage extends Component
             'lotLocationId',
             'houseModelId',
             'preferredPayment',
+            'agentId',
             'doc_1x1',
             'doc_primary_ids',
             'doc_billing',

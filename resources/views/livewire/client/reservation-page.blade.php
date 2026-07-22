@@ -119,7 +119,7 @@
                         <div class="h-10 w-10 md:h-12 md:w-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <x-icon name="home-modern" class="w-6 h-6 text-green-600" />
                         </div>
-
+                        
                         <div class="w-full">
 
                             <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
@@ -164,7 +164,7 @@
                                         <x-icon name="building-office-2" class="w-4 h-4" />
 
                                         <span>
-                                            {{ $reservation->houseModel->name }}
+                                            {{ $reservation->houseModel->model_name }}
                                         </span>
                                     </div>
                                 @endif
@@ -493,7 +493,31 @@
                     </span>
                 @enderror
             </div>
+           
+            <div class="mt-3">
+                <x-select
+                    label="Agent"
+                    placeholder="Select an agent (optional)"
+                    wire:model.defer="agentId"
+                    :options="$this->agents"
+                    :template="[
+                        'name' => 'user-option',
+                        'config' => ['src' => 'profile_picture']
+                    ]"
+                    option-label="name"
+                    option-value="id"
+                    option-description="email"
+                    searchable
+                    clearable
+                />
 
+                @error('agentId')
+                    <span class="text-xs italic text-red-500">
+                        {{ $message }}
+                    </span>
+                @enderror
+            </div>
+            
             @if ($reservationType && $reservationType === "House & Lot")
                 <div class="mt-3">
                     <x-select
@@ -512,7 +536,6 @@
                 </div>
             @endif
             
-
             <div class="mt-3">
                 {{-- <x-select
                     key="{{ $lotApiUrl }}"

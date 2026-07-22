@@ -176,6 +176,52 @@
                   @endif
 
                   @if($paymentOption === 'bank-loan')
+
+                    <div class="mb-5 p-5 rounded-xl border border-white/10 bg-white/5">
+                      <div class="flex justify-between items-center mb-3">
+                          <div>
+                              <h4 class="text-sm font-medium text-white">
+                                  Downpayment Percentage
+                              </h4>
+                              <p class="text-xs text-white/50">
+                                  Adjust your preferred equity payment.
+                              </p>
+                          </div>
+
+                          <span class="text-xl font-semibold text-blue-400">
+                              {{ $downpaymentPercentage }}%
+                          </span>
+                      </div>
+
+                      <input
+                          type="range"
+                          min="10"
+                          max="80"
+                          step="5"
+                          wire:model.live="downpaymentPercentage"
+                          class="w-full h-2 rounded-lg cursor-pointer accent-blue-500"
+                      />
+
+                      <div class="flex justify-between text-xs text-white/40 mt-2">
+                          <span>10%</span>
+                          <span>80%</span>
+                      </div>
+
+                      <div class="grid grid-cols-4 gap-2 mt-4">
+                          @foreach([10,20,30,40] as $dp)
+                              <button
+                                  type="button"
+                                  wire:click="setDownpaymentPercentage({{ $dp }})"
+                                  class="py-2 rounded-lg text-xs transition
+                                      {{ $downpaymentPercentage == $dp
+                                          ? 'bg-blue-600 text-white'
+                                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700' }}">
+                                  {{ $dp }}%
+                              </button>
+                          @endforeach
+                      </div>
+                    </div>
+                    
                     <div class="flex justify-between items-center text-white/70">
                       <span>Required Downpayment Equity (20%):</span>
                       <span class="font-mono text-white">₱{{ number_format($downpaymentAmount, 2) }}</span>

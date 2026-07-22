@@ -13,6 +13,7 @@ class LotReservation extends Model
         'type',
         'lot_id',
         'user_id',
+        'agent_id',
         'status',
         'notes',
         'house_model_id',
@@ -31,6 +32,11 @@ class LotReservation extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function agent()
+    {
+        return $this->belongsTo(User::class, 'agent_id');
+    }
+
     public function preferredPayment()
     {
         return $this->hasOne(PreferredPayment::class);
@@ -43,7 +49,7 @@ class LotReservation extends Model
 
     public function houseModel()
     {
-        return $this->belongsTo(HouseModel::class);
+        return $this->belongsTo(HouseModel::class, 'house_model_id');
     }
 
     public function reservationPayments()

@@ -19,7 +19,7 @@ class PurchaseAccountObserver
             'user',
             'lot',
             'houseModel',
-            'reservation',
+            'reservation.agent',
         ]);
 
         $message = "A ledger account was created for {$purchaseAccount->user?->name}. "
@@ -35,6 +35,8 @@ class PurchaseAccountObserver
                 'purchase_account_id' => $purchaseAccount->id,
                 'client_name' => $purchaseAccount->user?->name,
                 'client_email' => $purchaseAccount->user?->email,
+                'agent_id' => $purchaseAccount->reservation?->agent_id,
+                'agent_name' => $purchaseAccount->reservation?->agent?->name,
                 'lot_name' => $purchaseAccount->lot?->name,
                 'payment_scheme' => $purchaseAccount->payment_scheme,
                 'remaining_balance' => $purchaseAccount->remaining_balance,
@@ -42,9 +44,15 @@ class PurchaseAccountObserver
             'created_by' => auth()->id(),
         ]);
 
+        $agentId = $purchaseAccount->reservation?->agent_id;
+
         $users = User::whereIn('role', ['admin', 'staff'])
             ->pluck('id')
-            ->merge([$purchaseAccount->user_id])
+            ->merge([
+                $purchaseAccount->user_id,
+                $agentId,
+            ])
+            ->filter()
             ->unique()
             ->toArray();
 
@@ -91,6 +99,7 @@ class PurchaseAccountObserver
 
     //     $notification->users()->attach($users);
     // }
+
     public function updated(PurchaseAccount $purchaseAccount): void
     {
         if (! auth()->check()) return;
@@ -105,7 +114,12 @@ class PurchaseAccountObserver
             return;
         }
 
-        $purchaseAccount->loadMissing(['user', 'lot', 'houseModel']);
+        $purchaseAccount->loadMissing([
+            'user',
+            'lot',
+            'houseModel',
+            'reservation.agent',
+        ]);
 
         $message = "Client ledger for {$purchaseAccount->user?->name} was updated by "
             . auth()->user()->name . ".";
@@ -119,6 +133,8 @@ class PurchaseAccountObserver
                 'purchase_account_id' => $purchaseAccount->id,
                 'client_id' => $purchaseAccount->user_id,
                 'client_name' => $purchaseAccount->user?->name,
+                'agent_id' => $purchaseAccount->reservation?->agent_id,
+                'agent_name' => $purchaseAccount->reservation?->agent?->name,
                 'lot_name' => $purchaseAccount->lot?->name,
                 'house_model' => $purchaseAccount->houseModel?->model_name,
                 'status' => $purchaseAccount->status,
@@ -129,9 +145,15 @@ class PurchaseAccountObserver
             'created_by' => auth()->id(),
         ]);
 
+        $agentId = $purchaseAccount->reservation?->agent_id;
+
         $users = User::whereIn('role', ['admin', 'staff'])
             ->pluck('id')
-            ->merge([$purchaseAccount->user_id])
+            ->merge([
+                $purchaseAccount->user_id,
+                $agentId,
+            ])
+            ->filter()
             ->unique()
             ->toArray();
 

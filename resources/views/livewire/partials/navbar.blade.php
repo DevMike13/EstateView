@@ -1,240 +1,315 @@
-<header class="flex flex-wrap sm:justify-start sm:flex-nowrap w-full text-sm py-8 md:py-5 bg-white md:fixed z-20">
-    <nav class="max-w-[97rem] w-full mx-auto px-14 flex flex-wrap basis-full items-center justify-between" aria-label="Global">
-        <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse text-[#2b2b31] font-bold text-lg md:text-lg md:mx-auto lg:text-3xl lg:mx-px">
-            <img src="{{ asset('images/estate-view-logo.png') }}" class="h-12" alt="">
-            {{-- EstateView --}}
+<header class="fixed top-0 left-0 z-50 w-full bg-white shadow-sm">
+    <nav
+        class="mx-auto flex w-full max-w-[97rem] flex-wrap items-center justify-between px-5 py-4 sm:px-8 lg:px-14"
+        aria-label="Global Navigation"
+    >
+        {{-- Logo --}}
+        <a
+            href="{{ route('user.home') }}"
+            wire:navigate
+            class="flex items-center gap-3 text-lg font-bold text-[#2b2b31] lg:text-3xl"
+        >
+            <img
+                src="{{ asset('images/estate-view-logo.png') }}"
+                class="h-10 w-auto sm:h-12"
+                alt="EstateView"
+            >
         </a>
-      @if (!request()->is('login') && !request()->is('register') && !request()->is('forgot') && !request()->is('reset*') && !request()->is('account-verification*') && !request()->is('resend-verification*'))
-        <div class="sm:order-3 flex items-center gap-x-2">
-          <button type="button" class="sm:hidden hs-collapse-toggle p-2.5 inline-flex justify-center items-center gap-x-2 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-transparent dark:border-neutral-700 dark:text-white dark:hover:bg-white/10" data-hs-collapse="#navbar-alignment" aria-controls="navbar-alignment" aria-label="Toggle navigation">
-            <svg class="hs-collapse-open:hidden flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg>
-            <svg class="hs-collapse-open:block hidden flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
-          <div class="hidden lg:block">
-              @guest
-                  <a href="{{ route('login') }}" class="py-3 px-8 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
-                      Login
-                  </a>
-                  {{-- <a href="{{ route('register') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
-                      Sign up
-                  </a> --}}
-              @endguest
-              @auth
-                  <div class="flex items-center justify-center">
-                      <div class="hs-dropdown relative inline-flex md:flex md:items-center md:justify-center">
-                          <button id="hs-dropdown-default" type="button" class="hs-dropdown-toggle py-2 inline-flex items-center gap-x-2 text-base font-medium rounded-lg text-[#2b2b31]">
-                            <div class="flex justify-center items-center gap-2">
-                                {{-- <img src="{{ asset(auth()->user()->profile_picture) }}" alt="{{ auth()->user()->name }}" class="w-10 h-10"> --}}
-                                @if(auth()->user()->profile_picture)
-                                    <img src="{{ asset(auth()->user()->profile_picture) }}" 
-                                        alt="{{ auth()->user()->name }}" 
-                                        class="w-10 h-10 rounded-full object-cover">
+
+        @unless(
+            request()->routeIs('login') ||
+            request()->routeIs('register') ||
+            request()->routeIs('password.request') ||
+            request()->routeIs('password.reset') ||
+            request()->routeIs('account.verify') ||
+            request()->routeIs('account.resend-verification') ||
+            request()->routeIs('activate-account')
+        )
+
+            {{-- Mobile Toggle --}}
+            <button
+                type="button"
+                class="hs-collapse-toggle inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2.5 text-gray-800 shadow-sm hover:bg-gray-50 lg:hidden"
+                data-hs-collapse="#estateview-navbar"
+                aria-controls="estateview-navbar"
+                aria-label="Toggle navigation"
+            >
+                {{-- Menu icon --}}
+                <svg
+                    class="hs-collapse-open:hidden size-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <line x1="3" x2="21" y1="6" y2="6"/>
+                    <line x1="3" x2="21" y1="12" y2="12"/>
+                    <line x1="3" x2="21" y1="18" y2="18"/>
+                </svg>
+
+                {{-- Close icon --}}
+                <svg
+                    class="hs-collapse-open:block hidden size-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M18 6 6 18"/>
+                    <path d="m6 6 12 12"/>
+                </svg>
+            </button>
+
+            {{-- Responsive Navbar --}}
+            <div
+                id="estateview-navbar"
+                class="hs-collapse hidden w-full basis-full overflow-hidden transition-all duration-300 lg:block lg:w-auto lg:basis-auto"
+            >
+                <div class="mt-5 flex flex-col gap-1 border-t border-gray-100 pt-5 lg:mt-0 lg:flex-row lg:items-center lg:gap-2 lg:border-0 lg:pt-0">
+
+                    @php
+                        $currentUser = auth()->user();
+                        $isAgent = auth()->check() && $currentUser->role === 'agent';
+                        $isClient = auth()->check() && $currentUser->role === 'user';
+                    @endphp
+
+                    {{-- HOME --}}
+                    <a
+                        href="{{ $isAgent ? route('agent.dashboard') : route('user.home') }}"
+                        wire:navigate
+                        class="rounded-lg px-3 py-2 text-sm font-medium transition
+                            {{ $isAgent
+                                ? (request()->routeIs('agent.dashboard')
+                                    ? 'text-[#d6b685]'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]')
+                                : (request()->routeIs('user.home')
+                                    ? 'text-[#d6b685]'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]') }}"
+                    >
+                        HOME
+                    </a>
+
+                    {{-- ABOUT: hidden from agents --}}
+                    @if(!$isAgent)
+                        <a
+                            href="{{ route('user.about') }}"
+                            wire:navigate
+                            class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                {{ request()->routeIs('user.about')
+                                    ? 'text-[#d6b685]'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                        >
+                            ABOUT
+                        </a>
+                    @endif
+
+                    {{-- PROPERTIES: available to everyone --}}
+                    <a
+                        href="{{ route('user.properties') }}"
+                        wire:navigate
+                        class="rounded-lg px-3 py-2 text-sm font-medium transition
+                            {{ request()->routeIs('user.properties')
+                                ? 'text-[#d6b685]'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                    >
+                        PROPERTIES
+                    </a>
+
+                    {{-- Guest Navigation --}}
+                    @guest
+                        <div class="mt-3 border-t border-gray-100 pt-4 lg:mt-0 lg:border-0 lg:pt-0">
+                            <a
+                                href="{{ route('login') }}"
+                                wire:navigate
+                                class="inline-flex w-full items-center justify-center bg-[#2b2b31] px-7 py-3 text-sm font-semibold text-white transition hover:bg-black lg:w-auto"
+                            >
+                                LOGIN
+                            </a>
+                        </div>
+                    @endguest
+
+                    @auth
+                        {{-- Client Navigation --}}
+                        @if($isClient)
+                            <a
+                                href="{{ route('client.cost.breakdown') }}"
+                                wire:navigate
+                                class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                    {{ request()->routeIs('client.cost.breakdown')
+                                        ? 'text-[#d6b685]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                            >
+                                COST BREAKDOWN
+                            </a>
+
+                            <a
+                                href="{{ route('client.bills') }}"
+                                wire:navigate
+                                class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                    {{ request()->routeIs('client.bills')
+                                        ? 'text-[#d6b685]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                            >
+                                MY BILLS
+                            </a>
+
+                            <a
+                                href="{{ route('client.appointment') }}"
+                                wire:navigate
+                                class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                    {{ request()->routeIs('client.appointment')
+                                        ? 'text-[#d6b685]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                            >
+                                APPOINTMENTS
+                            </a>
+
+                            <a
+                                href="{{ route('client.reservation') }}"
+                                wire:navigate
+                                class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                    {{ request()->routeIs('client.reservation')
+                                        ? 'text-[#d6b685]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                            >
+                                RESERVATIONS
+                            </a>
+
+                            <a
+                                href="{{ route('client.account') }}"
+                                wire:navigate
+                                class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                    {{ request()->routeIs('client.account')
+                                        ? 'text-[#d6b685]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                            >
+                                ACCOUNT
+                            </a>
+
+                            <div class="px-3 py-2">
+                                <livewire:partials.notification-badge />
+                            </div>
+                        @endif
+
+                        {{-- Agent Navigation: Home, Properties, Cost Breakdown only --}}
+                        @if($isAgent)
+                            <a
+                                href="{{ route('client.cost.breakdown') }}"
+                                wire:navigate
+                                class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                    {{ request()->routeIs('client.cost.breakdown')
+                                        ? 'text-[#d6b685]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                            >
+                                COST BREAKDOWN
+                            </a>
+
+                            <a
+                                href="{{ route('client.account') }}"
+                                wire:navigate
+                                class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                    {{ request()->routeIs('client.account')
+                                        ? 'text-[#d6b685]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                            >
+                                ACCOUNT
+                            </a>
+
+                            <div class="px-3 py-2">
+                                <livewire:partials.notification-badge />
+                            </div>
+                        @endif
+
+                        {{-- Desktop User Profile --}}
+                        <div class="ml-2 hidden items-center gap-3 border-l border-gray-200 pl-5 lg:flex">
+                            @if($currentUser->profile_picture)
+                                <img
+                                    src="{{ asset($currentUser->profile_picture) }}"
+                                    alt="{{ $currentUser->name }}"
+                                    class="h-10 w-10 rounded-full object-cover"
+                                >
+                            @else
+                                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-6 w-6 text-gray-500"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                    </svg>
+                                </div>
+                            @endif
+
+                            <div class="min-w-0">
+                                <p class="max-w-36 truncate text-sm font-semibold text-gray-800">
+                                    {{ $currentUser->name }}
+                                </p>
+
+                                <p class="text-xs font-medium text-[#d6b685]">
+                                    {{ $isClient ? 'Client' : ucfirst($currentUser->role) }}
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Mobile Profile --}}
+                        <div class="mt-4 border-t border-gray-100 pt-4 lg:hidden">
+                            <div class="mb-3 flex items-center gap-3 px-3">
+                                @if($currentUser->profile_picture)
+                                    <img
+                                        src="{{ asset($currentUser->profile_picture) }}"
+                                        alt="{{ $currentUser->name }}"
+                                        class="h-11 w-11 rounded-full object-cover"
+                                    >
                                 @else
-                                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" 
-                                            class="w-6 h-6 text-gray-500" 
-                                            fill="none" 
-                                            viewBox="0 0 24 24" 
-                                            stroke="currentColor">
-                                            <path stroke-linecap="round" 
-                                                stroke-linejoin="round" 
-                                                stroke-width="2" 
-                                                d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <div class="flex h-11 w-11 items-center justify-center rounded-full bg-gray-200">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            class="h-6 w-6 text-gray-500"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                            />
                                         </svg>
                                     </div>
                                 @endif
-                                {{ auth()->user()->name }}
-                            </div>
-                              
-                            <svg class="hs-dropdown-open:rotate-180 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                          </button>
-                      
-                          <div wire:ignore class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full z-50" aria-labelledby="hs-dropdown-default">
-                                {{-- <a
-                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
-                                    {{ request()->is('client/appointments')
-                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
-                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
-                                    }}"
-                                    href="{{ route('client.appointment') }}"
-                                >
-                                    {{ __('Appointments') }}
-                                </a>
 
-                                <a
-                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
-                                    {{ request()->is('client/reservations')
-                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
-                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
-                                    }}"
-                                    href="{{ route('client.reservation') }}"
-                                >
-                                    {{ __('Reservations') }}
-                                </a>
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-semibold text-gray-800">
+                                        {{ $currentUser->name }}
+                                    </p>
 
-                                <a
-                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
-                                    {{ request()->is('client/account')
-                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
-                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
-                                    }}"
-                                    href="{{ route('client.account') }}"
-                                >
-                                    {{ __('Account') }}
-                                </a> --}}
-                              {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.account') }}">
-                                  {{ __('My Account' )}}
-                              </a>
-                              <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.calendar') }}">
-                                {{ __('My Calendar' )}}
-                              </a>
-                              <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.invoice') }}">
-                                {{ __('My Invoice' )}}
-                              </a> --}}
-                              {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="/logout">
-                                  {{ __('Logout' )}}
-                              </a> --}}
-                          </div>
-                      </div>
-                  </div>
-              @endauth
-          </div>
-        </div>
-        
-        <div id="navbar-alignment" class="hs-collapse hidden overflow-hidden transition-all duration-300 basis-full grow sm:grow-0 sm:basis-auto sm:block sm:order-2 lg:ml-auto lg:mr-12">
-          <div class="flex flex-col gap-3 lg:gap-8 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5">
-            <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] {{ request()->is('/') ? 'text-black' : 'text-gray-400'  }}" href="/" aria-current="page">HOME</a>
-            <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.about') ? 'text-black' : 'text-gray-400' }}" href="{{ route('user.about') }}">ABOUT</a>
-            <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('user.properties') ? 'text-black' : 'text-gray-400'}}" href="{{ route('user.properties') }}">PROPERTIES</a>
-            @auth
-                <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.cost.breakdown') ? 'text-black' : 'text-gray-400'}}" href="{{ route('client.cost.breakdown') }}">COST BREAKDOWN</a>
-                
-                <a wire:ignore class="font-regular text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.bills') ? 'text-black' : 'text-gray-400'}}" href="{{ route('client.bills') }}">MY BILLS</a>
+                                    <p class="truncate text-xs text-gray-500">
+                                        {{ $currentUser->email }}
+                                    </p>
 
-                <a
-                    wire:ignore 
-                    class="font-regular uppercase text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.appointment') ? 'text-black' : 'text-gray-400'}}"
-                    href="{{ route('client.appointment') }}"
-                >
-                    {{ __('Appointments') }}
-                </a>
-
-                <a
-                    wire:ignore 
-                    class="font-regular uppercase text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.reservation') ? 'text-black' : 'text-gray-400'}}"
-                    href="{{ route('client.reservation') }}"
-                >
-                    {{ __('Reservations') }}
-                </a>
-
-                <a
-                    wire:ignore 
-                    class="font-regular uppercase text-[#2b2b31] hover:text-[#d6b685] dark:text-neutral-400 dark:hover:text-neutral-500 {{ request()->routeIs('client.account') ? 'text-black' : 'text-gray-400'}}"
-                    href="{{ route('client.account') }}"
-                >
-                    {{ __('Account') }}
-                </a>
-
-                <livewire:partials.notification-badge />
-            @endauth
-            <div class="flex justify-center lg:hidden md:ml-10">
-              {{-- <a href="{{ route('login') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-transparent text-[#2b2b31] hover:bg-slate-300 disabled:opacity-50 disabled:pointer-events-none">
-                  Login
-              </a>
-              <a class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
-                  Sign up
-              </a> --}}
-              @guest
-                  <a href="{{ route('login') }}" class="py-3 px-8 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
-                      Login
-                  </a>
-                  {{-- <a href="{{ route('register') }}" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold border border-transparent bg-[#2b2b31] text-white hover:bg-slate-950 disabled:opacity-50 disabled:pointer-events-none">
-                      Sign up
-                  </a> --}}
-              @endguest
-              @auth
-                  <div wire:ignore class="flex items-center justify-center">
-                      <div wire:ignore class="hs-dropdown relative inline-flex md:flex md:items-center md:justify-center">
-                          <button wire:ignore id="hs-dropdown-default" type="button" class="hs-dropdown-toggle py-2 inline-flex items-center gap-x-2 text-base font-medium rounded-lg text-[#2b2b31]">
-                                <div class="flex justify-center items-center gap-2">
-                                    {{-- <img src="{{ asset(auth()->user()->profile_picture) }}" alt="{{ auth()->user()->name }}" class="w-10 h-10"> --}}
-                                    @if(auth()->user()->profile_picture)
-                                        <img src="{{ asset(auth()->user()->profile_picture) }}" 
-                                            alt="{{ auth()->user()->name }}" 
-                                            class="w-10 h-10 rounded-full object-cover">
-                                    @else
-                                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" 
-                                                class="w-6 h-6 text-gray-500" 
-                                                fill="none" 
-                                                viewBox="0 0 24 24" 
-                                                stroke="currentColor">
-                                                <path stroke-linecap="round" 
-                                                    stroke-linejoin="round" 
-                                                    stroke-width="2" 
-                                                    d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                        </div>
-                                    @endif
-                                    {{ auth()->user()->name }}
+                                    <p class="text-xs font-medium text-[#d6b685]">
+                                        {{ $isClient ? 'Client' : ucfirst($currentUser->role) }}
+                                    </p>
                                 </div>
-                              <svg class="hs-dropdown-open:rotate-180 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                          </button>
-                      
-                          <div wire:ignore class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-gray-800 dark:border dark:border-gray-700 dark:divide-gray-700 after:h-4 after:absolute after:-bottom-4 after:start-0 after:w-full before:h-4 before:absolute before:-top-4 before:start-0 before:w-full z-50" aria-labelledby="hs-dropdown-default">
-                              {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="#">
-                                  {{ __('Appointments') }}
-                              </a> --}}
-                              {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.account') }}">
-                                  {{ __('My Account' )}}
-                              </a>
-                              <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="{{ route('client.invoice') }}">
-                                {{ __('My Invoice' )}}
-                              </a> --}}
-                                <a
-                                class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
-                                    {{ request()->is('client/appointments')
-                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
-                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
-                                    }}"
-                                    href="{{ route('client.appointment') }}"
-                                >
-                                    {{ __('Appointments') }}
-                                </a>
-
-                                <a
-                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
-                                    {{ request()->is('client/reservations')
-                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
-                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
-                                    }}"
-                                    href="{{ route('client.reservation') }}"
-                                >
-                                    {{ __('Reservations') }}
-                                </a>
-
-                                <a
-                                    class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm
-                                    {{ request()->is('client/account')
-                                        ? 'bg-gray-100 text-blue-600 dark:bg-gray-700 dark:text-white'
-                                        : 'text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300'
-                                    }}"
-                                    href="{{ route('client.account') }}"
-                                >
-                                    {{ __('Account') }}
-                                </a>
-
-                                {{-- <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:focus:bg-gray-700" href="/logout">
-                                    {{ __('Logout' )}}
-                                </a> --}}
-                          </div>
-                      </div>
-                  </div>
-              @endauth
+                            </div>
+                        </div>
+                    @endauth
+                </div>
             </div>
-          </div>
-        </div>
-      @endif
+        @endunless
     </nav>
 </header>
-  

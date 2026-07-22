@@ -22,6 +22,7 @@ class BillingPaymentObserver
             'billing',
             'purchaseAccount.user',
             'purchaseAccount.lot',
+            'purchaseAccount.reservation.agent',
         ]);
 
         if ($billingPayment->source === 'client_upload') {
@@ -63,6 +64,7 @@ class BillingPaymentObserver
             'user',
             'billing',
             'purchaseAccount.user',
+            'purchaseAccount.reservation.agent',
         ]);
 
         if ($billingPayment->status === 'verified') {
@@ -96,6 +98,12 @@ class BillingPaymentObserver
         string $message,
         string $type
     ): void {
+        
+        $payment->loadMissing([
+            'purchaseAccount.user',
+            'purchaseAccount.reservation.agent',
+        ]);
+
         $notification = Notification::create([
             'title' => $title,
             'message' => $message,
@@ -109,12 +117,19 @@ class BillingPaymentObserver
                 'amount' => $payment->amount,
                 'status' => $payment->status,
                 'source' => $payment->source,
+                'agent_id' => $payment->purchaseAccount?->reservation?->agent_id,
+                'agent_name' => $payment->purchaseAccount?->reservation?->agent?->name,
             ],
             'created_by' => auth()->id(),
         ]);
 
+        $agentId = $payment->purchaseAccount?->reservation?->agent_id;
+
         $users = User::whereIn('role', ['admin', 'staff'])
             ->pluck('id')
+            ->merge([$agentId])
+            ->filter()
+            ->unique()
             ->toArray();
 
         $notification->users()->attach($users);
@@ -130,6 +145,7 @@ class BillingPaymentObserver
         $payment->loadMissing([
             'billing',
             'purchaseAccount.user',
+            'purchaseAccount.reservation.agent',
         ]);
 
         $billingTab = $payment->billing?->status === 'paid'
@@ -149,6 +165,8 @@ class BillingPaymentObserver
                 'amount' => $payment->amount,
                 'status' => $payment->status,
                 'source' => $payment->source,
+                'agent_id' => $payment->purchaseAccount?->reservation?->agent_id,
+                'agent_name' => $payment->purchaseAccount?->reservation?->agent?->name,
 
                 'client_url' => route('client.bills', [
                     'account' => $payment->purchase_account_id,
@@ -159,9 +177,15 @@ class BillingPaymentObserver
             'created_by' => auth()->id(),
         ]);
 
+        $agentId = $payment->purchaseAccount?->reservation?->agent_id;
+
         $users = User::whereIn('role', ['admin', 'staff'])
             ->pluck('id')
-            ->merge([$payment->purchaseAccount->user_id])
+            ->merge([
+                $payment->purchaseAccount?->user_id,
+                $agentId,
+            ])
+            ->filter()
             ->unique()
             ->toArray();
 

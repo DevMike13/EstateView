@@ -17,6 +17,8 @@ class CostBreakdownPage extends Component
     public $paymentOption;
     public $loanTerm = 15;
 
+    public $downpaymentPercentage = 20;
+
     // Dynamic Endpoints
     public $lotApiUrl;
     
@@ -68,8 +70,13 @@ class CostBreakdownPage extends Component
         $this->calculateCosts();
     }
 
-    public function updatedPaymentOption()
+    public function updatedPaymentOption($value)
     {
+        // Restore the default DP when bank loan is selected.
+        if ($value === 'bank-loan' && !$this->downpaymentPercentage) {
+            $this->downpaymentPercentage = 20;
+        }
+
         $this->calculateCosts();
     }
 
@@ -78,9 +85,30 @@ class CostBreakdownPage extends Component
         $this->calculateCosts();
     }
 
+    public function updatedDownpaymentPercentage($value)
+    {
+        // Keep the slider value within the permitted range.
+        $this->downpaymentPercentage = max(
+            10,
+            min(80, (int) $value)
+        );
+
+        $this->calculateCosts();
+    }
+
+    public function setDownpaymentPercentage($percentage)
+    {
+        $this->downpaymentPercentage = max(
+            10,
+            min(80, (int) $percentage)
+        );
+
+        $this->calculateCosts();
+    }
+
     public function calculateCosts()
     {
-        // Reset calculations
+        // Reset calculations.
         $this->housePrice = 0;
         $this->lotPrice = 0;
         $this->totalContractPrice = 0;
@@ -89,55 +117,111 @@ class CostBreakdownPage extends Component
         $this->monthlyAmortization = 0;
         $this->cashDiscount = 0;
 
-        // Fetch Lot Pricing
+        // Fetch lot pricing.
         if ($this->lotLocationId) {
             $lot = Lot::find($this->lotLocationId);
+
             if ($lot) {
                 $this->lotPrice = (float) $lot->price;
             }
         }
 
-        // Fetch House Pricing (Only if using House & Lot option)
-        if ($this->reservationType === 'House & Lot' && $this->houseModelId) {
+        // Fetch house pricing for House & Lot reservations.
+        if (
+            $this->reservationType === 'House & Lot' &&
+            $this->houseModelId
+        ) {
             $house = HouseModel::find($this->houseModelId);
+
             if ($house) {
                 $this->housePrice = (float) $house->price;
             }
         }
 
-        // Calculate Gross Value
-        $this->totalContractPrice = $this->lotPrice + $this->housePrice;
+        // Gross contract price before payment-scheme adjustments.
+        $this->totalContractPrice =
+            $this->lotPrice + $this->housePrice;
 
         if ($this->totalContractPrice <= 0) {
             return;
         }
 
-        // Calculate Payment Schemes
         if ($this->paymentOption === 'cash') {
-            $this->cashDiscount = $this->totalContractPrice * 0.10; // 10% Cash Outright Discount
-            $this->totalContractPrice -= $this->cashDiscount;
-        } 
-        
-        elseif ($this->paymentOption === 'bank-loan') {
-            $this->downpaymentAmount = $this->totalContractPrice * 0.20; // 20% DP Equity
-            $this->loanableAmount = $this->totalContractPrice * 0.80;    // 80% Loanable Balance
-
-            // Standard Compound Financial Formula (Amortization Equation)
-            $annualRate = 0.07; // 7% Annual Fixed Interest
-            $monthlyRate = $annualRate / 12;
-            $totalMonths = $this->loanTerm * 12;
-
-            if ($monthlyRate > 0) {
-                $this->monthlyAmortization = $this->loanableAmount * ($monthlyRate * pow(1 + $monthlyRate, $totalMonths)) / 
-                    (pow(1 + $monthlyRate, $totalMonths) - 1);
-            }
+            $this->calculateCashPayment();
+        } elseif ($this->paymentOption === 'bank-loan') {
+            $this->calculateBankLoan();
         }
+    }
+
+    protected function calculateCashPayment()
+    {
+        $cashDiscountRate = 0.10;
+
+        $this->cashDiscount =
+            $this->totalContractPrice * $cashDiscountRate;
+
+        $this->totalContractPrice -= $this->cashDiscount;
+    }
+
+    protected function calculateBankLoan()
+    {
+        $downpaymentRate =
+            ((float) $this->downpaymentPercentage) / 100;
+
+        $this->downpaymentAmount =
+            $this->totalContractPrice * $downpaymentRate;
+
+        // Subtracting the DP is safer than separately calculating
+        // another percentage because both amounts always total correctly.
+        $this->loanableAmount =
+            $this->totalContractPrice - $this->downpaymentAmount;
+
+        $this->calculateMonthlyAmortization();
+    }
+
+    protected function calculateMonthlyAmortization()
+    {
+        if (
+            $this->loanableAmount <= 0 ||
+            (int) $this->loanTerm <= 0
+        ) {
+            $this->monthlyAmortization = 0;
+
+            return;
+        }
+
+        $annualRate = 0.07;
+        $monthlyRate = $annualRate / 12;
+        $totalMonths = ((int) $this->loanTerm) * 12;
+
+        if ($monthlyRate <= 0) {
+            $this->monthlyAmortization =
+                $this->loanableAmount / $totalMonths;
+
+            return;
+        }
+
+        $compoundFactor = pow(
+            1 + $monthlyRate,
+            $totalMonths
+        );
+
+        $this->monthlyAmortization =
+            $this->loanableAmount *
+            (($monthlyRate * $compoundFactor) /
+            ($compoundFactor - 1));
     }
 
     protected function updateLotApiUrl($value)
     {
-        $this->lotApiUrl = route('api.lots.index', ['type' => $value]);
-        $this->dispatch('lotUrlUpdated', url: $this->lotApiUrl);
+        $this->lotApiUrl = route('api.lots.index', [
+            'type' => $value,
+        ]);
+
+        $this->dispatch(
+            'lotUrlUpdated',
+            url: $this->lotApiUrl
+        );
     }
 
     public function render()

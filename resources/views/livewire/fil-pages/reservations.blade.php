@@ -197,7 +197,7 @@
                                                 </div>
 
                                                 <div class="font-medium text-gray-900">
-                                                    {{ $reservation->houseModel->name }}
+                                                    {{ $reservation->houseModel->model_name }}
                                                 </div>
                                             </div>
                                         </div>

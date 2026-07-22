@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\AboutPage;
+use App\Livewire\Agent\DashboardPage;
 use App\Livewire\Auth\AccountActivationPage;
 use App\Livewire\Auth\AccountVerification;
 use App\Livewire\Auth\ForgotPasswordPage;
@@ -38,7 +39,6 @@ Route::get('/contact-page', ContactPage::class)->name('user.contact');
 Route::get('/properties-page', PropertiesPage::class)->name('user.properties');
 
 Route::middleware('guest')->group(function () {
-    // AUTH
     Route::get('/register', RegisterPage::class)->name('register');
     Route::get('/login', LoginPage::class)->name('login');
     Route::get('/forgot', ForgotPasswordPage::class)->name('password.request');
@@ -48,34 +48,61 @@ Route::middleware('guest')->group(function () {
     Route::get('/account/resend-verification', ResendVerificationPage::class)->name('account.resend-verification');
 });
 
-Route::middleware('auth')->group(function (){
-    Route::get('/logout', function (){
+Route::middleware('auth')->group(function () {
+    Route::get('/logout', function () {
         auth()->logout();
+
+        // request()->session()->invalidate();
+        // request()->session()->regenerateToken();
+
         return redirect('/');
     });
 
-    // CLIENT
-    Route::prefix('client')->group(function () {
-        Route::get('/appointments', AppointmentPage::class)->name('client.appointment');
-    });
+    /*
+    |--------------------------------------------------------------------------
+    | Client/User Routes
+    |--------------------------------------------------------------------------
+    */
 
     Route::prefix('client')->group(function () {
-        Route::get('/reservations', ReservationPage::class)->name('client.reservation');
+        Route::get('/appointments', AppointmentPage::class)
+            ->middleware('role:user')
+            ->name('client.appointment');
+
+        Route::get('/reservations', ReservationPage::class)
+            ->middleware('role:user')
+            ->name('client.reservation');
+
+        Route::get('/notifications', Notification::class)
+            ->middleware('role:user,agent')
+            ->name('client.notification');
+
+        /*
+         * Existing route name and URL are unchanged.
+         * Both user and agent roles can access this page.
+         */
+        Route::get('/cost-breakdown', CostBreakdownPage::class)
+            ->middleware('role:user,agent')
+            ->name('client.cost.breakdown');
+
+        Route::get('/account', AccountSettingsPage::class)
+            ->middleware('role:user,agent')
+            ->name('client.account');
+
+        Route::get('/my-bills', MyBillsPage::class)
+            ->middleware('role:user')
+            ->name('client.bills');
     });
 
-    Route::prefix('client')->group(function () {
-        Route::get('/notifications', Notification::class)->name('client.notification');
-    });
+    /*
+    |--------------------------------------------------------------------------
+    | Agent Routes
+    |--------------------------------------------------------------------------
+    */
 
-    Route::prefix('client')->group(function () {
-        Route::get('/cost-breakdown', CostBreakdownPage::class)->name('client.cost.breakdown');
-    });
-
-    Route::prefix('client')->group(function () {
-        Route::get('/account', AccountSettingsPage::class)->name('client.account');
-    });
-
-    Route::prefix('client')->group(function () {
-        Route::get('/my-bills', MyBillsPage::class)->name('client.bills');
+    Route::prefix('agent')->group(function () {
+        Route::get('/dashboard', DashboardPage::class)
+            ->middleware('role:agent')
+            ->name('agent.dashboard');
     });
 });

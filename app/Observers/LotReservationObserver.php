@@ -179,7 +179,12 @@ class LotReservationObserver
 
     private function buildMessage(LotReservation $lotReservation): string
     {
-        $lotReservation->loadMissing(['user', 'lot', 'houseModel']);
+        $lotReservation->loadMissing([
+            'user',
+            'agent',
+            'lot',
+            'houseModel',
+        ]);
 
         $client = $lotReservation->user?->name ?? 'Unknown Client';
         $lot = $lotReservation->lot?->name ?? 'No Lot';
@@ -198,6 +203,13 @@ class LotReservationObserver
         string $type
     ): void {
 
+        $lotReservation->loadMissing([
+            'user',
+            'agent',
+            'lot',
+            'houseModel',
+        ]);
+
         $notification = Notification::create([
             'title' => $title,
             'message' => $message,
@@ -211,6 +223,8 @@ class LotReservationObserver
             'data' => [
                 'client_name' => $lotReservation->user?->name,
                 'client_email' => $lotReservation->user?->email,
+                'agent_id' => $lotReservation->agent_id,
+                'agent_name' => $lotReservation->agent?->name,
                 'lot_name' => $lotReservation->lot?->name,
                 'house_model' => $lotReservation->houseModel?->name,
                 'status' => $lotReservation->status,
@@ -225,11 +239,18 @@ class LotReservationObserver
             'created_by' => auth()->id(),
         ]);
 
-        $staffAdmins = \App\Models\User::whereIn('role', ['admin', 'staff'])->pluck('id');
+        $staffAdmins = \App\Models\User::whereIn('role', ['admin', 'staff'])
+            ->pluck('id');
+
         $client = $lotReservation->user_id;
+        $agent = $lotReservation->agent_id;
 
         $notification->users()->attach(
-            $staffAdmins->merge([$client])->unique()->toArray()
+            $staffAdmins
+                ->merge([$client, $agent])
+                ->filter()
+                ->unique()
+                ->toArray()
         );
     }
 }

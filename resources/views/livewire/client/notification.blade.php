@@ -116,7 +116,10 @@
                                     </button>
                                 @endif
 
-                                @if($notification->title !== 'Client Ledger Updated')
+                                @if(
+                                    $notification->title !== 'Client Ledger Updated' &&
+                                    auth()->user()->role !== 'agent'
+                                )
                                     <button
                                         wire:click.stop="openNotification({{ $notification->id }})"
                                         class="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1"

@@ -16,6 +16,11 @@ class UserInfo extends Model
         'middle_name', 
         'last_name', 
         'phone', 
+
+        'commission_percentage',
+        'professional_agent_id',
+        'real_estate_license_number',
+
         'region',
         'province',
         'municipality',
@@ -23,6 +28,10 @@ class UserInfo extends Model
         'state'
     ];
 
+    protected $casts = [
+        'commission_percentage' => 'decimal:2',
+    ];
+    
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

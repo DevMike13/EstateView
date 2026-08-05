@@ -60,4 +60,11 @@ class PurchaseAccount extends Model
     {
         return $this->hasMany(AccountLedger::class);
     }
+
+    public function commissionRequests()
+    {
+        return $this->hasMany(
+            CommissionRequest::class
+        );
+    }
 }

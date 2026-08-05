@@ -67,4 +67,12 @@ class LotReservation extends Model
     {
         return $this->hasOne(PurchaseAccount::class);
     }
+
+    public function commissionRequests()
+    {
+        return $this->hasMany(
+            CommissionRequest::class,
+            'lot_reservation_id'
+        );
+    }
 }

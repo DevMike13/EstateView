@@ -9,10 +9,47 @@
             <table class="min-w-full divide-y divide-table-line">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase">Agent Member</th>
-                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase">Status</th>
-                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase">Joined</th>
-                        <th scope="col" class="px-6 py-3 text-end text-xs font-medium text-muted-foreground-1 uppercase">Action</th>
+                        <th
+                            scope="col"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                        >
+                            Agent Member
+                        </th>
+
+                        <th
+                            scope="col"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                        >
+                            Professional Information
+                        </th>
+
+                        <th
+                            scope="col"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                        >
+                            Commission
+                        </th>
+
+                        <th
+                            scope="col"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                        >
+                            Status
+                        </th>
+
+                        <th
+                            scope="col"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                        >
+                            Joined
+                        </th>
+
+                        <th
+                            scope="col"
+                            class="px-6 py-3 text-end text-xs font-medium text-muted-foreground-1 uppercase"
+                        >
+                            Action
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-table-line">
@@ -29,6 +66,43 @@
                                     <p class="text-xs text-gray-500">{{ $user->info?->phone ?? 'No phone' }}</p>
                                 </div>
                                 
+                            </td>
+
+                            <td class="px-6 py-4 min-w-[220px]">
+                                <div>
+                                    <div class="text-xs text-gray-400">
+                                        Agent ID
+                                    </div>
+
+                                    <div class="text-sm font-medium text-gray-800">
+                                        {{ $user->info?->professional_agent_id ?? 'Not provided' }}
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <div class="text-xs text-gray-400">
+                                        Real Estate License
+                                    </div>
+
+                                    <div class="text-sm font-medium text-gray-800">
+                                        {{ $user->info?->real_estate_license_number ?? 'Not provided' }}
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if(! is_null($user->info?->commission_percentage))
+                                    <span class="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-700">
+                                        {{ number_format(
+                                            $user->info->commission_percentage,
+                                            2
+                                        ) }}%
+                                    </span>
+                                @else
+                                    <span class="text-sm text-gray-400">
+                                        Not set
+                                    </span>
+                                @endif
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-foreground">
@@ -50,7 +124,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
                                 No agent members found.
                             </td>
                         </tr>
@@ -84,6 +158,49 @@
 
                 <div class="mt-3">
                     <x-inputs.phone label="Mobile No." placeholder="+63 912 345 6789" mask="['+63 ### ### ####']" class="py-3 -mt-1" wire:model="phone" />
+                </div>
+
+                <div class="mt-5 border-t border-gray-100 pt-5">
+                    <div class="mb-4">
+                        <h3 class="text-sm font-semibold text-gray-900">
+                            Professional Information
+                        </h3>
+
+                        <p class="mt-1 text-xs text-gray-500">
+                            These fields are optional and may be added later.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <x-input
+                            label="Agent ID"
+                            placeholder="Example: AGT-2026-001"
+                            wire:model.defer="professionalAgentId"
+                        />
+
+                        <x-input
+                            label="Real Estate License Number"
+                            placeholder="Enter license number"
+                            wire:model.defer="realEstateLicenseNumber"
+                        />
+                    </div>
+
+                    <div class="mt-4">
+                        <x-input
+                            label="Commission Percentage"
+                            placeholder="Example: 5"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            suffix="%"
+                            wire:model.defer="commissionPercentage"
+                        />
+
+                        <p class="mt-1 text-xs text-gray-500">
+                            Enter a percentage from 0 to 100.
+                        </p>
+                    </div>
                 </div>
 
                 <div class="mt-3">
@@ -142,7 +259,7 @@
         </form>
     </x-modal>
 
-    {{-- EDIT STAFF ACCOUNT --}}
+    {{-- EDIT AGENT ACCOUNT --}}
     <x-modal blur name="editAgentMemberAccount" persistent align="center" max-width="xl">
         <x-card title="Edit Agent Account">
 
@@ -164,6 +281,45 @@
 
             <div class="mt-3">
                 <x-inputs.phone label="Mobile No." placeholder="+63 912 345 6789" mask="['+63 ### ### ####']" class="py-3 -mt-1" wire:model="editPhone" />
+            </div>
+
+            <div class="mt-5 border-t border-gray-100 pt-5">
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold text-gray-900">
+                        Professional Information
+                    </h3>
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        Update the agent's identification and commission rate.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <x-input
+                        label="Agent ID"
+                        placeholder="Example: AGT-2026-001"
+                        wire:model.defer="editProfessionalAgentId"
+                    />
+
+                    <x-input
+                        label="Real Estate License Number"
+                        placeholder="Enter license number"
+                        wire:model.defer="editRealEstateLicenseNumber"
+                    />
+                </div>
+
+                <div class="mt-4">
+                    <x-input
+                        label="Commission Percentage"
+                        placeholder="Example: 5"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        suffix="%"
+                        wire:model.defer="editCommissionPercentage"
+                    />
+                </div>
             </div>
 
             <div class="mt-3">

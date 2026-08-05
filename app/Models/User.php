@@ -87,4 +87,12 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(LotReservation::class);
     }
+
+    public function commissionRequests()
+    {
+        return $this->hasMany(
+            CommissionRequest::class,
+            'agent_id'
+        );
+    }
 }

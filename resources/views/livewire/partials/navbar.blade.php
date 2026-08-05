@@ -211,6 +211,17 @@
                             </a>
 
                             <a
+                                href="{{ route('agent.commission') }}"
+                                wire:navigate
+                                class="rounded-lg px-3 py-2 text-sm font-medium transition
+                                    {{ request()->routeIs('agent.commission')
+                                        ? 'text-[#d6b685]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
+                            >
+                                COMMISSION
+                            </a>
+
+                            <a
                                 href="{{ route('client.account') }}"
                                 wire:navigate
                                 class="rounded-lg px-3 py-2 text-sm font-medium transition

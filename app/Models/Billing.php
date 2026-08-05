@@ -21,6 +21,8 @@ class Billing extends Model
 
     protected $casts = [
         'due_date' => 'date',
+        'amount_due' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
     ];
 
     public function purchaseAccount()

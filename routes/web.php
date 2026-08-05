@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\AboutPage;
+use App\Livewire\Agent\CommissionPage;
 use App\Livewire\Agent\DashboardPage;
 use App\Livewire\Auth\AccountActivationPage;
 use App\Livewire\Auth\AccountVerification;
@@ -104,5 +105,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', DashboardPage::class)
             ->middleware('role:agent')
             ->name('agent.dashboard');
+
+        Route::get('/commission', CommissionPage::class)
+            ->middleware('role:agent')
+            ->name('agent.commission');
     });
 });

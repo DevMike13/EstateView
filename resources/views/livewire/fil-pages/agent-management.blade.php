@@ -53,19 +53,87 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-table-line">
-                    @forelse ($agent as $user)
+                    @forelse ($this->agents as $user)
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <h4 class="font-semibold">{{ $user->name }}</h4>
-                                <div class="flex items-center gap-1 mt-1">
-                                    <x-icon name="at-symbol" class="w-4 h-4" />
-                                    <p class="text-xs text-gray-500">{{ $user->email }}</p>
-                                </div>
-                                <div class="flex items-center gap-1 mt-1">
-                                    <x-icon name="phone" class="w-4 h-4" />
-                                    <p class="text-xs text-gray-500">{{ $user->info?->phone ?? 'No phone' }}</p>
-                                </div>
-                                
+                                <button
+                                    type="button"
+                                    x-on:click="
+                                        $wire.openAgentCommissionModal({{ $user->id }});
+                                        $openModal('agentCommissionDetails');
+                                    "
+                                    class="group flex items-center gap-3 text-left"
+                                >
+                                    <div class="relative shrink-0">
+                                        <img
+                                            src="{{ $user->profile_picture
+                                                ? asset(ltrim($user->profile_picture, '/'))
+                                                : asset('images/default-avatar.png') }}"
+                                            alt="{{ $user->name }}"
+                                            class="h-11 w-11 rounded-full border border-gray-200 object-cover"
+                                        >
+
+                                        @if(($user->commission_requests_count ?? 0) > 0)
+                                            <span class="absolute -right-0.5 -top-0.5 flex h-4 w-4">
+                                                <span
+                                                    class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75
+                                                        {{ ($user->pending_commission_requests_count ?? 0) > 0
+                                                            ? 'bg-orange-400'
+                                                            : 'bg-blue-400' }}"
+                                                ></span>
+
+                                                <span
+                                                    class="relative inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white
+                                                        {{ ($user->pending_commission_requests_count ?? 0) > 0
+                                                            ? 'bg-orange-500'
+                                                            : 'bg-blue-500' }}"
+                                                >
+                                                    {{ min($user->commission_requests_count, 9) }}
+                                                </span>
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="truncate font-semibold text-gray-900 group-hover:text-orange-600">
+                                                {{ $user->name }}
+                                            </h4>
+
+                                            @if(($user->pending_commission_requests_count ?? 0) > 0)
+                                                <span class="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold text-yellow-700">
+                                                    Commission Request
+                                                </span>
+                                            @elseif(($user->commission_requests_count ?? 0) > 0)
+                                                <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                                    Commission History
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <div class="mt-1 flex items-center gap-1">
+                                            <x-icon
+                                                name="at-symbol"
+                                                class="h-4 w-4"
+                                            />
+
+                                            <p class="text-xs text-gray-500">
+                                                {{ $user->email }}
+                                            </p>
+                                        </div>
+
+                                        <div class="mt-1 flex items-center gap-1">
+                                            <x-icon
+                                                name="phone"
+                                                class="h-4 w-4"
+                                            />
+
+                                            <p class="text-xs text-gray-500">
+                                                {{ $user->info?->phone ?? 'No phone' }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </button>
                             </td>
 
                             <td class="px-6 py-4 min-w-[220px]">
@@ -374,6 +442,484 @@
                 <x-button primary label="Save" wire:click="editAgentMemberConfirmation('{{$editName}}')" />
             </x-slot>
 
+        </x-card>
+    </x-modal>
+
+
+    <x-modal
+        blur
+        name="agentCommissionDetails"
+        align="center"
+        max-width="6xl"
+    >
+        <x-card>
+            @if($this->commissionAgent)
+
+                @php
+                    $commissionAgent = $this->commissionAgent;
+                @endphp
+
+                <div class="space-y-6">
+
+                    {{-- Agent header --}}
+                    <div class="flex flex-col gap-4 border-b border-gray-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="flex items-center gap-4">
+                            <img
+                                src="{{ $commissionAgent->profile_picture
+                                    ? asset(ltrim(
+                                        $commissionAgent->profile_picture,
+                                        '/'
+                                    ))
+                                    : asset('images/default-avatar.png') }}"
+                                alt="{{ $commissionAgent->name }}"
+                                class="h-14 w-14 rounded-full border border-gray-200 object-cover"
+                            >
+
+                            <div>
+                                <h2 class="text-xl font-semibold text-gray-900">
+                                    {{ $commissionAgent->name }}
+                                </h2>
+
+                                <p class="text-sm text-gray-500">
+                                    {{ $commissionAgent->email }}
+                                </p>
+
+                                <p class="mt-1 text-xs text-purple-600">
+                                    {{ number_format(
+                                        $commissionAgent->info
+                                            ?->commission_percentage ?? 0,
+                                        2
+                                    ) }}% commission rate
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="text-sm text-gray-500">
+                            {{ $this->commissionClients->count() }}
+                            assigned client{{ $this->commissionClients->count() !== 1 ? 's' : '' }}
+                        </div>
+                    </div>
+
+                    @if(! $showCommissionClientDetails)
+
+                        {{-- QR Codes --}}
+                        <div>
+                            <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                Payment QR Codes
+                            </p>
+
+                            <div class="flex gap-3 overflow-x-auto pb-2">
+                                @forelse($commissionAgent->qrCodes as $qrCode)
+                                    <div class="w-36 shrink-0 rounded-xl border border-gray-200 bg-white p-3">
+                                        <div class="relative">
+                                            <img
+                                                src="{{ $qrCode->image_url }}"
+                                                alt="{{ $qrCode->provider_name }}"
+                                                class="h-28 w-full rounded-lg object-contain"
+                                            >
+
+                                            @if($qrCode->is_primary)
+                                                <span class="absolute left-1 top-1 rounded-full bg-blue-600 px-2 py-0.5 text-[9px] font-semibold text-white">
+                                                    Primary
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <p class="mt-2 truncate text-xs font-semibold text-gray-900">
+                                            {{ $qrCode->provider_name }}
+                                        </p>
+
+                                        <p class="truncate text-[10px] text-gray-500">
+                                            {{ $qrCode->account_name }}
+                                        </p>
+
+                                        @if($qrCode->account_number)
+                                            <p class="truncate text-[10px] text-gray-400">
+                                                {{ $qrCode->account_number }}
+                                            </p>
+                                        @endif
+
+                                        <a
+                                            href="{{ $qrCode->image_url }}"
+                                            target="_blank"
+                                            class="mt-2 block text-center text-[10px] font-medium text-blue-600"
+                                        >
+                                            View full QR
+                                        </a>
+                                    </div>
+                                @empty
+                                    <div class="rounded-xl border border-dashed border-gray-200 px-5 py-8 text-sm text-gray-400">
+                                        This agent has not uploaded a QR code.
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- Clients --}}
+                        <div>
+                            <p class="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                <x-icon
+                                    name="users"
+                                    class="h-3.5 w-3.5"
+                                />
+
+                                Clients ({{ $this->commissionClients->count() }})
+                            </p>
+
+                            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                @forelse($this->commissionClients as $account)
+                                    <button
+                                        type="button"
+                                        wire:click="selectCommissionClient({{ $account->id }})"
+                                        class="flex items-center justify-between gap-3 rounded-xl border bg-white p-5 text-left transition-all hover:shadow-md
+                                            {{ $account->has_pending_commission_request
+                                                ? 'border-yellow-300 hover:border-yellow-400'
+                                                : 'border-gray-100 hover:border-orange-200' }}"
+                                    >
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <p class="truncate font-medium text-gray-900">
+                                                    {{ $account->user?->name }}
+                                                </p>
+
+                                                @if($account->has_pending_commission_request)
+                                                    <span class="flex shrink-0 items-center gap-1 rounded-full bg-yellow-100 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700">
+                                                        <x-icon
+                                                            name="clock"
+                                                            class="h-3 w-3"
+                                                        />
+
+                                                        To Pay
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            <p class="mt-0.5 truncate text-xs text-gray-400">
+                                                {{ $account->lot?->name ?? 'No lot information' }}
+                                            </p>
+
+                                            <p class="mt-2 text-sm font-medium text-gray-700">
+                                                ₱{{ number_format(
+                                                    $account->total_contract_price,
+                                                    2
+                                                ) }}
+                                            </p>
+
+                                            @if($account->pending_commission_request_count > 0)
+                                                <p class="mt-1 text-[10px] text-yellow-600">
+                                                    {{ $account->pending_commission_request_count }}
+                                                    pending commission request{{ $account->pending_commission_request_count !== 1 ? 's' : '' }}
+                                                </p>
+                                            @endif
+                                        </div>
+
+                                        <x-icon
+                                            name="chevron-right"
+                                            class="h-4 w-4 shrink-0 text-gray-400"
+                                        />
+                                    </button>
+                                @empty
+                                    <div class="col-span-full rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+                                        No assigned client ledgers found.
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                    @elseif($this->commissionAccount)
+
+                        @php
+                            $account = $this->commissionAccount;
+                        @endphp
+
+                        {{-- Client details header --}}
+                        <div class="flex items-center gap-3">
+                            <button
+                                type="button"
+                                wire:click="backToCommissionClients"
+                                class="rounded-lg p-2 transition-colors hover:bg-gray-100"
+                            >
+                                <x-icon
+                                    name="arrow-left"
+                                    class="h-5 w-5 text-gray-600"
+                                />
+                            </button>
+
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">
+                                    {{ $account->user?->name }}
+                                </h2>
+
+                                <p class="text-sm text-gray-500">
+                                    {{ $account->lot?->name ?? 'No lot information' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Summary --}}
+                        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                            <div class="rounded-xl border border-gray-100 bg-white p-5">
+                                <p class="mb-1 text-xs uppercase tracking-wide text-gray-500">
+                                    Total Contract Price
+                                </p>
+
+                                <p class="text-lg font-semibold text-gray-900">
+                                    ₱{{ number_format(
+                                        $account->total_contract_price,
+                                        2
+                                    ) }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-xl border border-purple-100 bg-purple-50 p-5">
+                                <p class="mb-1 text-xs uppercase tracking-wide text-purple-500">
+                                    Commission Rate
+                                </p>
+
+                                <p class="text-lg font-semibold text-purple-700">
+                                    {{ number_format(
+                                        $account->agent_commission_percentage,
+                                        2
+                                    ) }}%
+                                </p>
+                            </div>
+
+                            <div class="rounded-xl border border-green-100 bg-green-50 p-5">
+                                <p class="mb-1 text-xs uppercase tracking-wide text-green-600">
+                                    Total Commission
+                                </p>
+
+                                <p class="text-lg font-semibold text-green-700">
+                                    ₱{{ number_format(
+                                        $account->total_agent_commission,
+                                        2
+                                    ) }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-xl border border-blue-100 bg-blue-50 p-5">
+                                <p class="mb-1 text-xs uppercase tracking-wide text-blue-500">
+                                    Paid to Agent
+                                </p>
+
+                                <p class="text-lg font-semibold text-blue-700">
+                                    ₱{{ number_format(
+                                        $account->paid_commission,
+                                        2
+                                    ) }}
+                                </p>
+
+                                <p class="mt-1 text-xs text-blue-400">
+                                    {{ $account->paid_period_count }}
+                                    of {{ $account->total_commission_periods }}
+                                    periods paid
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Dynamic commission periods --}}
+                        <div>
+                            <p class="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                <x-icon
+                                    name="banknotes"
+                                    class="h-3.5 w-3.5"
+                                />
+
+                                Commission Ledger — Every 3 Paid Months
+                            </p>
+
+                            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                @foreach($account->commission_periods as $period)
+
+                                    @php
+                                        $request = $period['request'];
+
+                                        $borderClass = match(true) {
+                                            $request?->status === 'pending'
+                                                => 'border-yellow-300',
+
+                                            $request?->status === 'paid'
+                                                => 'border-green-300',
+
+                                            $request?->status === 'rejected'
+                                                => 'border-red-300',
+
+                                            default
+                                                => 'border-gray-100',
+                                        };
+                                    @endphp
+
+                                    <div class="space-y-3 rounded-xl border bg-white p-5 {{ $borderClass }}">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-xs font-semibold text-gray-600">
+                                                    {{ $period['label'] }}
+                                                </p>
+
+                                                <p class="mt-0.5 text-[10px] text-gray-400">
+                                                    {{ $period['months_label'] }}
+                                                </p>
+                                            </div>
+
+                                            @if($request?->status === 'pending')
+                                                <x-icon
+                                                    name="clock"
+                                                    class="h-4 w-4 text-yellow-500"
+                                                />
+                                            @elseif($request?->status === 'paid')
+                                                <x-icon
+                                                    name="check-circle"
+                                                    class="h-4 w-4 text-green-500"
+                                                />
+                                            @endif
+                                        </div>
+
+                                        <p class="text-lg font-semibold text-blue-700">
+                                            ₱{{ number_format(
+                                                $period['amount'],
+                                                2
+                                            ) }}
+                                        </p>
+
+                                        <div class="flex flex-wrap gap-2">
+                                            @foreach($period['billings'] as $billing)
+                                                @php
+                                                    $billingPaid =
+                                                        $billing->status === 'paid'
+                                                        || (float) $billing->amount_paid
+                                                            >= (float) $billing->amount_due;
+                                                @endphp
+
+                                                <div class="flex items-center gap-1 text-xs text-gray-400">
+                                                    <span class="inline-block h-2 w-2 rounded-full
+                                                        {{ $billingPaid
+                                                            ? 'bg-green-500'
+                                                            : 'bg-gray-200' }}"
+                                                    ></span>
+
+                                                    {{ $billing->due_date->format('M') }}
+                                                </div>
+                                            @endforeach
+                                        </div>
+
+                                        @if($request?->status === 'pending')
+                                            @if($payingCommissionRequestId === $request->id)
+                                                <div class="space-y-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
+                                                    <input
+                                                        type="file"
+                                                        wire:model="commissionReceipt"
+                                                        accept="image/jpeg,image/png,image/webp"
+                                                        class="block w-full text-xs"
+                                                    >
+
+                                                    @error('commissionReceipt')
+                                                        <p class="text-xs text-red-500">
+                                                            {{ $message }}
+                                                        </p>
+                                                    @enderror
+
+                                                    <x-input
+                                                        label="Payment Reference"
+                                                        wire:model.defer="commissionPaymentReference"
+                                                    />
+
+                                                    <x-textarea
+                                                        label="Notes"
+                                                        wire:model.defer="commissionPaymentNotes"
+                                                    />
+
+                                                    <div class="flex gap-2">
+                                                        <x-button
+                                                            xs
+                                                            flat
+                                                            label="Cancel"
+                                                            wire:click="resetCommissionPaymentForm"
+                                                        />
+
+                                                        <x-button
+                                                            xs
+                                                            primary
+                                                            label="Confirm Payment"
+                                                            wire:click="payCommissionRequest"
+                                                            wire:loading.attr="disabled"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <button
+                                                    type="button"
+                                                    wire:click="openCommissionPayment({{ $request->id }})"
+                                                    class="flex w-full items-center justify-center gap-1 rounded-lg bg-gray-900 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700"
+                                                >
+                                                    <x-icon
+                                                        name="arrow-up-tray"
+                                                        class="h-3 w-3"
+                                                    />
+
+                                                    Upload Receipt
+                                                </button>
+                                            @endif
+
+                                        @elseif($request?->status === 'paid')
+                                            <div class="rounded-lg bg-green-100 px-3 py-2 text-center text-xs font-medium text-green-700">
+                                                Commission paid
+                                            </div>
+
+                                            @if($request->receipt_path)
+                                                <a
+                                                    href="{{ asset(
+                                                        'storage/'
+                                                        . ltrim(
+                                                            $request->receipt_path,
+                                                            '/'
+                                                        )
+                                                    ) }}"
+                                                    target="_blank"
+                                                    class="block text-center text-xs font-medium text-blue-600"
+                                                >
+                                                    View payment receipt
+                                                </a>
+                                            @endif
+
+                                        @elseif($request?->status === 'rejected')
+                                            <div class="rounded-lg bg-red-100 px-3 py-2 text-center text-xs font-medium text-red-700">
+                                                Request rejected
+                                            </div>
+
+                                        @elseif($period['all_paid'])
+                                            <p class="text-center text-xs text-gray-400">
+                                                Agent has not requested this period.
+                                            </p>
+
+                                        @else
+                                            <p class="text-center text-xs text-gray-400">
+                                                Client payments are incomplete.
+                                            </p>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                    @endif
+                </div>
+
+            @else
+                <div class="py-12 text-center text-sm text-gray-400">
+                    Select an agent to view commission details.
+                </div>
+            @endif
+
+            <x-slot name="footer">
+                <div class="flex justify-end">
+                    <x-button
+                        flat
+                        label="Close"
+                        x-on:click="close"
+                        wire:click="closeAgentCommissionModal"
+                    />
+                </div>
+            </x-slot>
         </x-card>
     </x-modal>
 </div>

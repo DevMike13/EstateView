@@ -32,14 +32,25 @@
                         >
                     </div>
 
-                    {{-- QR Code Placeholder --}}
-                    <div class="flex flex-col items-center gap-1.5">
-                        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                            My QR Code
-                        </p>
+                    {{-- Agent Payment QR Codes --}}
+                    <div class="w-full sm:w-auto">
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                                My Payment QR Codes
+                            </p>
 
-                        <div class="flex h-24 w-24 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white shadow-sm transition-colors hover:border-gray-500 hover:bg-gray-50">
-                            <div class="flex flex-col items-center gap-1">
+                            <p class="mt-0.5 text-[10px] text-gray-400">
+                                Admin will use these for commission payouts.
+                            </p>
+                        </div>
+
+                        @if($this->qrCodes->isNotEmpty())
+                            <button
+                                type="button"
+                                x-on:click="$openModal('createQrCode')"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-700"
+                            >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     width="24"
@@ -50,57 +61,127 @@
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                    class="h-8 w-8 text-gray-300"
+                                    class="h-3.5 w-3.5"
                                 >
-                                    <rect width="5" height="5" x="3" y="3" rx="1"></rect>
-                                    <rect width="5" height="5" x="16" y="3" rx="1"></rect>
-                                    <rect width="5" height="5" x="3" y="16" rx="1"></rect>
-                                    <path d="M21 16h-3a2 2 0 0 0-2 2v3"></path>
-                                    <path d="M21 21v.01"></path>
-                                    <path d="M12 7v3a2 2 0 0 1-2 2H7"></path>
-                                    <path d="M3 12h.01"></path>
-                                    <path d="M12 3h.01"></path>
-                                    <path d="M12 16v.01"></path>
-                                    <path d="M16 12h1"></path>
-                                    <path d="M21 12v.01"></path>
-                                    <path d="M12 21v-1"></path>
+                                    <path d="M5 12h14"></path>
+                                    <path d="M12 5v14"></path>
                                 </svg>
 
-                                <p class="px-1 text-center text-[10px] leading-tight text-gray-400">
-                                    Click to upload
-                                </p>
-                            </div>
+                                Add QR
+                            </button>
+                        @endif
+                    </div>
+
+                        <div class="flex max-w-full gap-3 overflow-x-auto pb-2 sm:max-w-md">
+
+                            @forelse($this->qrCodes as $qrCode)
+
+                                <div
+                                    wire:key="agent-qr-code-{{ $qrCode->id }}"
+                                    class="relative w-36 shrink-0 rounded-xl border bg-white p-3 shadow-sm
+                                        {{ $qrCode->is_primary
+                                            ? 'border-blue-300 ring-2 ring-blue-100'
+                                            : 'border-gray-200' }}"
+                                >
+                                    @if($qrCode->is_primary)
+                                        <span class="absolute left-2 top-2 z-10 rounded-full bg-blue-600 px-2 py-0.5 text-[9px] font-semibold text-white">
+                                            Primary
+                                        </span>
+                                    @endif
+
+                                    <a
+                                        href="{{ $qrCode->image_url }}"
+                                        target="_blank"
+                                        class="block"
+                                    >
+                                        <img
+                                            src="{{ $qrCode->image_url }}"
+                                            alt="{{ $qrCode->provider_name }} QR Code"
+                                            class="h-28 w-full rounded-lg object-cover"
+                                        >
+                                    </a>
+
+                                    <div class="mt-2 min-w-0">
+                                        <p class="truncate text-xs font-semibold text-gray-900">
+                                            {{ $qrCode->label ?: $qrCode->provider_name }}
+                                        </p>
+
+                                        <p class="mt-0.5 truncate text-[10px] text-gray-500">
+                                            {{ $qrCode->account_name }}
+                                        </p>
+
+                                        @if($qrCode->account_number)
+                                            <p class="mt-0.5 truncate text-[10px] text-gray-400">
+                                                {{ $qrCode->account_number }}
+                                            </p>
+                                        @endif
+                                    </div>
+
+                                    <div class="mt-3 flex items-center justify-between gap-1">
+                                        @if(! $qrCode->is_primary)
+                                            <button
+                                                type="button"
+                                                wire:click="setPrimaryQrCode({{ $qrCode->id }})"
+                                                class="rounded-md px-2 py-1 text-[10px] font-medium text-blue-600 hover:bg-blue-50"
+                                            >
+                                                Set primary
+                                            </button>
+                                        @else
+                                            <span class="text-[10px] text-blue-600">
+                                                Default
+                                            </span>
+                                        @endif
+
+                                        <div class="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                x-on:click="
+                                                    $wire.openEditQrCode({{ $qrCode->id }});
+                                                    $openModal('editQrCode');
+                                                "
+                                                class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                                                title="Edit"
+                                            >
+                                                <x-icon
+                                                    name="pencil"
+                                                    class="h-3.5 w-3.5"
+                                                />
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                wire:click="confirmDeleteQrCode({{ $qrCode->id }})"
+                                                class="rounded-md p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                                title="Delete"
+                                            >
+                                                <x-icon
+                                                    name="trash"
+                                                    class="h-3.5 w-3.5"
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            @empty
+
+                                <button
+                                    type="button"
+                                    x-on:click="$openModal('createQrCode')"
+                                    class="flex h-36 w-36 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white text-gray-400 transition hover:border-gray-500 hover:text-gray-600"
+                                >
+                                    <x-icon
+                                        name="qr-code"
+                                        class="h-8 w-8"
+                                    />
+
+                                    <span class="mt-2 text-[10px] font-medium">
+                                        Add payment QR
+                                    </span>
+                                </button>
+
+                            @endforelse
                         </div>
-
-                        <input
-                            type="file"
-                            accept="image/*"
-                            class="hidden"
-                        >
-
-                        <button
-                            type="button"
-                            class="flex items-center gap-1 text-[11px] text-gray-500 transition-colors hover:text-gray-800"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="h-3 w-3"
-                            >
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" x2="12" y1="3" y2="15"></line>
-                            </svg>
-
-                            Upload
-                        </button>
                     </div>
                 </div>
 
@@ -886,4 +967,211 @@
             </div>
         </section>
     </main>
+    
+    <x-modal
+        blur
+        name="createQrCode"
+        align="center"
+        max-width="lg"
+        :show="$showCreateQrModal"
+    >
+        <x-card title="Add Payment QR Code">
+
+            <div class="space-y-4">
+
+                <x-input
+                    label="Label"
+                    placeholder="Example: Primary BDO Account"
+                    wire:model.defer="qrLabel"
+                />
+
+                <x-input
+                    label="Bank or Wallet"
+                    placeholder="Example: BDO, BPI, GCash"
+                    wire:model.defer="qrProviderName"
+                />
+
+                <x-input
+                    label="Account Name"
+                    placeholder="Enter the registered account name"
+                    wire:model.defer="qrAccountName"
+                />
+
+                <x-input
+                    label="Account Number"
+                    placeholder="Optional account number"
+                    wire:model.defer="qrAccountNumber"
+                />
+
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700">
+                        QR Code Image
+                    </label>
+
+                    <input
+                        type="file"
+                        wire:model="qrImage"
+                        accept="image/jpeg,image/png,image/webp"
+                        class="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-600"
+                    >
+
+                    @error('qrImage')
+                        <p class="mt-1 text-xs text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
+                    <div wire:loading wire:target="qrImage">
+                        <p class="mt-2 text-xs text-blue-600">
+                            Uploading image...
+                        </p>
+                    </div>
+
+                    @if($qrImage)
+                        <img
+                            src="{{ $qrImage->temporaryUrl() }}"
+                            alt="QR preview"
+                            class="mt-3 h-44 w-full rounded-xl border object-contain"
+                        >
+                    @endif
+                </div>
+
+                <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3">
+                    <input
+                        type="checkbox"
+                        wire:model.defer="qrIsPrimary"
+                        class="rounded border-gray-300"
+                    >
+
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">
+                            Set as primary QR code
+                        </p>
+
+                        <p class="text-xs text-gray-500">
+                            Admin will see this payment option first.
+                        </p>
+                    </div>
+                </label>
+            </div>
+
+            <x-slot name="footer">
+                <div class="flex justify-end gap-2">
+                    <x-button
+                        flat
+                        label="Cancel"
+                        x-on:click="close"
+                    />
+
+                    <x-button
+                        primary
+                        label="Save QR Code"
+                        wire:click="createQrCode"
+                        wire:loading.attr="disabled"
+                    />
+                </div>
+            </x-slot>
+        </x-card>
+    </x-modal>
+
+    <x-modal
+        blur
+        name="editQrCode"
+        align="center"
+        max-width="lg"
+        :show="$showEditQrModal"
+    >
+        <x-card title="Edit Payment QR Code">
+
+            <div class="space-y-4">
+
+                <x-input
+                    label="Label"
+                    wire:model.defer="editQrLabel"
+                />
+
+                <x-input
+                    label="Bank or Wallet"
+                    wire:model.defer="editQrProviderName"
+                />
+
+                <x-input
+                    label="Account Name"
+                    wire:model.defer="editQrAccountName"
+                />
+
+                <x-input
+                    label="Account Number"
+                    wire:model.defer="editQrAccountNumber"
+                />
+
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700">
+                        Replace QR Code Image
+                    </label>
+
+                    <input
+                        type="file"
+                        wire:model="editQrImage"
+                        accept="image/jpeg,image/png,image/webp"
+                        class="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-600"
+                    >
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        Leave empty to keep the current QR image.
+                    </p>
+
+                    @error('editQrImage')
+                        <p class="mt-1 text-xs text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
+                    @if($editQrImage)
+                        <img
+                            src="{{ $editQrImage->temporaryUrl() }}"
+                            alt="New QR preview"
+                            class="mt-3 h-44 w-full rounded-xl border object-contain"
+                        >
+                    @endif
+                </div>
+
+                <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3">
+                    <input
+                        type="checkbox"
+                        wire:model.defer="editQrIsPrimary"
+                        class="rounded border-gray-300"
+                    >
+
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">
+                            Set as primary QR code
+                        </p>
+
+                        <p class="text-xs text-gray-500">
+                            This QR will be shown first to admin.
+                        </p>
+                    </div>
+                </label>
+            </div>
+
+            <x-slot name="footer">
+                <div class="flex justify-end gap-2">
+                    <x-button
+                        flat
+                        label="Cancel"
+                        x-on:click="close"
+                    />
+
+                    <x-button
+                        primary
+                        label="Update QR Code"
+                        wire:click="updateQrCode"
+                        wire:loading.attr="disabled"
+                    />
+                </div>
+            </x-slot>
+        </x-card>
+    </x-modal>
+
 </div>

@@ -95,4 +95,28 @@ class User extends Authenticatable implements FilamentUser
             'agent_id'
         );
     }
+
+    public function qrCodes()
+    {
+        return $this->hasMany(
+            AgentQrCode::class,
+            'agent_id'
+        );
+    }
+
+    public function primaryQrCode()
+    {
+        return $this->hasOne(
+            AgentQrCode::class,
+            'agent_id'
+        )->where('is_primary', true);
+    }
+
+    public function assignedReservations()
+    {
+        return $this->hasMany(
+            \App\Models\LotReservation::class,
+            'agent_id'
+        );
+    }
 }

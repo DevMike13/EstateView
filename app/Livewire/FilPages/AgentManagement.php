@@ -17,11 +17,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
+use Spatie\LivewireFilepond\WithFilePond;
 
 class AgentManagement extends Component
 {
 
-    use Actions, WithFileUploads;
+    use Actions, WithFileUploads, WithFilePond;
 
     public $agent;
 
@@ -40,6 +41,7 @@ class AgentManagement extends Component
     public ?int $commissionAgentId = null;
     public ?int $commissionAccountId = null;
 
+    public bool $showCommissionPaymentModal = false;
     public bool $showCommissionAgentModal = false;
     public bool $showCommissionClientDetails = false;
 
@@ -194,7 +196,7 @@ class AgentManagement extends Component
 
         $this->commissionAgentId = null;
         $this->commissionAccountId = null;
-
+        $this->reloadWeb();
         $this->resetCommissionPaymentForm();
     }
 
@@ -424,15 +426,66 @@ class AgentManagement extends Component
     ): void {
         $request = CommissionRequest::query()
             ->where('agent_id', $this->commissionAgentId)
-            ->where('purchase_account_id', $this->commissionAccountId)
-            ->whereIn('status', ['pending', 'approved'])
+            ->where(
+                'purchase_account_id',
+                $this->commissionAccountId
+            )
+            ->whereIn('status', [
+                'pending',
+                'approved',
+            ])
             ->findOrFail($commissionRequestId);
 
-        $this->payingCommissionRequestId = $request->id;
+        $this->payingCommissionRequestId =
+            $request->id;
 
         $this->commissionReceipt = null;
         $this->commissionPaymentReference = null;
         $this->commissionPaymentNotes = null;
+
+        $this->resetValidation();
+
+        $this->showCommissionPaymentModal = true;
+    }
+
+    public function getPayingCommissionRequestProperty():
+    ?CommissionRequest
+    {
+        if (! $this->payingCommissionRequestId) {
+            return null;
+        }
+
+        return CommissionRequest::query()
+            ->with([
+                'agent.qrCodes',
+                'purchaseAccount.user',
+                'purchaseAccount.lot',
+            ])
+            ->where('agent_id', $this->commissionAgentId)
+            ->where(
+                'purchase_account_id',
+                $this->commissionAccountId
+            )
+            ->find(
+                $this->payingCommissionRequestId
+            );
+    }
+
+    public function closeCommissionPaymentModal(): void
+    {
+        $this->showCommissionPaymentModal = false;
+
+        $this->resetCommissionPaymentForm();
+    }
+
+    public function resetCommissionPaymentForm(): void
+    {
+        $this->reset([
+            'payingCommissionRequestId',
+            'commissionReceipt',
+            'commissionPaymentReference',
+            'commissionPaymentNotes',
+        ]);
 
         $this->resetValidation();
     }
@@ -446,6 +499,7 @@ class AgentManagement extends Component
         $validated = $this->validate([
             'commissionReceipt' => [
                 'required',
+                'file',
                 'image',
                 'mimes:jpg,jpeg,png,webp',
                 'max:10240',
@@ -465,17 +519,30 @@ class AgentManagement extends Component
         ]);
 
         DB::transaction(function () use ($validated) {
-            $request = CommissionRequest::query()
-                ->where('agent_id', $this->commissionAgentId)
-                ->where('purchase_account_id', $this->commissionAccountId)
-                ->whereIn('status', ['pending', 'approved'])
-                ->lockForUpdate()
-                ->findOrFail($this->payingCommissionRequestId);
 
-            $path = $validated['commissionReceipt']->store(
-                "commission-receipts/{$request->agent_id}",
-                'public'
-            );
+            $request = CommissionRequest::query()
+                ->where(
+                    'agent_id',
+                    $this->commissionAgentId
+                )
+                ->where(
+                    'purchase_account_id',
+                    $this->commissionAccountId
+                )
+                ->whereIn('status', [
+                    'pending',
+                    'approved',
+                ])
+                ->lockForUpdate()
+                ->findOrFail(
+                    $this->payingCommissionRequestId
+                );
+
+            $path = $validated['commissionReceipt']
+                ->store(
+                    "commission-receipts/{$request->agent_id}",
+                    'public'
+                );
 
             if (
                 $request->receipt_path
@@ -488,41 +555,50 @@ class AgentManagement extends Component
                 );
             }
 
-            $notes = trim(
-                collect([
-                    $validated['commissionPaymentReference']
-                        ? 'Reference: '
-                            . $validated['commissionPaymentReference']
-                        : null,
+            $notes = collect([
+                $validated['commissionPaymentReference']
+                    ? 'Reference: '
+                        . $validated['commissionPaymentReference']
+                    : null,
 
-                    $validated['commissionPaymentNotes']
-                        ?? null,
-                ])
-                    ->filter()
-                    ->implode("\n")
-            );
+                $validated['commissionPaymentNotes']
+                    ?? null,
+            ])
+                ->filter()
+                ->implode("\n");
 
             $request->update([
                 'status' => 'paid',
+
                 'receipt_path' => $path,
-                'remarks' => $notes ?: $request->remarks,
+
+                'remarks' => $notes
+                    ?: $request->remarks,
+
                 'reviewed_by' => auth()->id(),
+
                 'reviewed_at' => now(),
+
                 'paid_at' => now(),
             ]);
 
-            $this->notifyAgentCommissionPaid($request);
+            $this->notifyAgentCommissionPaid(
+                $request
+            );
         });
+
+        $this->showCommissionPaymentModal = false;
 
         $this->resetCommissionPaymentForm();
 
         Notification::make()
             ->title('Commission Paid')
-            ->body('The commission payment and receipt were saved.')
+            ->body(
+                'The commission payment and receipt were saved successfully.'
+            )
             ->success()
             ->send();
-
-        // $this->loadAgents();
+        $this->reloadWeb();
     }
 
     private function notifyAgentCommissionPaid(
@@ -578,17 +654,6 @@ class AgentManagement extends Component
         ]);
     }
 
-    public function resetCommissionPaymentForm(): void
-    {
-        $this->reset([
-            'payingCommissionRequestId',
-            'commissionReceipt',
-            'commissionPaymentReference',
-            'commissionPaymentNotes',
-        ]);
-
-        $this->resetValidation();
-    }
 
     public function createAgentMemberAccount()
     {

@@ -103,6 +103,156 @@
               </div>
             </div>
 
+            @if(auth()->user()->role === 'agent')
+
+              <div class="bg-white shadow-sm p-8 space-y-6 border border-gray-100 rounded-xl">
+
+                  <div class="flex items-start justify-between gap-4">
+
+                      <div>
+                          <h2 class="text-lg text-gray-900 flex items-center gap-3 uppercase tracking-wide font-medium">
+
+                              <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="24"
+                                  height="24"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  class="h-6 w-6 text-gray-400"
+                              >
+                                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                  <circle cx="9" cy="7" r="4"></circle>
+                                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                              </svg>
+
+                              Professional Information
+                          </h2>
+
+                          <p class="mt-2 text-xs text-gray-500">
+                              Professional details assigned and managed by the administrator.
+                          </p>
+                      </div>
+
+                      <span class="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                          Read Only
+                      </span>
+
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                      {{-- Agent ID --}}
+                      <div>
+                          <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wide">
+                              Agent ID
+                          </label>
+
+                          <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+
+                              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-gray-200">
+                                  <x-icon
+                                      name="identification"
+                                      class="h-4 w-4 text-gray-500"
+                                  />
+                              </div>
+
+                              <div class="min-w-0">
+                                  @if($professionalAgentId)
+                                      <p class="truncate text-sm font-semibold text-gray-900">
+                                          {{ $professionalAgentId }}
+                                      </p>
+                                  @else
+                                      <p class="text-sm text-gray-400">
+                                          Not assigned
+                                      </p>
+                                  @endif
+
+                                  <p class="mt-0.5 text-[10px] text-gray-400">
+                                      Company agent identifier
+                                  </p>
+                              </div>
+
+                          </div>
+                      </div>
+
+                      {{-- Real Estate License --}}
+                      <div>
+                          <label class="block text-xs text-gray-500 mb-2 uppercase tracking-wide">
+                              Real Estate License Number
+                          </label>
+
+                          <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+
+                              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-gray-200">
+                                  <x-icon
+                                      name="document-check"
+                                      class="h-4 w-4 text-gray-500"
+                                  />
+                              </div>
+
+                              <div class="min-w-0">
+                                  @if($realEstateLicenseNumber)
+                                      <p class="truncate text-sm font-semibold text-gray-900">
+                                          {{ $realEstateLicenseNumber }}
+                                      </p>
+                                  @else
+                                      <p class="text-sm text-gray-400">
+                                          Not provided
+                                      </p>
+                                  @endif
+
+                                  <p class="mt-0.5 text-[10px] text-gray-400">
+                                      Registered professional license
+                                  </p>
+                              </div>
+
+                          </div>
+                      </div>
+
+                  </div>
+
+                  {{-- Commission Rate --}}
+                  <div class="border-t border-gray-100 pt-5">
+
+                      <div class="flex items-center justify-between rounded-xl border border-purple-100 bg-purple-50 p-4">
+
+                          <div>
+                              <p class="text-xs font-semibold uppercase tracking-wide text-purple-500">
+                                  Current Commission Rate
+                              </p>
+
+                              <p class="mt-1 text-xs text-purple-400">
+                                  This percentage is configured by the administrator.
+                              </p>
+                          </div>
+
+                          <div class="text-right">
+                              @if(! is_null($commissionPercentage))
+                                  <p class="text-2xl font-semibold text-purple-700">
+                                      {{ number_format(
+                                          $commissionPercentage,
+                                          2
+                                      ) }}%
+                                  </p>
+                              @else
+                                  <p class="text-sm font-medium text-purple-400">
+                                      Not set
+                                  </p>
+                              @endif
+                          </div>
+
+                      </div>
+
+                  </div>
+
+              </div>
+
+          @endif
             <div class="bg-white shadow-sm p-8 space-y-6 border border-gray-100 rounded-xl">
               <h2 class="text-lg text-gray-900 mb-2 flex items-center gap-3 uppercase tracking-wide font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-gray-400">

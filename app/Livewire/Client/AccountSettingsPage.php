@@ -30,6 +30,10 @@ class AccountSettingsPage extends Component
     public $newPassword;
     public $confirmPassword;
 
+    public $professionalAgentId;
+    public $realEstateLicenseNumber;
+    public $commissionPercentage;
+
     public function mount()
     {
         $user = Auth::user();
@@ -45,6 +49,15 @@ class AccountSettingsPage extends Component
         // Strip out "+63" if present for cleaner visual editing
         $rawPhone = $info->phone ?? '';
         $this->phone = str_replace('+63', '', $rawPhone);
+
+        $this->professionalAgentId =
+            $info->professional_agent_id ?? null;
+
+        $this->realEstateLicenseNumber =
+            $info->real_estate_license_number ?? null;
+
+        $this->commissionPercentage =
+            $info->commission_percentage ?? null;
     }
 
     public function confirmProfileUpdate()

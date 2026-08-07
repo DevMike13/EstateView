@@ -443,17 +443,43 @@ class CommissionPage extends Component
     private function isCurrentMonthPaid(
         PurchaseAccount $account
     ): bool {
-        $currentBilling = $account
-            ->billings
-            ->first(
-                fn ($billing) =>
-                    $billing
-                        ->due_date
-                        ->isSameMonth(now())
-            );
+        $billings = $account->billings
+            ->sortBy('due_date')
+            ->values();
 
-        if (! $currentBilling) {
+        if ($billings->isEmpty()) {
             return false;
+        }
+
+        /*
+        * First look for a billing that belongs to the current month.
+        */
+        $currentBilling = $billings->first(
+            fn ($billing) =>
+                $billing->due_date->isSameMonth(now())
+                && $billing->due_date->isSameYear(now())
+        );
+
+        /*
+        * If there is no billing in the current calendar month,
+        * use the latest billing whose due date has already arrived.
+        */
+        if (! $currentBilling) {
+            $currentBilling = $billings
+                ->filter(
+                    fn ($billing) =>
+                        $billing->due_date
+                            ->startOfDay()
+                            ->lte(now()->startOfDay())
+                )
+                ->last();
+        }
+
+        /*
+        * If the schedule has not started yet, use the first upcoming bill.
+        */
+        if (! $currentBilling) {
+            $currentBilling = $billings->first();
         }
 
         return $this->billingIsPaid(

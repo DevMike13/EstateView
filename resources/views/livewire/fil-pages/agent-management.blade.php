@@ -803,64 +803,25 @@
                                         </div>
 
                                         @if($request?->status === 'pending')
-                                            @if($payingCommissionRequestId === $request->id)
-                                                <div class="space-y-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
-                                                    <input
-                                                        type="file"
-                                                        wire:model="commissionReceipt"
-                                                        accept="image/jpeg,image/png,image/webp"
-                                                        class="block w-full text-xs"
-                                                    >
 
-                                                    @error('commissionReceipt')
-                                                        <p class="text-xs text-red-500">
-                                                            {{ $message }}
-                                                        </p>
-                                                    @enderror
+                                            <button
+                                                type="button"
+                                                x-on:click="
+                                                    $wire.openCommissionPayment({{ $request->id }});
+                                                    $openModal('commissionPaymentModal');
+                                                "
+                                                class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-gray-900 py-2 text-xs font-medium text-white transition-colors hover:bg-gray-700"
+                                            >
+                                                <x-icon
+                                                    name="banknotes"
+                                                    class="h-3.5 w-3.5"
+                                                />
 
-                                                    <x-input
-                                                        label="Payment Reference"
-                                                        wire:model.defer="commissionPaymentReference"
-                                                    />
-
-                                                    <x-textarea
-                                                        label="Notes"
-                                                        wire:model.defer="commissionPaymentNotes"
-                                                    />
-
-                                                    <div class="flex gap-2">
-                                                        <x-button
-                                                            xs
-                                                            flat
-                                                            label="Cancel"
-                                                            wire:click="resetCommissionPaymentForm"
-                                                        />
-
-                                                        <x-button
-                                                            xs
-                                                            primary
-                                                            label="Confirm Payment"
-                                                            wire:click="payCommissionRequest"
-                                                            wire:loading.attr="disabled"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <button
-                                                    type="button"
-                                                    wire:click="openCommissionPayment({{ $request->id }})"
-                                                    class="flex w-full items-center justify-center gap-1 rounded-lg bg-gray-900 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700"
-                                                >
-                                                    <x-icon
-                                                        name="arrow-up-tray"
-                                                        class="h-3 w-3"
-                                                    />
-
-                                                    Upload Receipt
-                                                </button>
-                                            @endif
+                                                Pay Commission
+                                            </button>
 
                                         @elseif($request?->status === 'paid')
+
                                             <div class="rounded-lg bg-green-100 px-3 py-2 text-center text-xs font-medium text-green-700">
                                                 Commission paid
                                             </div>
@@ -868,8 +829,7 @@
                                             @if($request->receipt_path)
                                                 <a
                                                     href="{{ asset(
-                                                        'storage/'
-                                                        . ltrim(
+                                                        'storage/' . ltrim(
                                                             $request->receipt_path,
                                                             '/'
                                                         )
@@ -882,19 +842,23 @@
                                             @endif
 
                                         @elseif($request?->status === 'rejected')
+
                                             <div class="rounded-lg bg-red-100 px-3 py-2 text-center text-xs font-medium text-red-700">
                                                 Request rejected
                                             </div>
 
                                         @elseif($period['all_paid'])
+
                                             <p class="text-center text-xs text-gray-400">
                                                 Agent has not requested this period.
                                             </p>
 
                                         @else
+
                                             <p class="text-center text-xs text-gray-400">
                                                 Client payments are incomplete.
                                             </p>
+
                                         @endif
                                     </div>
                                 @endforeach
@@ -915,11 +879,259 @@
                     <x-button
                         flat
                         label="Close"
-                        x-on:click="close"
-                        wire:click="closeAgentCommissionModal"
+                        {{-- x-on:click="close" --}}
+                        x-on:click="
+                            $wire.closeAgentCommissionModal();
+                            close;
+                        "
+                        {{-- wire:click="closeAgentCommissionModal" --}}
                     />
                 </div>
             </x-slot>
+        </x-card>
+    </x-modal>
+
+    <x-modal
+        blur
+        name="commissionPaymentModal"
+        align="center"
+        max-width="2xl"
+    >
+        <x-card title="Pay Agent Commission">
+
+            @if($this->payingCommissionRequest)
+
+                @php
+                    $paymentRequest =
+                        $this->payingCommissionRequest;
+
+                    $paymentAgent =
+                        $paymentRequest->agent;
+
+                    $paymentAccount =
+                        $paymentRequest->purchaseAccount;
+                @endphp
+
+                <div class="space-y-6">
+
+                    {{-- Payment summary --}}
+                    <div class="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+
+                        <div class="flex items-start justify-between gap-4">
+
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                    Commission Payment
+                                </p>
+
+                                <h3 class="mt-1 text-lg font-semibold text-gray-900">
+                                    {{ $paymentAgent?->name }}
+                                </h3>
+
+                                <p class="mt-1 text-sm text-gray-500">
+                                    Client:
+                                    {{ $paymentAccount?->user?->name }}
+                                </p>
+
+                                <p class="text-sm text-gray-500">
+                                    {{ $paymentAccount?->lot?->name
+                                        ?? 'No lot information' }}
+                                </p>
+                            </div>
+
+                            <div class="text-right">
+                                <p class="text-xs uppercase tracking-wide text-gray-400">
+                                    Amount
+                                </p>
+
+                                <p class="mt-1 text-2xl font-semibold text-green-700">
+                                    ₱{{ number_format(
+                                        $paymentRequest->requested_amount,
+                                        2
+                                    ) }}
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <div class="mt-4 flex items-center gap-2">
+                            <span class="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                {{ $paymentRequest->period_label }}
+                            </span>
+
+                            <span class="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                                Pending
+                            </span>
+                        </div>
+                    </div>
+
+                    {{-- Agent QR --}}
+                    <div>
+                        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Agent Payment QR Codes
+                        </p>
+
+                        <div class="flex gap-3 overflow-x-auto pb-2">
+
+                            @forelse(
+                                $paymentAgent?->qrCodes
+                                    ?->sortByDesc('is_primary')
+                                    ?? collect()
+                                as $qrCode
+                            )
+
+                                <div
+                                    class="w-40 shrink-0 rounded-xl border bg-white p-3
+                                        {{ $qrCode->is_primary
+                                            ? 'border-blue-300 ring-2 ring-blue-100'
+                                            : 'border-gray-200' }}"
+                                >
+
+                                    <div class="relative">
+
+                                        <a
+                                            href="{{ $qrCode->image_url }}"
+                                            target="_blank"
+                                        >
+                                            <img
+                                                src="{{ $qrCode->image_url }}"
+                                                alt="{{ $qrCode->provider_name }}"
+                                                class="h-32 w-full rounded-lg object-contain"
+                                            >
+                                        </a>
+
+                                        @if($qrCode->is_primary)
+                                            <span class="absolute left-1 top-1 rounded-full bg-blue-600 px-2 py-0.5 text-[9px] font-semibold text-white">
+                                                Primary
+                                            </span>
+                                        @endif
+
+                                    </div>
+
+                                    <p class="mt-2 truncate text-xs font-semibold text-gray-900">
+                                        {{ $qrCode->provider_name }}
+                                    </p>
+
+                                    <p class="truncate text-[10px] text-gray-500">
+                                        {{ $qrCode->account_name }}
+                                    </p>
+
+                                    @if($qrCode->account_number)
+                                        <p class="mt-0.5 truncate text-[10px] text-gray-400">
+                                            {{ $qrCode->account_number }}
+                                        </p>
+                                    @endif
+
+                                </div>
+
+                            @empty
+
+                                <div class="w-full rounded-xl border border-dashed border-gray-200 p-5 text-center">
+                                    <x-icon
+                                        name="qr-code"
+                                        class="mx-auto h-7 w-7 text-gray-300"
+                                    />
+
+                                    <p class="mt-2 text-xs text-gray-400">
+                                        Agent has not uploaded a payment QR code.
+                                    </p>
+                                </div>
+
+                            @endforelse
+
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100"></div>
+
+                    {{-- Receipt --}}
+                    <div>
+                        <p class="mb-3 text-sm font-semibold text-gray-900">
+                            Payment Receipt
+                        </p>
+
+                        <x-filepond::upload
+                            wire:model="commissionReceipt"
+                            multiple="false"
+                            max-files="1"
+                            accepted-file-types="image/jpeg,image/png,image/webp"
+                            required
+                        />
+
+                        @error('commissionReceipt')
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
+                    {{-- Reference --}}
+                    <x-input
+                        label="Payment Reference"
+                        placeholder="Example: GCash reference number"
+                        wire:model.defer="commissionPaymentReference"
+                    />
+
+                    {{-- Notes --}}
+                    <x-textarea
+                        label="Payment Notes"
+                        placeholder="Optional notes about this commission payout..."
+                        wire:model.defer="commissionPaymentNotes"
+                    />
+
+                    {{-- Confirmation --}}
+                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                        <div class="flex items-start gap-3">
+
+                            <x-icon
+                                name="information-circle"
+                                class="mt-0.5 h-5 w-5 shrink-0 text-blue-600"
+                            />
+
+                            <p class="text-xs leading-relaxed text-blue-700">
+                                Confirming this payment will mark
+                                {{ $paymentRequest->period_label }}
+                                as paid and notify the agent that their
+                                ₱{{ number_format(
+                                    $paymentRequest->requested_amount,
+                                    2
+                                ) }}
+                                commission has been released.
+                            </p>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            @endif
+
+            <x-slot name="footer">
+                <div class="flex justify-end gap-2">
+
+                    <x-button
+                        flat
+                        label="Cancel"
+                        {{-- x-on:click="close" --}}
+                        x-on:click="
+                            $wire.closeCommissionPaymentModal();
+                            close;
+                        "
+                        {{-- wire:click="closeCommissionPaymentModal" --}}
+                    />
+
+                    <x-button
+                        primary
+                        icon="check"
+                        label="Confirm Commission Payment"
+                        wire:click="payCommissionRequest"
+                        wire:loading.attr="disabled"
+                        wire:target="payCommissionRequest,commissionReceipt"
+                    />
+
+                </div>
+            </x-slot>
+
         </x-card>
     </x-modal>
 </div>

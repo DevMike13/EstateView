@@ -310,25 +310,41 @@
 
     </div>
     <div class="w-full h-auto max-w-5xl mx-auto">
-        <h2 class="text-xl font-extralight mb-5">Book New Appointment</h2>
+
+        <h2 class="text-xl font-extralight mb-5">
+            Book New Appointment
+        </h2>
+
         <div class="w-full max-w-5xl mx-auto p-8 bg-white rounded-2xl shadow">
-            <h4 class="text-sm font-semibold mb-5">Select Date</h4>
+
+            <h4 class="text-sm font-semibold mb-5">
+                Select Date
+            </h4>
+
             <div class="w-full mx-auto p-4 bg-[#f9fafc] rounded-2xl">
 
-                {{-- HEADER --}}
+                {{-- CALENDAR HEADER --}}
                 <div class="flex items-center justify-between mb-6">
 
-                    <x-button.circle wire:click="previousMonth" icon="chevron-left" />
+                    <x-button.circle
+                        wire:click="previousMonth"
+                        icon="chevron-left"
+                    />
 
                     <h2 class="text-lg font-semibold">
                         {{ $currentMonth->format('F Y') }}
                     </h2>
 
-                    <x-button.circle wire:click="nextMonth" icon="chevron-right" />
+                    <x-button.circle
+                        wire:click="nextMonth"
+                        icon="chevron-right"
+                    />
+
                 </div>
 
                 {{-- WEEKDAYS --}}
                 <div class="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-medium text-gray-500">
+
                     <div>Sun</div>
                     <div>Mon</div>
                     <div>Tue</div>
@@ -336,29 +352,59 @@
                     <div>Thu</div>
                     <div>Fri</div>
                     <div>Sat</div>
+
                 </div>
 
                 {{-- CALENDAR --}}
                 <div class="grid grid-cols-7 gap-2">
 
-                    {{-- EMPTY START --}}
-                    @for ($i = 0; $i < $startDay; $i++)
+                    {{-- EMPTY CELLS BEFORE FIRST DAY --}}
+                    @for(
+                        $i = 0;
+                        $i < $startDay;
+                        $i++
+                    )
                         <div></div>
                     @endfor
 
-                    {{-- DATES --}}
-                    @foreach($dates as $date)
+                    {{-- DAYS --}}
+                    @foreach(
+                        $dates
+                        as $date
+                    )
 
                         @php
-                            $isPast = $date['past'];
-                            $isAvailable = $date['available'];
+                            $isPast =
+                                $date['past'];
+
+                            $isAvailable =
+                                $date['available'];
+
+                            $isSelected =
+                                $selectedDate
+                                    === $date['date'];
+
+                            $isToday =
+                                $date['date']
+                                    === now()
+                                        ->format(
+                                            'Y-m-d'
+                                        );
                         @endphp
 
                         <button
-                            wire:click="selectDate('{{ $date['date'] }}')"
-                            @disabled($isPast || !$isAvailable)
-
+                            type="button"
+                            wire:click="
+                                selectDate(
+                                    '{{ $date['date'] }}'
+                                )
+                            "
+                            @disabled(
+                                $isPast
+                                || ! $isAvailable
+                            )
                             class="
+                                relative
                                 h-10
                                 rounded-xl
                                 transition
@@ -368,17 +414,48 @@
 
                                 {{ $isPast
                                     ? 'bg-transparent text-gray-300 cursor-not-allowed'
-                                    : (!$isAvailable
+                                    : (
+                                        ! $isAvailable
                                         ? 'bg-blue-100 text-blue-600 cursor-not-allowed'
-                                        : 'bg-[#f3f4f6] text-gray-700 hover:bg-gray-200 cursor-pointer')
+                                        : 'bg-[#f3f4f6] text-gray-700 hover:bg-gray-200 cursor-pointer'
+                                    )
                                 }}
 
-                                {{ $selectedDate === $date['date'] ? '!bg-[#101727] !text-white' : '' }}
+                                {{ $isSelected
+                                    ? '!bg-[#101727] !text-white'
+                                    : ''
+                                }}
+
+                                {{ $isToday && ! $isSelected
+                                    ? 'ring-2 ring-green-400'
+                                    : ''
+                                }}
                             "
                         >
+
                             <span class="text-sm font-semibold">
                                 {{ $date['day'] }}
                             </span>
+
+                            @if($isToday)
+
+                                <span
+                                    class="
+                                        absolute
+                                        bottom-0.5
+                                        h-1
+                                        w-1
+                                        rounded-full
+
+                                        {{ $isSelected
+                                            ? 'bg-white'
+                                            : 'bg-green-500'
+                                        }}
+                                    "
+                                ></span>
+
+                            @endif
+
                         </button>
 
                     @endforeach
@@ -386,73 +463,282 @@
                 </div>
 
             </div>
-            @if ($selectedDate)
-                <h4 class="text-xs my-5">Selected: <span class="font-semibold text-sm">{{ \Carbon\Carbon::parse($selectedDate)->format('F d, Y') }}</span></h4>
+
+            {{-- SELECTED DATE --}}
+            @if($selectedDate)
+
+                <div class="mt-5 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+
+                    <p class="text-xs text-gray-500">
+                        Selected date
+                    </p>
+
+                    <p class="mt-1 text-sm font-semibold text-gray-900">
+                        {{ Carbon\Carbon::parse(
+                            $selectedDate
+                        )->format(
+                            'l, F d, Y'
+                        ) }}
+                    </p>
+
+                </div>
+
             @endif
 
-            {{-- LEGENDS --}}
+            @error('selectedDate')
+
+                <p class="mt-2 text-xs text-red-500">
+                    {{ $message }}
+                </p>
+
+            @enderror
+
+            {{-- LEGEND --}}
             <div class="flex flex-wrap gap-4 items-center my-5 text-xs">
+
                 {{-- AVAILABLE --}}
                 <div class="flex items-center gap-2">
+
                     <span class="w-7 h-7 rounded bg-[#f3f4f6] border"></span>
-                    <span class="text-gray-600">Available</span>
+
+                    <span class="text-gray-600">
+                        Available
+                    </span>
+
+                </div>
+
+                {{-- TODAY --}}
+                <div class="flex items-center gap-2">
+
+                    <span class="w-7 h-7 rounded bg-[#f3f4f6] border-2 border-green-400"></span>
+
+                    <span class="text-gray-600">
+                        Today
+                    </span>
+
                 </div>
 
                 {{-- BLOCKED --}}
                 <div class="flex items-center gap-2">
+
                     <span class="w-7 h-7 rounded bg-blue-100 border border-blue-300"></span>
-                    <span class="text-gray-600">Not Available</span>
+
+                    <span class="text-gray-600">
+                        Not Available
+                    </span>
+
                 </div>
 
                 {{-- PAST --}}
                 <div class="flex items-center gap-2">
+
                     <span class="w-7 h-7 rounded bg-gray-200 border"></span>
-                    <span class="text-gray-600">Past Date</span>
+
+                    <span class="text-gray-600">
+                        Past Date
+                    </span>
+
                 </div>
+
             </div>
 
             {{-- FORM --}}
             <div class="w-full mx-auto mt-10">
+
+                {{-- APPOINTMENT TYPE --}}
                 <div>
+
                     <x-select
                         label="Appointment Type"
                         placeholder="Choose appointment type"
-                        :options="['Property Tripping', 'Loan Consultation', 'Reservation Assistance', 'Payment Discussion', 'General Inquiry']"
+                        :options="[
+                            'Property Tripping',
+                            'Loan Consultation',
+                            'Reservation Assistance',
+                            'Payment Discussion',
+                            'General Inquiry'
+                        ]"
                         wire:model.live="appointmentType"
                     />
+
+                    @error('appointmentType')
+
+                        <p class="mt-1 text-xs text-red-500">
+                            {{ $message }}
+                        </p>
+
+                    @enderror
+
                 </div>
-                
+
+                {{-- TIME SLOT --}}
                 <div class="mt-5">
-                    <x-select
-                        label="Select Time"
-                        placeholder="Choose a time slot"
-                        :options="$timeSlots"
-                        wire:model.live="timeSlot"
+
+                    @if($selectedDate)
+
+                        @if(count($timeSlots))
+
+                            <x-select
+                                label="Select Time"
+                                placeholder="Choose an available time slot"
+                                :options="$timeSlots"
+                                wire:model.live="timeSlot"
+                            />
+
+                            <p class="mt-1 text-[11px] text-gray-400">
+                                Booked and already-passed time slots are automatically hidden.
+                            </p>
+
+                        @else
+
+                            <div class="rounded-xl border border-orange-100 bg-orange-50 p-4">
+
+                                <div class="flex items-start gap-2">
+
+                                    <x-icon
+                                        name="clock"
+                                        class="h-5 w-5 shrink-0 text-orange-500"
+                                    />
+
+                                    <div>
+
+                                        <p class="text-sm font-medium text-orange-700">
+                                            No available time slots
+                                        </p>
+
+                                        <p class="mt-1 text-xs text-orange-600">
+                                            All appointment slots for this date are either booked or have already passed.
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        @endif
+
+                    @else
+
+                        <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
+
+                            <div class="flex items-center gap-2">
+
+                                <x-icon
+                                    name="calendar-days"
+                                    class="h-5 w-5 text-gray-400"
+                                />
+
+                                <p class="text-sm text-gray-500">
+                                    Select an available date first to view its available time slots.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    @endif
+
+                    @error('timeSlot')
+
+                        <p class="mt-1 text-xs text-red-500">
+                            {{ $message }}
+                        </p>
+
+                    @enderror
+
+                </div>
+
+                {{-- NOTES --}}
+                <div class="mt-5">
+
+                    <x-textarea
+                        wire:model.defer="notes"
+                        label="Additional Notes (Optional)"
+                        placeholder="Please describe any special requests or additional information..."
                     />
+
+                    @error('notes')
+
+                        <p class="mt-1 text-xs text-red-500">
+                            {{ $message }}
+                        </p>
+
+                    @enderror
+
                 </div>
 
-                <div class="mt-5">
-                    <x-textarea wire:model="notes" label="Additional Notes (Optional)" placeholder="Please describe any special requests or additional information..." />
-                </div>
-
+                {{-- CLIENT INFO --}}
                 <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-input label="Your Name" placeholder="your name" wire:model="name" class="py-3" />
 
-                    <x-inputs.phone label="Contact No." placeholder="+63 912 345 6789" mask="['+63 ### ### ####']" class="py-3" wire:model.live="phone" />
+                    <div>
+
+                        <x-input
+                            label="Your Name"
+                            placeholder="Your name"
+                            wire:model.defer="name"
+                            class="py-3"
+                        />
+
+                        @error('name')
+
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+
+                        @enderror
+
+                    </div>
+
+                    <div>
+
+                        <x-inputs.phone
+                            label="Contact No."
+                            placeholder="+63 912 345 6789"
+                            mask="['+63 ### ### ####']"
+                            class="py-3"
+                            wire:model.live="phone"
+                        />
+
+                        @error('phone')
+
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+
+                        @enderror
+
+                    </div>
+
                 </div>
 
+                {{-- ACTION --}}
                 <div class="mt-6 flex justify-end">
+
                     <x-button
-                        wire:click="confirmAppointmentConfirmation('{{ $selectedDate }}')"
+                        wire:click="
+                            confirmAppointmentConfirmation(
+                                '{{ $selectedDate }}'
+                            )
+                        "
                         icon="calendar"
                         lg
                         label="SCHEDULE APPOINTMENT"
                         class="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
-
-                        :disabled="empty($selectedDate) || empty($timeSlot) || empty($appointmentType)"
+                        :disabled="
+                            empty($selectedDate)
+                            || empty($timeSlot)
+                            || empty($appointmentType)
+                            || empty($name)
+                            || empty($phone)
+                        "
                     />
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 </div>

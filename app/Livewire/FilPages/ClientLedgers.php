@@ -277,87 +277,390 @@ class ClientLedgers extends Component
         $this->validate([
             'accountId' => 'required|exists:purchase_accounts,id',
             'billingId' => 'required|exists:billings,id',
-            'paymentAmount' => 'required|numeric|min:1',
-            'paymentDescription' => 'nullable|string|max:255',
-            'officePaymentMethod' => 'required|in:cash,bank_transfer,gcash,maya',
-            'officeReferenceNo' => 'nullable|string|max:255',
-            'officeProofOfPayment' => 'nullable|file|max:20480',
+
+            'paymentAmount' => [
+                'required',
+                'numeric',
+                'min:0.01',
+            ],
+
+            'paymentDescription' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'officePaymentMethod' => [
+                'required',
+                'in:cash,bank_transfer,gcash,maya',
+            ],
+
+            'officeReferenceNo' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'officeProofOfPayment' => [
+                'nullable',
+                'file',
+                'max:20480',
+            ],
         ]);
 
         DB::transaction(function () {
-            $account = PurchaseAccount::findOrFail($this->accountId);
 
-            $billing = Billing::where('purchase_account_id', $account->id)
-                ->where('id', $this->billingId)
-                ->whereIn('status', ['unpaid', 'partial'])
+            $account = PurchaseAccount::query()
+                ->lockForUpdate()
+                ->findOrFail($this->accountId);
+
+            $billing = Billing::query()
+                ->where(
+                    'purchase_account_id',
+                    $account->id
+                )
+                ->whereKey($this->billingId)
+                ->whereIn(
+                    'status',
+                    ['unpaid', 'partial']
+                )
+                ->lockForUpdate()
                 ->firstOrFail();
 
-            $amount = (float) $this->paymentAmount;
-            $billingBalance = $billing->amount_due - $billing->amount_paid;
-            $amountToApply = min($amount, $billingBalance);
+            /*
+            |--------------------------------------------------------------------------
+            | Current billing adjustment snapshot
+            |--------------------------------------------------------------------------
+            */
+
+            $baseAmount =
+                (float) $billing->remaining_balance;
+
+            $discountAmount =
+                (float) $billing->calculated_discount;
+
+            $penaltyAmount =
+                (float) $billing->calculated_penalty;
+
+            $penaltyMonths =
+                (int) $billing->months_overdue;
+
+            $payableAmount =
+                (float) $billing->payable_amount;
+
+            /*
+            * Admin should not be able to record more than
+            * the current adjusted payable amount.
+            */
+            $enteredAmount =
+                (float) $this->paymentAmount;
+
+            abort_if(
+                $enteredAmount > $payableAmount,
+                422,
+                'Payment amount exceeds the current payable amount.'
+            );
+
+            /*
+            * For your current office-payment design,
+            * normally this should equal payableAmount.
+            *
+            * Partial payment is still allowed.
+            */
+            $amountToApply = min(
+                $enteredAmount,
+                $payableAmount
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Proof
+            |--------------------------------------------------------------------------
+            */
 
             $proofPath = null;
 
             if ($this->officeProofOfPayment) {
-                $proofPath = $this->officeProofOfPayment->store(
-                    "billing-payments/{$billing->id}",
-                    'public'
-                );
+                $proofPath =
+                    $this->officeProofOfPayment
+                        ->store(
+                            "billing-payments/{$billing->id}",
+                            'public'
+                        );
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Determine billing completion
+            |--------------------------------------------------------------------------
+            |
+            | IMPORTANT:
+            | If the bill gets an early discount, paying ₱9,800 on a
+            | ₱10,000 original bill must still mark it PAID.
+            |
+            | Likewise if overdue, paying the adjusted amount including
+            | penalty must settle the bill.
+            */
+
+            $fullySettled =
+                $amountToApply >= $payableAmount;
+
+            /*
+            * amount_paid represents actual money received.
+            */
+            $newAmountPaid =
+                (float) $billing->amount_paid
+                + $amountToApply;
+
             $billing->update([
-                'amount_paid' => $billing->amount_paid + $amountToApply,
-                'status' => ($billing->amount_paid + $amountToApply) >= $billing->amount_due
-                    ? 'paid'
-                    : 'partial',
+                'amount_paid' =>
+                    $newAmountPaid,
+
+                /*
+                * Snapshot latest adjustment on billing as well.
+                */
+                'discount_amount' =>
+                    $fullySettled
+                        ? $discountAmount
+                        : 0,
+
+                'penalty_amount' =>
+                    $fullySettled
+                        ? $penaltyAmount
+                        : $penaltyAmount,
+
+                'status' =>
+                    $fullySettled
+                        ? 'paid'
+                        : 'partial',
             ]);
 
-            $newRemainingBalance = max($account->remaining_balance - $amountToApply, 0);
+            /*
+            |--------------------------------------------------------------------------
+            | Purchase-account accounting
+            |--------------------------------------------------------------------------
+            |
+            | The ACCOUNT balance represents principal contract balance.
+            |
+            | Discount reduces principal.
+            | Penalty is additional money and should NOT reduce principal.
+            */
 
-            $newStatus = $account->status;
+            $principalCredit = max(
+                $amountToApply
+                - $penaltyAmount,
+                0
+            );
+
+            /*
+            * If this is a fully settled discounted billing,
+            * the discount also closes the principal obligation.
+            */
+            if ($fullySettled) {
+                $principalCredit +=
+                    $discountAmount;
+            }
+
+            /*
+            * Never reduce more principal than remained on this billing.
+            */
+            $principalCredit = min(
+                $principalCredit,
+                $baseAmount
+            );
+
+            $newRemainingBalance = max(
+                (float) $account->remaining_balance
+                - $principalCredit,
+                0
+            );
+
+            $newStatus =
+                $account->status;
 
             if (
                 $account->payment_scheme === 'bank_loan'
                 && $account->billings()
-                    ->where('title', 'like', 'Downpayment%')
-                    ->whereIn('status', ['unpaid', 'partial'])
+                    ->where(
+                        'title',
+                        'like',
+                        'Downpayment%'
+                    )
+                    ->whereIn(
+                        'status',
+                        ['unpaid', 'partial']
+                    )
                     ->doesntExist()
             ) {
-                $newStatus = 'bank_processing';
+                $newStatus =
+                    'bank_processing';
             }
 
             if ($newRemainingBalance <= 0) {
-                $newStatus = 'fully_paid';
+                $newStatus =
+                    'fully_paid';
             }
 
             $account->update([
-                'total_paid' => $account->total_paid + $amountToApply,
-                'remaining_balance' => $newRemainingBalance,
-                'status' => $newStatus,
+                /*
+                * total_paid = actual cash received
+                */
+                'total_paid' =>
+                    (float) $account->total_paid
+                    + $amountToApply,
+
+                'remaining_balance' =>
+                    $newRemainingBalance,
+
+                'status' =>
+                    $newStatus,
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Billing Payment
+            |--------------------------------------------------------------------------
+            */
 
             BillingPayment::create([
-                'billing_id' => $billing->id,
-                'purchase_account_id' => $account->id,
-                'user_id' => $account->user_id,
-                'amount' => $amountToApply,
-                'payment_method' => $this->officePaymentMethod,
-                'reference_no' => $this->officeReferenceNo,
-                'proof_of_payment' => $proofPath,
-                'status' => 'verified',
-                'source' => 'office_payment',
-                'paid_at' => now(),
-                'verified_at' => now(),
-                'verified_by' => auth()->id(),
+                'billing_id' =>
+                    $billing->id,
+
+                'purchase_account_id' =>
+                    $account->id,
+
+                'user_id' =>
+                    $account->user_id,
+
+                /*
+                * Snapshot the original obligation.
+                */
+                'base_amount' =>
+                    $baseAmount,
+
+                'discount_amount' =>
+                    $discountAmount,
+
+                'penalty_amount' =>
+                    $penaltyAmount,
+
+                'penalty_months' =>
+                    $penaltyMonths,
+
+                /*
+                * Actual money received.
+                */
+                'amount' =>
+                    $amountToApply,
+
+                'payment_method' =>
+                    $this->officePaymentMethod,
+
+                'reference_no' =>
+                    $this->officeReferenceNo,
+
+                'proof_of_payment' =>
+                    $proofPath,
+
+                'status' =>
+                    'verified',
+
+                'source' =>
+                    'office_payment',
+
+                'paid_at' =>
+                    now(),
+
+                'verified_at' =>
+                    now(),
+
+                'verified_by' =>
+                    auth()->id(),
             ]);
 
+            /*
+            |--------------------------------------------------------------------------
+            | Ledger
+            |--------------------------------------------------------------------------
+            */
+
             AccountLedger::create([
-                'purchase_account_id' => $account->id,
-                'type' => 'credit',
-                'description' => $this->paymentDescription ?: 'Payment for ' . $billing->title,
-                'amount' => $amountToApply,
-                'balance_after' => $newRemainingBalance,
+                'purchase_account_id' =>
+                    $account->id,
+
+                'type' =>
+                    'credit',
+
+                'description' =>
+                    $this->paymentDescription
+                    ?: 'Office payment for '
+                        . $billing->title,
+
+                /*
+                * actual money received
+                */
+                'amount' =>
+                    $amountToApply,
+
+                'balance_after' =>
+                    $newRemainingBalance,
             ]);
+
+            /*
+            * Optional but useful:
+            * separately record the discount.
+            */
+            if (
+                $fullySettled
+                && $discountAmount > 0
+            ) {
+                AccountLedger::create([
+                    'purchase_account_id' =>
+                        $account->id,
+
+                    'type' =>
+                        'credit',
+
+                    'description' =>
+                        'Early payment discount for '
+                        . $billing->title,
+
+                    'amount' =>
+                        $discountAmount,
+
+                    'balance_after' =>
+                        $newRemainingBalance,
+                ]);
+            }
+
+            /*
+            * Optional:
+            * Record the penalty as its own debit for auditability.
+            */
+            if ($penaltyAmount > 0) {
+                AccountLedger::create([
+                    'purchase_account_id' =>
+                        $account->id,
+
+                    'type' =>
+                        'debit',
+
+                    'description' =>
+                        'Late payment penalty for '
+                        . $billing->title
+                        . ' ('
+                        . $penaltyMonths
+                        . ' period'
+                        . ($penaltyMonths !== 1 ? 's' : '')
+                        . ')',
+
+                    'amount' =>
+                        $penaltyAmount,
+
+                    'balance_after' =>
+                        $newRemainingBalance,
+                ]);
+            }
         });
 
         $this->reset([
@@ -370,10 +673,16 @@ class ClientLedgers extends Component
             'officeProofOfPayment',
         ]);
 
-        $this->dispatch('close-modal', name: 'recordPayment');
+        $this->dispatch(
+            'close-modal',
+            name: 'recordPayment'
+        );
 
         Notification::make()
             ->title('Payment Recorded')
+            ->body(
+                'The office payment was recorded successfully.'
+            )
             ->success()
             ->send();
     }
@@ -381,46 +690,221 @@ class ClientLedgers extends Component
     public function approveBillingPayment($paymentId)
     {
         DB::transaction(function () use ($paymentId) {
-            $payment = BillingPayment::with(['billing', 'purchaseAccount'])
-                ->findOrFail($paymentId);
+
+            $payment =
+                BillingPayment::query()
+                    ->with([
+                        'billing',
+                        'purchaseAccount',
+                    ])
+                    ->lockForUpdate()
+                    ->findOrFail($paymentId);
 
             if ($payment->status !== 'pending') {
                 return;
             }
 
-            $billing = $payment->billing;
-            $account = $payment->purchaseAccount;
+            $billing =
+                $payment->billing;
 
-            $billingBalance = $billing->amount_due - $billing->amount_paid;
-            $amountToApply = min($payment->amount, $billingBalance);
+            $account =
+                $payment->purchaseAccount;
+
+            /*
+            |--------------------------------------------------------------------------
+            | USE SNAPSHOT FROM CLIENT SUBMISSION
+            |--------------------------------------------------------------------------
+            */
+
+            $baseAmount =
+                (float) (
+                    $payment->base_amount
+                    ?? $billing->remaining_balance
+                );
+
+            $discountAmount =
+                (float) (
+                    $payment->discount_amount
+                    ?? 0
+                );
+
+            $penaltyAmount =
+                (float) (
+                    $payment->penalty_amount
+                    ?? 0
+                );
+
+            $amountReceived =
+                (float) $payment->amount;
+
+            /*
+            * The exact payable amount AT SUBMISSION TIME.
+            */
+            $expectedPayable =
+                max(
+                    $baseAmount
+                    + $penaltyAmount
+                    - $discountAmount,
+                    0
+                );
+
+            $fullySettled =
+                $amountReceived >=
+                $expectedPayable;
 
             $billing->update([
-                'amount_paid' => $billing->amount_paid + $amountToApply,
-                'status' => ($billing->amount_paid + $amountToApply) >= $billing->amount_due
-                    ? 'paid'
-                    : 'partial',
+                'amount_paid' =>
+                    (float) $billing->amount_paid
+                    + $amountReceived,
+
+                'discount_amount' =>
+                    $discountAmount,
+
+                'penalty_amount' =>
+                    $penaltyAmount,
+
+                'status' =>
+                    $fullySettled
+                        ? 'paid'
+                        : 'partial',
             ]);
 
-            $newRemainingBalance = max($account->remaining_balance - $amountToApply, 0);
+            /*
+            * Penalty doesn't reduce contract principal.
+            */
+            $principalCredit = max(
+                $amountReceived
+                - $penaltyAmount,
+                0
+            );
+
+            /*
+            * Discount closes the waived principal.
+            */
+            if ($fullySettled) {
+                $principalCredit +=
+                    $discountAmount;
+            }
+
+            $principalCredit = min(
+                $principalCredit,
+                $baseAmount
+            );
+
+            $newRemainingBalance = max(
+                (float) $account->remaining_balance
+                - $principalCredit,
+                0
+            );
+
+            $newStatus =
+                $account->status;
+
+            if (
+                $account->payment_scheme === 'bank_loan'
+                && $account->billings()
+                    ->where(
+                        'title',
+                        'like',
+                        'Downpayment%'
+                    )
+                    ->whereIn(
+                        'status',
+                        ['unpaid', 'partial']
+                    )
+                    ->doesntExist()
+            ) {
+                $newStatus =
+                    'bank_processing';
+            }
+
+            if ($newRemainingBalance <= 0) {
+                $newStatus =
+                    'fully_paid';
+            }
 
             $account->update([
-                'total_paid' => $account->total_paid + $amountToApply,
-                'remaining_balance' => $newRemainingBalance,
-                'status' => $newRemainingBalance <= 0 ? 'fully_paid' : $account->status,
+                'total_paid' =>
+                    (float) $account->total_paid
+                    + $amountReceived,
+
+                'remaining_balance' =>
+                    $newRemainingBalance,
+
+                'status' =>
+                    $newStatus,
             ]);
 
             AccountLedger::create([
-                'purchase_account_id' => $account->id,
-                'type' => 'credit',
-                'description' => 'Verified client payment for ' . $billing->title,
-                'amount' => $amountToApply,
-                'balance_after' => $newRemainingBalance,
+                'purchase_account_id' =>
+                    $account->id,
+
+                'type' =>
+                    'credit',
+
+                'description' =>
+                    'Verified client payment for '
+                    . $billing->title,
+
+                'amount' =>
+                    $amountReceived,
+
+                'balance_after' =>
+                    $newRemainingBalance,
             ]);
 
+            if (
+                $fullySettled
+                && $discountAmount > 0
+            ) {
+                AccountLedger::create([
+                    'purchase_account_id' =>
+                        $account->id,
+
+                    'type' =>
+                        'credit',
+
+                    'description' =>
+                        'Early payment discount for '
+                        . $billing->title,
+
+                    'amount' =>
+                        $discountAmount,
+
+                    'balance_after' =>
+                        $newRemainingBalance,
+                ]);
+            }
+
+            if ($penaltyAmount > 0) {
+                AccountLedger::create([
+                    'purchase_account_id' =>
+                        $account->id,
+
+                    'type' =>
+                        'debit',
+
+                    'description' =>
+                        'Late payment penalty for '
+                        . $billing->title,
+
+                    'amount' =>
+                        $penaltyAmount,
+
+                    'balance_after' =>
+                        $newRemainingBalance,
+                ]);
+            }
+
             $payment->update([
-                'status' => 'verified',
-                'verified_at' => now(),
-                'verified_by' => auth()->id(),
+                'status' =>
+                    'verified',
+
+                'verified_at' =>
+                    now(),
+
+                'verified_by' =>
+                    auth()->id(),
             ]);
         });
 

@@ -227,12 +227,45 @@
                                 @forelse($account->billings->sortBy('due_date') as $billing)
                                     @php
                                         $firstPayableBilling = $account->billings
-                                            ->whereIn('status', ['unpaid', 'partial'])
+                                            ->whereIn(
+                                                'status',
+                                                ['unpaid', 'partial']
+                                            )
                                             ->sortBy('due_date')
                                             ->first();
 
-                                        $isPayable = $firstPayableBilling
+                                        $isPayable =
+                                            $firstPayableBilling
                                             && $firstPayableBilling->id === $billing->id;
+
+                                        $remainingBalance =
+                                            (float) $billing->remaining_balance;
+
+                                        $discount =
+                                            (float) $billing->calculated_discount;
+
+                                        $penalty =
+                                            (float) $billing->calculated_penalty;
+
+                                        $payableAmount =
+                                            (float) $billing->payable_amount;
+
+                                        $monthsOverdue =
+                                            (int) $billing->months_overdue;
+
+                                        $isOverdue =
+                                            $monthsOverdue > 0
+                                            && $billing->status !== 'paid';
+
+                                        $isEarly =
+                                            $discount > 0
+                                            && ! $isOverdue
+                                            && $billing->status !== 'paid';
+
+                                        $pendingPayment =
+                                            $billing->payments
+                                                ->where('status', 'pending')
+                                                ->first();
                                     @endphp
                                     <div class="bg-white rounded-xl shadow-sm border p-4">
 
@@ -280,11 +313,85 @@
                                             </div>
 
                                             <div class="flex justify-between border-t pt-2">
-                                                <span class="text-gray-500">Balance</span>
-                                                <span class="font-semibold text-red-700">
-                                                    ₱{{ number_format($billing->amount_due - $billing->amount_paid, 2) }}
+                                                <span class="text-gray-500">
+                                                    Payable Now
+                                                </span>
+
+                                                <span
+                                                    class="font-semibold
+                                                    {{ $isOverdue
+                                                        ? 'text-red-700'
+                                                        : (
+                                                            $isEarly
+                                                                ? 'text-green-700'
+                                                                : 'text-gray-900'
+                                                        ) }}"
+                                                >
+                                                    ₱{{ number_format(
+                                                        $payableAmount,
+                                                        2
+                                                    ) }}
                                                 </span>
                                             </div>
+
+                                            @if($discount > 0)
+
+                                                <div class="rounded-lg bg-green-50 px-3 py-2 text-xs">
+
+                                                    <div class="flex justify-between text-green-700">
+
+                                                        <span>
+                                                            Early Payment Discount
+                                                        </span>
+
+                                                        <span class="font-semibold">
+                                                            -₱{{ number_format(
+                                                                $discount,
+                                                                2
+                                                            ) }}
+                                                        </span>
+
+                                                    </div>
+
+                                                    <p class="mt-1 text-[10px] text-green-600">
+                                                        Client saves ₱{{ number_format(
+                                                            $discount,
+                                                            2
+                                                        ) }}
+                                                        when payment is recorded before the due date.
+                                                    </p>
+
+                                                </div>
+
+                                            @endif
+
+                                            @if($penalty > 0)
+
+                                                <div class="rounded-lg bg-red-50 px-3 py-2 text-xs">
+
+                                                    <div class="flex justify-between text-red-700">
+
+                                                        <span>
+                                                            Late Penalty
+                                                            ({{ $monthsOverdue }} ×
+                                                            {{ number_format(
+                                                                $billing->monthly_penalty_rate,
+                                                                0
+                                                            ) }}%)
+                                                        </span>
+
+                                                        <span class="font-semibold">
+                                                            +₱{{ number_format(
+                                                                $penalty,
+                                                                2
+                                                            ) }}
+                                                        </span>
+
+                                                    </div>
+
+                                                </div>
+
+                                            @endif
                                         </div>
 
                                         @php
@@ -398,17 +505,34 @@
 
                                         <div class="mt-4">
                                             <x-button
-                                                label="{{ $billing->status === 'paid' ? 'Paid' : 'Pay' }}"
+                                                label="{{ $billing->status === 'paid'
+                                                    ? 'Paid'
+                                                    : 'Pay ₱' . number_format(
+                                                        $payableAmount,
+                                                        2
+                                                    ) }}"
                                                 icon="banknotes"
                                                 x-on:click="
-                                                    $wire.accountId = {{ $account->id }};
-                                                    $wire.billingId = {{ $billing->id }};
-                                                    $wire.paymentAmount = {{ $billing->amount_due - $billing->amount_paid }};
-                                                    $wire.paymentDescription = 'Payment for {{ $billing->title }}';
-                                                    $openModal('recordPayment')
+                                                    $wire.accountId =
+                                                        {{ $account->id }};
+
+                                                    $wire.billingId =
+                                                        {{ $billing->id }};
+
+                                                    $wire.paymentAmount =
+                                                        {{ $payableAmount }};
+
+                                                    $wire.paymentDescription =
+                                                        'Payment for {{ $billing->title }}';
+
+                                                    $openModal('recordPayment');
                                                 "
                                                 class="w-full bg-[#101727] text-white"
-                                                :disabled="! $isPayable || $billing->status === 'paid' || $pendingPayment"
+                                                :disabled="
+                                                    ! $isPayable
+                                                    || $billing->status === 'paid'
+                                                    || $pendingPayment
+                                                "
                                             />
                                         </div>
 
@@ -527,6 +651,7 @@
                 label="Payment Amount"
                 type="number"
                 wire:model="paymentAmount"
+                readonly
             />
 
             <div class="mt-4">

@@ -19,6 +19,7 @@ use App\Livewire\Client\ReservationPage;
 use App\Livewire\Client\TermsAndCondition;
 use App\Livewire\ContactPage;
 use App\Livewire\HomePage;
+use App\Livewire\Pages\TermsAndCondition as PagesTermsAndCondition;
 use App\Livewire\PropertiesPage;
 use App\Livewire\ServicePage;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,7 @@ Route::get('/about-us', AboutPage::class)->name('user.about');
 Route::get('/service-page', ServicePage::class)->name('user.services');
 Route::get('/contact-page', ContactPage::class)->name('user.contact');
 Route::get('/properties-page', PropertiesPage::class)->name('user.properties');
+Route::get('/terms-&-conditions', PagesTermsAndCondition::class)->name('user.terms');
 
 Route::middleware('guest')->group(function () {
     Route::get('/register', RegisterPage::class)->name('register');

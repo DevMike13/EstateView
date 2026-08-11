@@ -11,4 +11,14 @@ class AgentManagement extends Page
     protected static string $view = 'filament.pages.agent-management';
 
     protected static ?int $navigationSort = 3;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()->role == 'admin';
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role === 'admin';
+    }
 }

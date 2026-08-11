@@ -4,8 +4,10 @@ namespace App\Livewire;
 
 use App\Models\HouseModel;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
+#[Title('Properties')]
 class PropertiesPage extends Component
 {
     public $houseModels = [];

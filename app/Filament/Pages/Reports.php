@@ -14,4 +14,14 @@ class Reports extends Page
     {
         return '';
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()->role == 'admin';
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role === 'admin';
+    }
 }

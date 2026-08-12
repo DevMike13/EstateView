@@ -118,7 +118,7 @@
                 <img
                     class="logo"
                     src="{{ public_path(
-                        'images/notices/dga-logo.png'
+                        'images/notices/dga.png'
                     ) }}"
                 >
             </td>
@@ -175,7 +175,7 @@
                 <img
                     class="logo"
                     src="{{ public_path(
-                        'images/notices/manhattan-logo.png'
+                        'images/notices/manhattan.png'
                     ) }}"
                 >
 
@@ -478,7 +478,7 @@
 
         <img
             src="{{ public_path(
-                'images/notices/houses.png'
+                'images/notices/models.png'
             ) }}"
         >
 

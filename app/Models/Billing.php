@@ -50,6 +50,13 @@ class Billing extends Model
         return $this->hasOne(BillingPayment::class)->latestOfMany();
     }
 
+    public function notices()
+    {
+        return $this->hasMany(
+            BillingNotice::class
+        );
+    }
+
     public function getRemainingBalanceAttribute(): float
     {
         return max(

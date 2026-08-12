@@ -39,6 +39,11 @@ class AccountVerification extends Component
             $this->user->save();
             
             auth()->login($this->user);
+
+            if ($this->user->role === 'staff') {
+                return redirect('/ev-admin/dashboard');
+            }
+
             return redirect()->route('user.home');
         } else {
             session()->flash('error', 'Invalid OTP');

@@ -310,9 +310,17 @@ class MapView extends Component
 
         if (!$lot) return;
 
+        $lotName = $lot->name;
+
         $lot->delete();
 
         $this->activeLotId = null;
+
+        Notification::make()
+            ->title('Lot Deleted')
+            ->body("\"{$lotName}\" was successfully removed from the map.")
+            ->danger()
+            ->send();
 
         $this->reloadWeb();
     }
@@ -326,16 +334,9 @@ class MapView extends Component
                 " ?",
             'icon' => 'error',
             'acceptLabel' => 'Yes, delete it',
-            'accept'      => [
-                'label'  => 'Yes, delete it',
-                'method' => 'deleteLot',
-                'params' => '$id',
-            ],
-            'reject' => [
-                'label'  => 'No, cancel',
-                'method' => 'reloadWeb',
-            ],
-            
+            'rejectLabel' => 'Cancel',
+            'method' => 'deleteLot',
+            'params' => $id,
         ]);
     }
 

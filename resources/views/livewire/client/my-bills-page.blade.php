@@ -2,7 +2,7 @@
     <div class="min-h-screen bg-[#F5F5F5] pb-8">
 
         {{-- HEADER --}}
-        <div class="bg-white pt-8 pb-6 px-6 sticky top-0 z-10">
+        {{-- <div class="bg-white pt-8 pb-6 px-6 sticky top-0 z-10">
 
             <div class="text-center mb-8">
                 <h1 class="text-4xl lg:text-5xl font-light text-gray-900">
@@ -52,10 +52,10 @@
 
             @endif
 
-        </div>
+        </div> --}}
 
         {{-- ACCOUNTS --}}
-        <div class="px-6 pt-6 max-w-5xl mx-auto">
+        <div class="px-6 pt-6 max-w-5xl mx-auto mt-28">
 
             @forelse($this->accounts as $account)
 
@@ -496,11 +496,11 @@
                     option-value="id"
                 />
 
-                @error('paymentMethod')
+                {{-- @error('paymentMethod')
                     <p class="mt-1 text-xs text-red-500">
                         {{ $message }}
                     </p>
-                @enderror
+                @enderror --}}
 
                 {{-- QR --}}
                 @if($this->selectedQrCode)
@@ -561,6 +561,11 @@
                         label="Reference Number"
                         placeholder="Enter transaction reference"
                         wire:model.defer="referenceNo"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                        required
                     />
 
                 </div>
@@ -568,7 +573,8 @@
                 {{-- FILEPOND --}}
                 <div class="mt-4">
 
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
+                    <label class="block mb-2 text-sm font-medium
+                        {{ $errors->has('proofOfPayment') ? 'text-red-500' : 'text-gray-700' }}">
                         Proof of Payment
                     </label>
 
@@ -579,7 +585,7 @@
                     />
 
                     @error('proofOfPayment')
-                        <p class="mt-1 text-xs text-red-500">
+                        <p class="mt-1 text-sm text-red-500">
                             {{ $message }}
                         </p>
                     @enderror

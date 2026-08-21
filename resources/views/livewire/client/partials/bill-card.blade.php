@@ -14,11 +14,11 @@
         ->sortByDesc('updated_at')
         ->first();
 
-    /*
-    |--------------------------------------------------------------------------
-    | Billing Adjustment Values
-    |--------------------------------------------------------------------------
-    */
+    /**
+     *--------------------------------------------------------------------------
+     * Billing Adjustment Values
+     *--------------------------------------------------------------------------
+     */
 
     $remainingBalance = (float) $billing->remaining_balance;
 
@@ -39,11 +39,11 @@
         && ! $isOverdue
         && $billing->status !== 'paid';
 
-    /*
-    |--------------------------------------------------------------------------
-    | Payment Source
-    |--------------------------------------------------------------------------
-    */
+    /**
+     *--------------------------------------------------------------------------
+     * Payment Source
+     *--------------------------------------------------------------------------
+     */
 
     $paymentSource = null;
 
@@ -59,11 +59,11 @@
         $paymentSource = 'Office / Admin Payment';
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Highlight
-    |--------------------------------------------------------------------------
-    */
+    /**
+     *--------------------------------------------------------------------------
+     * Highlight
+     *--------------------------------------------------------------------------
+     */
 
     $isHighlighted =
         isset($highlight)
@@ -73,7 +73,8 @@
 <div
     wire:key="billing-card-{{ $billing->id }}"
     x-data="{
-        shouldScroll: @js($isHighlighted)
+        shouldScroll: @js($isHighlighted),
+        open: @js($isHighlighted)
     }"
     x-init="
         if (shouldScroll) {
@@ -104,9 +105,19 @@
     "
 >
 
-    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    {{-- ========================================================= --}}
+    {{-- CARD HEADER --}}
+    {{-- ========================================================= --}}
 
-        {{-- LEFT --}}
+    <div
+        x-on:click="open = !open"
+
+        class="
+            flex items-start justify-between gap-4
+            cursor-pointer
+        "
+    >
+
         <div class="flex-1 min-w-0">
 
             {{-- HEADER --}}
@@ -192,276 +203,257 @@
             <p class="text-xs text-gray-400 mt-1">
                 {{ $billing->title }}
             </p>
+        </div>
 
-            {{-- EARLY PAYMENT NOTICE --}}
-            @if($isEarly)
+        {{-- COLLAPSIBLE CHEVRON --}}
+        <div class="shrink-0 pt-1">
+            <x-icon
+                name="chevron-right"
+                class="h-5 w-5 text-gray-400 transition-transform duration-200"
+                x-bind:class="open ? 'rotate-90' : ''"
+            />
+        </div>
+    </div>
 
-                <div class="mt-4 rounded-xl border border-green-100 bg-green-50 p-4">
+    {{-- ========================================================= --}}
+    {{-- COLLAPSIBLE DETAILS --}}
+    {{-- ========================================================= --}}
 
-                    <div class="flex items-start gap-3">
+    <div
+        x-show="open"
+        x-collapse
+    >
 
-                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-green-100">
-                            <x-icon
-                                name="sparkles"
-                                class="w-4 h-4 text-green-600"
-                            />
-                        </div>
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between mt-4">
+            {{-- LEFT --}}
+            <div class="flex-1 min-w-0">
 
-                        <div>
-                            <div class="text-sm font-semibold text-green-800">
-                                Early Payment Discount Available
+                {{-- EARLY PAYMENT NOTICE --}}
+                @if($isEarly)
+
+                    <div class="mt-4 rounded-xl border border-green-100 bg-green-50 p-4">
+
+                        <div class="flex items-start gap-3">
+
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-green-100">
+
+                                <x-icon
+                                    name="sparkles"
+                                    class="w-4 h-4 text-green-600"
+                                />
+
                             </div>
 
-                            <p class="mt-1 text-xs text-green-600">
-                                Pay before
-                                {{ $billing->due_date->format('F d, Y') }}
-                                and save
-                                ₱{{ number_format($discount, 2) }}.
-                            </p>
-                        </div>
 
-                    </div>
+                            <div>
 
-                </div>
+                                <div class="text-sm font-semibold text-green-800">
 
-            @endif
+                                    Early Payment Discount Available
 
-            {{-- OVERDUE NOTICE --}}
-            @if($isOverdue)
+                                </div>
 
-                <div class="mt-4 rounded-xl border border-red-100 bg-red-50 p-4">
 
-                    <div class="flex items-start gap-3">
+                                <p class="mt-1 text-xs text-green-600">
 
-                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-red-100">
-                            <x-icon
-                                name="exclamation-triangle"
-                                class="w-4 h-4 text-red-600"
-                            />
-                        </div>
+                                    Pay before
 
-                        <div>
-                            <div class="text-sm font-semibold text-red-800">
-                                Late Payment Penalty Applied
+                                    {{ $billing->due_date->format('F d, Y') }}
+
+                                    and save
+
+                                    ₱{{ number_format($discount, 2) }}.
+
+                                </p>
+
                             </div>
 
-                            <p class="mt-1 text-xs text-red-600">
-                                This bill is
-                                {{ $monthsOverdue }}
-                                penalty period{{ $monthsOverdue !== 1 ? 's' : '' }}
-                                overdue.
-
-                                {{ number_format(
-                                    $billing->monthly_penalty_rate,
-                                    0
-                                ) }}%
-                                penalty is applied per period.
-                            </p>
                         </div>
 
                     </div>
 
-                </div>
+                @endif
 
-            @endif
 
-            {{-- BILL SUMMARY --}}
-            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                {{-- OVERDUE NOTICE --}}
+                @if($isOverdue)
 
-                {{-- Amount Due --}}
-                <div class="bg-gray-50 rounded-xl p-3">
+                    <div class="mt-4 rounded-xl border border-red-100 bg-red-50 p-4">
 
-                    <div class="text-gray-500 mb-1">
-                        Amount Due
+                        <div class="flex items-start gap-3">
+
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-red-100">
+
+                                <x-icon
+                                    name="exclamation-triangle"
+                                    class="w-4 h-4 text-red-600"
+                                />
+
+                            </div>
+
+
+                            <div>
+
+                                <div class="text-sm font-semibold text-red-800">
+
+                                    Late Payment Penalty Applied
+
+                                </div>
+
+
+                                <p class="mt-1 text-xs text-red-600">
+
+                                    This bill is
+
+                                    {{ $monthsOverdue }}
+
+                                    penalty period{{ $monthsOverdue !== 1 ? 's' : '' }}
+
+                                    overdue.
+
+                                    {{ number_format(
+                                        $billing->monthly_penalty_rate,
+                                        0
+                                    ) }}%
+
+                                    penalty is applied per period.
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
                     </div>
 
-                    <div class="font-semibold text-gray-900">
-                        ₱{{ number_format(
-                            $billing->amount_due,
-                            2
-                        ) }}
+                @endif
+
+
+                {{-- BILL SUMMARY --}}
+                <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+
+                    {{-- Amount Due --}}
+                    <div class="bg-gray-50 rounded-xl p-3">
+
+                        <div class="text-gray-500 mb-1">
+
+                            Amount Due
+
+                        </div>
+
+                        <div class="font-semibold text-gray-900">
+
+                            ₱{{ number_format(
+                                $billing->amount_due,
+                                2
+                            ) }}
+
+                        </div>
+
                     </div>
 
-                </div>
 
-                {{-- Paid --}}
-                <div class="bg-gray-50 rounded-xl p-3">
+                    {{-- Paid --}}
+                    <div class="bg-gray-50 rounded-xl p-3">
 
-                    <div class="text-gray-500 mb-1">
-                        Paid
+                        <div class="text-gray-500 mb-1">
+
+                            Paid
+
+                        </div>
+
+                        <div class="font-semibold text-green-700">
+
+                            ₱{{ number_format(
+                                $billing->amount_paid,
+                                2
+                            ) }}
+
+                        </div>
+
                     </div>
 
-                    <div class="font-semibold text-green-700">
-                        ₱{{ number_format(
-                            $billing->amount_paid,
-                            2
-                        ) }}
-                    </div>
 
-                </div>
-
-                {{-- Current Balance / Payable --}}
-                <div
-                    class="rounded-xl p-3
-                        {{ $isOverdue
-                            ? 'bg-red-50'
-                            : (
-                                $isEarly
-                                    ? 'bg-green-50'
-                                    : 'bg-gray-50'
-                            ) }}"
-                >
-
-                    <div class="text-gray-500 mb-1">
-                        Payable Now
-                    </div>
-
+                    {{-- Current Balance / Payable --}}
                     <div
-                        class="font-semibold
+                        class="rounded-xl p-3
                             {{ $isOverdue
-                                ? 'text-red-700'
+                                ? 'bg-red-50'
                                 : (
                                     $isEarly
-                                        ? 'text-green-700'
-                                        : 'text-gray-900'
+                                        ? 'bg-green-50'
+                                        : 'bg-gray-50'
                                 ) }}"
                     >
-                        ₱{{ number_format(
-                            $payableAmount,
-                            2
-                        ) }}
-                    </div>
 
-                    @if($discount > 0)
-                        <div class="mt-1 text-[10px] text-green-600">
-                            Includes ₱{{ number_format(
-                                $discount,
+                        <div class="text-gray-500 mb-1">
+
+                            Payable Now
+
+                        </div>
+
+
+                        <div
+                            class="font-semibold
+                                {{ $isOverdue
+                                    ? 'text-red-700'
+                                    : (
+                                        $isEarly
+                                            ? 'text-green-700'
+                                            : 'text-gray-900'
+                                    ) }}"
+                        >
+
+                            ₱{{ number_format(
+                                $payableAmount,
                                 2
-                            ) }} discount
-                        </div>
-                    @endif
-
-                    @if($penalty > 0)
-                        <div class="mt-1 text-[10px] text-red-600">
-                            Includes ₱{{ number_format(
-                                $penalty,
-                                2
-                            ) }} penalty
-                        </div>
-                    @endif
-
-                </div>
-
-                {{-- Source --}}
-                <div class="bg-gray-50 rounded-xl p-3">
-
-                    <div class="text-gray-500 mb-1">
-                        Payment Source
-                    </div>
-
-                    <div class="font-semibold text-gray-900">
-                        {{ $paymentSource ?? 'Not paid yet' }}
-                    </div>
-
-                </div>
-
-            </div>
-
-            {{-- ADJUSTMENT BREAKDOWN --}}
-            @if(
-                $billing->status !== 'paid'
-                && (
-                    $discount > 0
-                    || $penalty > 0
-                )
-            )
-
-                <div class="mt-4 rounded-xl border border-gray-100 overflow-hidden">
-
-                    <div class="bg-gray-50 px-4 py-3">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            Payment Breakdown
-                        </p>
-                    </div>
-
-                    <div class="p-4 space-y-2 text-xs">
-
-                        <div class="flex justify-between gap-4 text-gray-500">
-
-                            <span>
-                                Remaining Balance
-                            </span>
-
-                            <span class="font-medium text-gray-700">
-                                ₱{{ number_format(
-                                    $remainingBalance,
-                                    2
-                                ) }}
-                            </span>
+                            ) }}
 
                         </div>
+
 
                         @if($discount > 0)
 
-                            <div class="flex justify-between gap-4 text-green-600">
+                            <div class="mt-1 text-[10px] text-green-600">
 
-                                <span>
-                                    Early Payment Discount
-                                </span>
-
-                                <span class="font-medium">
-                                    -₱{{ number_format(
-                                        $discount,
-                                        2
-                                    ) }}
-                                </span>
+                                Includes ₱{{ number_format(
+                                    $discount,
+                                    2
+                                ) }} discount
 
                             </div>
 
                         @endif
+
 
                         @if($penalty > 0)
 
-                            <div class="flex justify-between gap-4 text-red-600">
+                            <div class="mt-1 text-[10px] text-red-600">
 
-                                <span>
-                                    Late Payment Penalty
-
-                                    <span class="text-red-400">
-                                        (
-                                        {{ $monthsOverdue }}
-                                        ×
-                                        {{ number_format(
-                                            $billing->monthly_penalty_rate,
-                                            0
-                                        ) }}%
-                                        )
-                                    </span>
-                                </span>
-
-                                <span class="font-medium">
-                                    +₱{{ number_format(
-                                        $penalty,
-                                        2
-                                    ) }}
-                                </span>
+                                Includes ₱{{ number_format(
+                                    $penalty,
+                                    2
+                                ) }} penalty
 
                             </div>
 
                         @endif
 
-                        <div class="flex justify-between gap-4 border-t border-gray-100 pt-2">
+                    </div>
 
-                            <span class="font-semibold text-gray-900">
-                                Total Payable
-                            </span>
 
-                            <span class="font-semibold text-gray-900">
-                                ₱{{ number_format(
-                                    $payableAmount,
-                                    2
-                                ) }}
-                            </span>
+                    {{-- Source --}}
+                    <div class="bg-gray-50 rounded-xl p-3">
+
+                        <div class="text-gray-500 mb-1">
+
+                            Payment Source
+
+                        </div>
+
+                        <div class="font-semibold text-gray-900">
+
+                            {{ $paymentSource ?? 'Not paid yet' }}
 
                         </div>
 
@@ -469,284 +461,469 @@
 
                 </div>
 
-            @endif
 
-            {{-- LATEST PAYMENT --}}
-            @if($latestPayment)
+                {{-- ADJUSTMENT BREAKDOWN --}}
+                @if(
+                    $billing->status !== 'paid'
+                    && (
+                        $discount > 0
+                        || $penalty > 0
+                    )
+                )
 
-                <div
-                    class="mt-4 p-4 rounded-xl border
-                        {{ $latestPayment->status === 'pending'
-                            ? 'bg-purple-50 border-purple-200'
-                            : '' }}
+                    <div class="mt-4 rounded-xl border border-gray-100 overflow-hidden">
 
-                        {{ $latestPayment->status === 'verified'
-                            ? 'bg-green-50 border-green-200'
-                            : '' }}
+                        <div class="bg-gray-50 px-4 py-3">
 
-                        {{ $latestPayment->status === 'rejected'
-                            ? 'bg-red-50 border-red-200'
-                            : '' }}"
-                >
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+
+                                Payment Breakdown
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="p-4 space-y-2 text-xs">
+
+                            <div class="flex justify-between gap-4 text-gray-500">
+
+                                <span>
+                                    Remaining Balance
+                                </span>
+
+                                <span class="font-medium text-gray-700">
+
+                                    ₱{{ number_format(
+                                        $remainingBalance,
+                                        2
+                                    ) }}
+
+                                </span>
+
+                            </div>
+
+
+                            @if($discount > 0)
+
+                                <div class="flex justify-between gap-4 text-green-600">
+
+                                    <span>
+                                        Early Payment Discount
+                                    </span>
+
+                                    <span class="font-medium">
+
+                                        -₱{{ number_format(
+                                            $discount,
+                                            2
+                                        ) }}
+
+                                    </span>
+
+                                </div>
+
+                            @endif
+
+
+                            @if($penalty > 0)
+
+                                <div class="flex justify-between gap-4 text-red-600">
+
+                                    <span>
+
+                                        Late Payment Penalty
+
+                                        <span class="text-red-400">
+
+                                            (
+
+                                            {{ $monthsOverdue }}
+
+                                            ×
+
+                                            {{ number_format(
+                                                $billing->monthly_penalty_rate,
+                                                0
+                                            ) }}%
+
+                                            )
+
+                                        </span>
+
+                                    </span>
+
+
+                                    <span class="font-medium">
+
+                                        +₱{{ number_format(
+                                            $penalty,
+                                            2
+                                        ) }}
+
+                                    </span>
+
+                                </div>
+
+                            @endif
+
+
+                            <div class="flex justify-between gap-4 border-t border-gray-100 pt-2">
+
+                                <span class="font-semibold text-gray-900">
+
+                                    Total Payable
+
+                                </span>
+
+                                <span class="font-semibold text-gray-900">
+
+                                    ₱{{ number_format(
+                                        $payableAmount,
+                                        2
+                                    ) }}
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                @endif
+
+
+                {{-- LATEST PAYMENT --}}
+                @if($latestPayment)
 
                     <div
-                        class="font-semibold text-sm mb-2
+                        class="mt-4 p-4 rounded-xl border
                             {{ $latestPayment->status === 'pending'
-                                ? 'text-purple-900'
+                                ? 'bg-purple-50 border-purple-200'
                                 : '' }}
 
                             {{ $latestPayment->status === 'verified'
-                                ? 'text-green-900'
+                                ? 'bg-green-50 border-green-200'
                                 : '' }}
 
                             {{ $latestPayment->status === 'rejected'
-                                ? 'text-red-900'
+                                ? 'bg-red-50 border-red-200'
                                 : '' }}"
                     >
-                        Payment Submission Details
-                    </div>
 
-                    <div class="grid md:grid-cols-3 gap-3 text-xs text-gray-700">
-
-                        {{-- Amount --}}
-                        <div>
-                            <div class="text-gray-500">
-                                Amount
-                            </div>
-
-                            <div class="font-semibold">
-                                ₱{{ number_format(
-                                    $latestPayment->amount,
-                                    2
-                                ) }}
-                            </div>
-                        </div>
-
-                        {{-- Method --}}
-                        <div>
-                            <div class="text-gray-500">
-                                Method
-                            </div>
-
-                            <div class="font-semibold">
-                                {{ Str::headline(
-                                    $latestPayment->payment_method
-                                ) }}
-                            </div>
-                        </div>
-
-                        {{-- Reference --}}
-                        <div>
-                            <div class="text-gray-500">
-                                Reference
-                            </div>
-
-                            <div class="font-semibold">
-                                {{ $latestPayment->reference_no ?? 'N/A' }}
-                            </div>
-                        </div>
-
-                        {{-- Submitted --}}
-                        <div>
-                            <div class="text-gray-500">
-                                Submitted
-                            </div>
-
-                            <div class="font-semibold">
-                                {{ optional(
-                                    $latestPayment->paid_at
-                                )->format(
-                                    'M d, Y h:i A'
-                                ) ?? 'N/A' }}
-                            </div>
-                        </div>
-
-                        {{-- Status --}}
-                        <div>
-                            <div class="text-gray-500">
-                                Status
-                            </div>
-
-                            <div class="font-semibold">
-                                {{ Str::headline(
-                                    $latestPayment->status
-                                ) }}
-                            </div>
-                        </div>
-
-                        {{-- Verified At --}}
-                        @if($latestPayment->verified_at)
-
-                            <div>
-                                <div class="text-gray-500">
-                                    Verified At
-                                </div>
-
-                                <div class="font-semibold">
-                                    {{ $latestPayment
-                                        ->verified_at
-                                        ->format(
-                                            'M d, Y h:i A'
-                                        ) }}
-                                </div>
-                            </div>
-
-                        @endif
-
-                        {{-- Base amount snapshot --}}
-                        @if(! is_null($latestPayment->base_amount))
-
-                            <div>
-                                <div class="text-gray-500">
-                                    Original Balance
-                                </div>
-
-                                <div class="font-semibold">
-                                    ₱{{ number_format(
-                                        $latestPayment->base_amount,
-                                        2
-                                    ) }}
-                                </div>
-                            </div>
-
-                        @endif
-
-                        {{-- Discount snapshot --}}
-                        @if(
-                            (float) $latestPayment
-                                ->discount_amount > 0
-                        )
-
-                            <div>
-                                <div class="text-gray-500">
-                                    Discount Applied
-                                </div>
-
-                                <div class="font-semibold text-green-700">
-                                    -₱{{ number_format(
-                                        $latestPayment
-                                            ->discount_amount,
-                                        2
-                                    ) }}
-                                </div>
-                            </div>
-
-                        @endif
-
-                        {{-- Penalty snapshot --}}
-                        @if(
-                            (float) $latestPayment
-                                ->penalty_amount > 0
-                        )
-
-                            <div>
-                                <div class="text-gray-500">
-                                    Penalty Applied
-                                </div>
-
-                                <div class="font-semibold text-red-700">
-                                    +₱{{ number_format(
-                                        $latestPayment
-                                            ->penalty_amount,
-                                        2
-                                    ) }}
-                                </div>
-
-                                @if(
-                                    $latestPayment
-                                        ->penalty_months > 0
-                                )
-                                    <div class="mt-0.5 text-[10px] text-red-500">
-                                        {{ $latestPayment->penalty_months }}
-                                        penalty period{{ $latestPayment->penalty_months !== 1 ? 's' : '' }}
-                                    </div>
-                                @endif
-
-                            </div>
-
-                        @endif
-
-                    </div>
-
-                    {{-- Proof --}}
-                    @if($latestPayment->proof_of_payment)
-
-                        <a
-                            href="{{ asset(
-                                'storage/'
-                                . $latestPayment
-                                    ->proof_of_payment
-                            ) }}"
-                            target="_blank"
-                            class="mt-3 inline-flex items-center gap-2 text-sm font-semibold
+                        <div
+                            class="font-semibold text-sm mb-2
                                 {{ $latestPayment->status === 'pending'
-                                    ? 'text-purple-700'
+                                    ? 'text-purple-900'
                                     : '' }}
 
                                 {{ $latestPayment->status === 'verified'
-                                    ? 'text-green-700'
+                                    ? 'text-green-900'
                                     : '' }}
 
                                 {{ $latestPayment->status === 'rejected'
-                                    ? 'text-red-700'
+                                    ? 'text-red-900'
                                     : '' }}"
                         >
-                            <x-icon
-                                name="arrow-top-right-on-square"
-                                class="w-4 h-4"
-                            />
 
-                            View Proof
-                        </a>
+                            Payment Submission Details
 
-                    @endif
-
-                    {{-- Remarks --}}
-                    @if($latestPayment->remarks)
-
-                        <div class="mt-3 text-xs text-gray-600">
-                            Remarks:
-                            {{ $latestPayment->remarks }}
                         </div>
 
-                    @endif
 
-                </div>
+                        <div class="grid md:grid-cols-3 gap-3 text-xs text-gray-700">
 
-            @endif
+                            {{-- Amount --}}
+                            <div>
 
-        </div>
+                                <div class="text-gray-500">
+                                    Amount
+                                </div>
 
-        {{-- RIGHT ACTION --}}
-        <div class="flex items-center gap-3 shrink-0">
+                                <div class="font-semibold">
 
-            @if(
-                $isPayable
-                && $billing->status !== 'paid'
-                && ! $hasPendingPayment
-            )
+                                    ₱{{ number_format(
+                                        $latestPayment->amount,
+                                        2
+                                    ) }}
 
-                <x-button
-                    label="Pay ₱{{ number_format($payableAmount, 2) }}"
-                    icon="banknotes"
-                    x-on:click="
-                        $wire.$set('billingId', {{ $billing->id }})
-                            .then(() => {
-                                $openModal('payBill');
-                            });
-                    "
-                    class="bg-[#101727] text-white"
-                />
+                                </div>
 
-            @else
+                            </div>
 
-                <x-icon
-                    name="chevron-right"
-                    class="h-5 w-5 text-gray-400"
-                />
 
-            @endif
+                            {{-- Method --}}
+                            <div>
 
+                                <div class="text-gray-500">
+                                    Method
+                                </div>
+
+                                <div class="font-semibold">
+
+                                    {{ Str::headline(
+                                        $latestPayment->payment_method
+                                    ) }}
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Reference --}}
+                            <div>
+
+                                <div class="text-gray-500">
+                                    Reference
+                                </div>
+
+                                <div class="font-semibold">
+
+                                    {{ $latestPayment->reference_no ?? 'N/A' }}
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Submitted --}}
+                            <div>
+
+                                <div class="text-gray-500">
+                                    Submitted
+                                </div>
+
+                                <div class="font-semibold">
+
+                                    {{ optional(
+                                        $latestPayment->paid_at
+                                    )->format(
+                                        'M d, Y h:i A'
+                                    ) ?? 'N/A' }}
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Status --}}
+                            <div>
+
+                                <div class="text-gray-500">
+                                    Status
+                                </div>
+
+                                <div class="font-semibold">
+
+                                    {{ Str::headline(
+                                        $latestPayment->status
+                                    ) }}
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Verified At --}}
+                            @if($latestPayment->verified_at)
+
+                                <div>
+
+                                    <div class="text-gray-500">
+                                        Verified At
+                                    </div>
+
+                                    <div class="font-semibold">
+
+                                        {{ $latestPayment
+                                            ->verified_at
+                                            ->format(
+                                                'M d, Y h:i A'
+                                            ) }}
+
+                                    </div>
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Base amount snapshot --}}
+                            @if(! is_null($latestPayment->base_amount))
+
+                                <div>
+
+                                    <div class="text-gray-500">
+                                        Original Balance
+                                    </div>
+
+                                    <div class="font-semibold">
+
+                                        ₱{{ number_format(
+                                            $latestPayment->base_amount,
+                                            2
+                                        ) }}
+
+                                    </div>
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Discount snapshot --}}
+                            @if(
+                                (float) $latestPayment
+                                    ->discount_amount > 0
+                            )
+
+                                <div>
+
+                                    <div class="text-gray-500">
+                                        Discount Applied
+                                    </div>
+
+                                    <div class="font-semibold text-green-700">
+
+                                        -₱{{ number_format(
+                                            $latestPayment
+                                                ->discount_amount,
+                                            2
+                                        ) }}
+
+                                    </div>
+
+                                </div>
+
+                            @endif
+
+
+                            {{-- Penalty snapshot --}}
+                            @if(
+                                (float) $latestPayment
+                                    ->penalty_amount > 0
+                            )
+
+                                <div>
+
+                                    <div class="text-gray-500">
+                                        Penalty Applied
+                                    </div>
+
+                                    <div class="font-semibold text-red-700">
+
+                                        +₱{{ number_format(
+                                            $latestPayment
+                                                ->penalty_amount,
+                                            2
+                                        ) }}
+
+                                    </div>
+
+
+                                    @if(
+                                        $latestPayment
+                                            ->penalty_months > 0
+                                    )
+
+                                        <div class="mt-0.5 text-[10px] text-red-500">
+
+                                            {{ $latestPayment->penalty_months }}
+
+                                            penalty period{{ $latestPayment->penalty_months !== 1 ? 's' : '' }}
+
+                                        </div>
+
+                                    @endif
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        {{-- Proof --}}
+                        @if($latestPayment->proof_of_payment)
+
+                            <a
+                                href="{{ asset(
+                                    'storage/'
+                                    . $latestPayment
+                                        ->proof_of_payment
+                                ) }}"
+                                target="_blank"
+                                class="mt-3 inline-flex items-center gap-2 text-sm font-semibold
+                                    {{ $latestPayment->status === 'pending'
+                                        ? 'text-purple-700'
+                                        : '' }}
+
+                                    {{ $latestPayment->status === 'verified'
+                                        ? 'text-green-700'
+                                        : '' }}
+
+                                    {{ $latestPayment->status === 'rejected'
+                                        ? 'text-red-700'
+                                        : '' }}"
+                            >
+
+                                <x-icon
+                                    name="arrow-top-right-on-square"
+                                    class="w-4 h-4"
+                                />
+
+                                View Proof
+
+                            </a>
+
+                        @endif
+
+
+                        {{-- Remarks --}}
+                        @if($latestPayment->remarks)
+
+                            <div class="mt-3 text-xs text-gray-600">
+
+                                Remarks:
+
+                                {{ $latestPayment->remarks }}
+
+                            </div>
+
+                        @endif
+
+                    </div>
+
+                @endif
+
+            </div>
+
+
+            {{-- RIGHT ACTION --}}
+            <div class="flex items-center gap-3 shrink-0">
+
+                @if(
+                    $isPayable
+                    && $billing->status !== 'paid'
+                    && ! $hasPendingPayment
+                )
+
+                    <x-button
+                        label="Pay ₱{{ number_format($payableAmount, 2) }}"
+                        icon="banknotes"
+                        x-on:click.stop="
+                            $wire.$set('billingId', {{ $billing->id }})
+                                .then(() => {
+                                    $openModal('payBill');
+                                });
+                        "
+                        class="bg-[#101727] text-white"
+                    />
+
+                @endif
+
+            </div>
         </div>
 
     </div>

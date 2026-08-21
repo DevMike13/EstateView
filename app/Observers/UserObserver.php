@@ -47,11 +47,12 @@ class UserObserver
             $user,
             'Client Deleted',
             "Client {$user->name} was deleted by " . auth()->user()->name . ".",
-            'client_deleted'
+            'client_deleted',
+            includeSubject: false
         );
     }
 
-    private function notify(User $user, string $title, string $message, string $type): void
+    private function notify(User $user, string $title, string $message, string $type, bool $includeSubject = true): void
     {
         $notification = Notification::create([
             'title' => $title,
@@ -69,9 +70,11 @@ class UserObserver
 
         $staffAdmins = User::whereIn('role', ['admin', 'staff'])->pluck('id');
 
-        $notification->users()->attach(
-            $staffAdmins->merge([$user->id])->unique()->toArray()
-        );
+        $recipients = $includeSubject
+            ? $staffAdmins->merge([$user->id])
+            : $staffAdmins;
+
+        $notification->users()->attach($recipients->unique()->toArray());
     }
     
     /**

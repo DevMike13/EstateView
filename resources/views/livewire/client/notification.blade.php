@@ -40,6 +40,7 @@
             @endphp
 
             <div
+                x-data="{ showChanges: false }"
                 class="bg-white rounded-xl p-6 shadow-sm border transition-all
                 {{ $isUnread ? 'border-blue-200 bg-blue-50/30' : 'border-gray-100' }}"
             >
@@ -118,7 +119,7 @@
 
                                 @if(
                                     $notification->title !== 'Client Ledger Updated' &&
-                                    auth()->user()->role !== 'agent'
+                                    !in_array(auth()->user()->role, ['agent', 'user'])
                                 )
                                     <button
                                         wire:click.stop="openNotification({{ $notification->id }})"
@@ -126,6 +127,24 @@
                                     >
                                         <x-heroicon-o-arrow-top-right-on-square class="h-3 w-3" />
                                         Open
+                                    </button>
+                                @endif
+
+                                {{-- NEW: View Changes trigger, only when there's a diff --}}
+                                @if(
+                                    $notification->type === 'client_personal_info_updated'
+                                    && !empty($data['changes'])
+                                )
+                                    <button
+                                        type="button"
+                                        @click.stop="showChanges = true"
+                                        class="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-3 w-3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                        </svg>
+                                        View Changes
                                     </button>
                                 @endif
 
@@ -144,6 +163,74 @@
                     </div>
 
                 </div>
+
+                {{-- NEW: Changes modal --}}
+                @if(
+                    $notification->type === 'client_personal_info_updated'
+                    && !empty($data['changes'])
+                )
+                    <div
+                        x-show="showChanges"
+                        x-cloak
+                        x-transition.opacity
+                        class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4"
+                        @click.self="showChanges = false"
+                    >
+                        <div
+                            x-show="showChanges"
+                            x-transition
+                            @click.stop
+                            class="bg-white rounded-lg shadow-xl w-full max-w-sm p-5"
+                        >
+                            <div class="relative mb-4 border-b pb-3 pr-8">
+                                <h3 class="text-sm font-semibold text-gray-900">
+                                    Changed Information
+                                </h3>
+
+                                {{-- CLOSE BUTTON --}}
+                                <button
+                                    type="button"
+                                    @click="showChanges = false"
+                                    class="absolute -top-1 right-0 flex h-7 w-7 items-center justify-center
+                                        rounded-full text-gray-400 transition
+                                        hover:bg-gray-100 hover:text-gray-700"
+                                    title="Close"
+                                >
+                                    <x-heroicon-o-x-mark class="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div class="space-y-3">
+                                @foreach($data['changes'] as $change)
+                                    @continue(!is_array($change) || !isset($change['label']))
+                                    <div class="text-xs">
+                                        <span class="font-medium text-gray-600">{{ $change['label'] }}</span>
+                                        <div class="flex items-center gap-1 mt-0.5">
+                                            <span class="line-through text-gray-400">{{ $change['old'] ?? '—' }}</span>
+                                            <span>→</span>
+                                            <span class="text-gray-800 font-medium">{{ $change['new'] ?? '—' }}</span>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            {{-- CLOSE BUTTON --}}
+                            <div class="flex justify-end mt-5 pt-3 border-t">
+                                <button
+                                    type="button"
+                                    @click="showChanges = false"
+                                    class="inline-flex items-center justify-center px-4 py-2
+                                        text-xs font-medium text-gray-700 bg-white
+                                        border border-gray-300 rounded-lg
+                                        hover:bg-gray-50 hover:text-gray-900
+                                        transition"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
             </div>
 
         @empty

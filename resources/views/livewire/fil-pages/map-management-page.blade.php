@@ -143,16 +143,39 @@
                             
                         </div>
 
-                        <x-button 
+                    @if($model->virtualTour)
+
+                        <x-button
                             class="mb-3 mx-auto w-[90%]"
-                            icon="viewfinder-circle" 
-                            rounded 
-                            positive 
-                            label="Create Virtual Tour" 
-                            wire:click="selectHouseModel({{ $model->id }})"
-                            x-on:click="$openModal('createVirtualTour')"
+                            icon="pencil-square"
+                            rounded
+                            amber
+                            label="Edit Virtual Tour"
+                            x-on:click="
+                                $wire.editVirtualTour({{ $model->id }})
+                                    .then(() => {
+                                        $openModal('createVirtualTour');
+                                    });
+                            "
                         />
 
+                    @else
+
+                        <x-button
+                            class="mb-3 mx-auto w-[90%]"
+                            icon="viewfinder-circle"
+                            rounded
+                            positive
+                            label="Create Virtual Tour"
+                            x-on:click="
+                                $wire.selectHouseModel({{ $model->id }})
+                                    .then(() => {
+                                        $openModal('createVirtualTour');
+                                    });
+                            "
+                        />
+
+                    @endif
                         <x-button 
                             class="mb-3 mx-auto w-[90%]"
                             icon="eye" 
@@ -192,7 +215,7 @@
                         <x-input
                             label="Virtual Tour URL (Optional)"
                             placeholder="Ex: https://example.com/virtual-tour"
-                            wire:model.defer="virtualTourUrl"
+                            wire:model="virtualTourUrl"
                         />
                     </div>
 
@@ -200,7 +223,7 @@
                         <x-input
                             label="Model Name"
                             placeholder="E.g, Naomi"
-                            wire:model.defer="modelName"
+                            wire:model="modelName"
                         />
                     </div>
 
@@ -208,13 +231,13 @@
                         <x-inputs.number 
                             label="Bedrooms" 
                             min="0"
-                            wire:model.defer="bedroomsCount" 
+                            wire:model="bedroomsCount" 
                         />
 
                         <x-inputs.number 
                             label="Bathrooms" 
                             min="0"
-                            wire:model.defer="bathroomsCount" 
+                            wire:model="bathroomsCount" 
                         />
                     </div>
 
@@ -227,7 +250,7 @@
                             label="Floor Area"
                             placeholder="100"
                             suffix="sqm"
-                            wire:model.defer="floorArea"
+                            wire:model="floorArea"
                         />
                     </div>
 
@@ -240,7 +263,7 @@
                             thousands=","
                             decimal="."
                             precision="2"
-                            wire:model.defer="price"
+                            wire:model="price"
                         />
                     </div>
 
@@ -290,7 +313,7 @@
                     <x-input
                         label="Virtual Tour URL (Optional)"
                         placeholder="Ex: https://example.com/virtual-tour"
-                        wire:model.defer="editVirtualTourUrl"
+                        wire:model="editVirtualTourUrl"
                     />
                 </div>
 
@@ -298,7 +321,7 @@
                     <x-input
                         label="Model Name"
                         placeholder="E.g, Naomi"
-                        wire:model.defer="editModelName"
+                        wire:model="editModelName"
                     />
                 </div>
 
@@ -325,7 +348,7 @@
                         label="Floor Area"
                         placeholder="100"
                         suffix="sqm"
-                        wire:model.defer="editFloorArea"
+                        wire:model="editFloorArea"
                     />
                 </div>
 
@@ -338,7 +361,7 @@
                         thousands=","
                         decimal="."
                         precision="2"
-                        wire:model.defer="editPrice"
+                        wire:model="editPrice"
                     />
                 </div>
 
@@ -352,7 +375,12 @@
 
         {{-- CREATE VIRUAL TOUR MODAL --}}
         <x-modal blur name="createVirtualTour" max-width="4xl" persistent>
-            <x-card title="Virtual Tour Builder">
+            <x-card
+                title="{{ $isEditingTour
+                    ? 'Edit Virtual Tour'
+                    : 'Virtual Tour Builder'
+                }}"
+            >
 
                 {{-- TITLE --}}
                 <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -441,6 +469,42 @@
                                             />
                                         </svg>
                                     </button>
+                                    {{-- Delete scene --}}
+                                    <button
+                                        type="button"
+                                        wire:click="deleteScene({{ $i }})"
+                                        class="flex items-center justify-center border-l px-2 transition
+                                            {{ $activeScene == $i
+                                                ? 'border-blue-200 text-red-500 hover:bg-red-50 hover:text-red-600'
+                                                : 'border-gray-200 text-gray-400 hover:bg-red-50 hover:text-red-600'
+                                            }}"
+                                        title="Delete {{ $scene['name'] }}"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke-width="1.8"
+                                            stroke="currentColor"
+                                            class="h-3 w-3"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21
+                                                c.342.052.682.107 1.022.166m-1.022-.165
+                                                L18.16 19.673a2.25 2.25 0 0 1-2.244
+                                                2.077H8.084a2.25 2.25 0 0 1-2.244-2.077
+                                                L4.772 5.79m14.456 0a48.108 48.108
+                                                0 0 0-3.478-.397m-12 .562c.34-.059.68-.114
+                                                1.022-.165m0 0a48.11 48.11 0 0 1
+                                                3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201
+                                                a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09
+                                                1.022-2.09 2.201v.916m7.5 0a48.667
+                                                48.667 0 0 0-7.5 0"
+                                            />
+                                        </svg>
+                                    </button>
                                 </div>
                             @endforeach
                         </div>
@@ -520,11 +584,12 @@
 
                             @if(!empty($scenes[$activeScene]['preview']))
 
+                            <div class="relative mt-4">
+
                                 <div
                                     wire:ignore
                                     x-data="panoramaEditor()"
                                     x-init="init()"
-                                    class="mt-4"
                                 >
                                     {{-- PANNELLUM VIEWER --}}
                                     <div
@@ -535,8 +600,20 @@
                                     ></div>
                                 </div>
 
-                                
-                            @endif
+                                {{-- REMOVE PANORAMA BUTTON --}}
+                                <button
+                                    type="button"
+                                    wire:click="removeScenePanorama"
+                                    class="absolute top-3 left-3 z-[10000] flex items-center justify-center w-8 h-8 rounded-full bg-white/90 text-red-600 shadow-md hover:bg-red-50 hover:text-red-700 transition"
+                                    title="Remove Panorama"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                        @endif
 
                             {{-- HOTSPOT FORM --}}
                             {{-- @if($showHotspotForm)
@@ -607,7 +684,12 @@
                             >
                                 <div class="bg-white w-[400px] rounded-lg p-4 shadow-lg">
 
-                                    <h2 class="text-lg font-bold mb-3">Create Hotspot</h2>
+                                    <h2 class="text-lg font-bold mb-3">
+                                        {{ $editingHotspot !== null
+                                            ? 'Edit Hotspot'
+                                            : 'Create Hotspot'
+                                        }}
+                                    </h2>
 
                                     <div class="space-y-3">
 
@@ -648,7 +730,10 @@
                                             class="px-3 py-1 bg-blue-600 text-white rounded"
                                             wire:click="saveHotspot"
                                         >
-                                            Save
+                                            {{ $editingHotspot !== null
+                                                ? 'Update'
+                                                : 'Save'
+                                            }}
                                         </button>
 
                                     </div>
@@ -710,8 +795,33 @@
 
                 {{-- SAVE --}}
                 <x-slot name="footer" class="flex justify-end gap-x-4">
-                    <x-button flat label="Cancel" @click="closeModal()" x-on:click="close" wire:click="reloadWeb" />
-                    <x-button primary label="Save Tour" wire:click="saveTour" />
+
+                    <x-button
+                        flat
+                        label="Cancel"
+                        x-on:click="close"
+                    />
+
+                    @if($isEditingTour)
+
+                        <x-button
+                            primary
+                            label="Update Tour"
+                            wire:click="updateTour"
+                            spinner="updateTour"
+                        />
+
+                    @else
+
+                        <x-button
+                            primary
+                            label="Save Tour"
+                            wire:click="saveTour"
+                            spinner="saveTour"
+                        />
+
+                    @endif
+
                 </x-slot>
             </x-card>
 
@@ -883,14 +993,14 @@
             align="center"
             persistent
             max-width="md"
-            wire:model.defer="showEditSceneModal"
+            wire:model="showEditSceneModal"
         >
             <form wire:submit.prevent="updateSceneName">
                 <x-card title="Edit Scene Name">
 
                     <x-input
                         label="Scene Name"
-                        wire:model.defer="editingSceneName"
+                        wire:model="editingSceneName"
                     />
 
                     <x-slot name="footer">
@@ -1001,13 +1111,44 @@
                             button.onclick = (e) => {
                                 e.stopPropagation();
 
+                                const currentScene = scene;
+
                                 const idx = this.scenes.findIndex(
-                                    s => s.id === h.target_scene_id
+                                    s => Number(s.id) === Number(h.target_scene_id)
                                 );
 
-                                if (idx !== -1) {
-                                    this.loadScene(idx);
+                                if (idx === -1) {
+                                    return;
                                 }
+
+                                const targetScene = this.scenes[idx];
+
+                                /*
+                                * Find the hotspot in the TARGET scene
+                                * that points back to the CURRENT scene.
+                                *
+                                * This gives us the nearest logical point
+                                * to face when entering the next scene.
+                                */
+                                const returnHotspot = (targetScene.hotspots || []).find(
+                                    targetHotspot =>
+                                        Number(targetHotspot.target_scene_id) ===
+                                        Number(currentScene.id)
+                                );
+
+                                let targetPitch = null;
+                                let targetYaw = null;
+
+                                if (returnHotspot) {
+                                    targetPitch = Number(returnHotspot.pitch);
+                                    targetYaw = Number(returnHotspot.yaw);
+                                }
+
+                                this.loadScene(
+                                    idx,
+                                    targetPitch,
+                                    targetYaw
+                                );
                             };
 
                             wrapper.appendChild(ping);
@@ -1020,7 +1161,7 @@
                     }));
                 },
 
-                loadScene(index) {
+                loadScene(index, initialPitch = null, initialYaw = null) {
 
                     const scene = this.scenes[index];
                     if (!scene) return;
@@ -1056,13 +1197,33 @@
 
                         container.innerHTML = "";
 
-                        this.viewer = pannellum.viewer(container, {
+                        const viewerOptions = {
                             type: "equirectangular",
                             panorama: scene.image,
                             autoLoad: true,
                             showControls: true,
                             hotSpots: this.buildHotspots(scene)
-                        });
+                        };
+
+                        /*
+                        * If we entered the scene from another hotspot,
+                        * face the hotspot that points back to the scene
+                        * we came from.
+                        */
+                        if (
+                            initialPitch !== null &&
+                            initialYaw !== null &&
+                            Number.isFinite(initialPitch) &&
+                            Number.isFinite(initialYaw)
+                        ) {
+                            viewerOptions.pitch = initialPitch;
+                            viewerOptions.yaw = initialYaw;
+                        }
+
+                        this.viewer = pannellum.viewer(
+                            container,
+                            viewerOptions
+                        );
 
                         requestAnimationFrame(() => {
                             fade.style.opacity = "0";

@@ -261,7 +261,11 @@
                 const status = (area.dataset.status ?? '').toLowerCase().trim();
                 const type = area.dataset.type;
 
-                const color = colors[type] || "#0096ff";
+                // If sold, use the existing Sold color.
+                // Otherwise, use the normal property type color.
+                const color = status === 'sold'
+                    ? colors["Sold"]
+                    : (colors[type] || "#0096ff");
 
                 // -------------------------
                 // DRAW POLYGON
@@ -287,6 +291,66 @@
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.stroke();
+
+                // -------------------------
+                // SOLD LABEL
+                // -------------------------
+                if (status === 'sold') {
+
+                    const n = coords.length / 2;
+
+                    let areaSum = 0;
+                    let cx = 0;
+                    let cy = 0;
+
+                    // Calculate polygon centroid
+                    for (let i = 0; i < n; i++) {
+
+                        const x1 = coords[i * 2];
+                        const y1 = coords[i * 2 + 1];
+
+                        const x2 = coords[((i + 1) % n) * 2];
+                        const y2 = coords[((i + 1) % n) * 2 + 1];
+
+                        const cross = (x1 * y2) - (x2 * y1);
+
+                        areaSum += cross;
+                        cx += (x1 + x2) * cross;
+                        cy += (y1 + y2) * cross;
+                    }
+
+                    areaSum *= 0.5;
+
+                    if (areaSum !== 0) {
+
+                        cx = cx / (6 * areaSum);
+                        cy = cy / (6 * areaSum);
+
+                    } else {
+
+                        cx = 0;
+                        cy = 0;
+
+                        for (let i = 0; i < coords.length; i += 2) {
+                            cx += coords[i];
+                            cy += coords[i + 1];
+                        }
+
+                        cx /= n;
+                        cy /= n;
+                    }
+
+                    ctx.save();
+                    ctx.globalAlpha = 0.8;
+                    ctx.fillStyle = "#000000";
+                    ctx.font = "bold 13px Arial";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+
+                    ctx.fillText("SOLD", cx, cy);
+
+                    ctx.restore();
+                }
 
                 // -------------------------
                 // RESERVED ICON (MODERN MINIMALIST)
@@ -546,7 +610,9 @@
 
                 }
 
-                if (status === 'available') {
+                const isClientUser = @json(auth()->check() && auth()->user()->role === 'user');
+
+                if (status === 'available' && isClientUser) {
                     reserveBtn.classList.remove('hidden');
                 } else {
                     reserveBtn.classList.add('hidden');

@@ -128,7 +128,7 @@ class MyBillsPage extends Component
             ],
 
             'referenceNo' => [
-                'nullable',
+                'required',
                 'string',
                 'max:255',
             ],

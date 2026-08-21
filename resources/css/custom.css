@@ -13,6 +13,9 @@
         overflow: hidden !important;
         background-color: white;
     }
+    .dark .fi-main{
+        background-color: #0f172a;
+    }
     .fi-page{
         /* width: 95%; */
         width: 100%;

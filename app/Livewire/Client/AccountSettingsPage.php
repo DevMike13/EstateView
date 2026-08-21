@@ -37,27 +37,95 @@ class AccountSettingsPage extends Component
     public function mount()
     {
         $user = Auth::user();
-        // Load joined relationship data
-        $info = $user->info; 
 
-        $this->firstName = $info->first_name ?? '';
-        $this->middleName = $info->middle_name ?? '';
-        $this->lastName = $info->last_name ?? '';
-        $this->suffix = $info->suffix ?? '';
-        $this->email = $user->email;
-        
-        // Strip out "+63" if present for cleaner visual editing
-        $rawPhone = $info->phone ?? '';
-        $this->phone = str_replace('+63', '', $rawPhone);
+        $info = $user->info;
+
+        $firstName = $info?->first_name;
+        $middleName = $info?->middle_name;
+        $lastName = $info?->last_name;
+
+        if (
+            empty($firstName)
+            && empty($lastName)
+            && ! empty($user->name)
+        ) {
+            $fullName = trim($user->name);
+
+            if (str_contains($fullName, ',')) {
+
+                [$last, $first] = array_map(
+                    'trim',
+                    explode(',', $fullName, 2)
+                );
+
+                $firstName = $first;
+                $lastName = $last;
+
+            } else {
+
+                $parts = preg_split(
+                    '/\s+/',
+                    $fullName
+                );
+
+                if (count($parts) === 1) {
+
+                    $firstName = $parts[0];
+
+                } elseif (count($parts) >= 2) {
+
+                    $firstName = array_shift($parts);
+
+                    $lastName = array_pop($parts);
+
+                    if (
+                        empty($middleName)
+                        && count($parts)
+                    ) {
+                        $middleName = implode(
+                            ' ',
+                            $parts
+                        );
+                    }
+                }
+            }
+        }
+
+        $this->firstName =
+            $firstName ?? '';
+
+        $this->middleName =
+            $middleName ?? '';
+
+        $this->lastName =
+            $lastName ?? '';
+
+        $this->suffix =
+            $info?->suffix ?? '';
+
+        $this->email =
+            $user->email;
+
+
+        // Strip "+63" for cleaner editing
+        $rawPhone =
+            $info?->phone ?? '';
+
+        $this->phone =
+            str_replace(
+                '+63',
+                '',
+                $rawPhone
+            );
 
         $this->professionalAgentId =
-            $info->professional_agent_id ?? null;
+            $info?->professional_agent_id ?? null;
 
         $this->realEstateLicenseNumber =
-            $info->real_estate_license_number ?? null;
+            $info?->real_estate_license_number ?? null;
 
         $this->commissionPercentage =
-            $info->commission_percentage ?? null;
+            $info?->commission_percentage ?? null;
     }
 
     public function confirmProfileUpdate()
@@ -93,13 +161,18 @@ class AccountSettingsPage extends Component
         ]);
 
         // 2. Update Secondary Profile Info Table Record
-        $user->info()->update([
-            'first_name'  => $this->firstName,
-            'middle_name' => $this->middleName,
-            'last_name'   => $this->lastName,
-            'suffix'      => $this->suffix,
-            'phone'       => '+63' . ltrim($this->phone, '0'),
-        ]);
+        $user->info()->updateOrCreate(
+            [
+                'user_id' => $user->id,
+            ],
+            [
+                'first_name' => $this->firstName,
+                'middle_name' => $this->middleName,
+                'last_name' => $this->lastName,
+                'suffix' => $this->suffix,
+                'phone' => '+63' . ltrim($this->phone, '0'),
+            ]
+        );
 
        
         $this->notification()->success(

@@ -4,6 +4,7 @@ namespace App\Livewire\FilPages;
 
 use App\Models\Billing;
 use App\Models\BillingPayment;
+use App\Models\CommissionRequest; // CHANGED — was App\Models\Commission
 use App\Models\Lot;
 use App\Models\LotReservation;
 use App\Models\PurchaseAccount;
@@ -75,6 +76,50 @@ class Reports extends Component
                 ];
             });
 
+        // ADDED — monthly delayed vs advanced payment counts (last 6 months)
+        $monthlyDelayedAdvance = collect(range(5, 0))
+            ->map(function ($monthsAgo) {
+                $date = now()->subMonths($monthsAgo);
+
+                $delayedCount = Billing::whereIn('status', ['unpaid', 'partial'])
+                    ->whereDate('due_date', '<', now())
+                    ->whereYear('due_date', $date->year)
+                    ->whereMonth('due_date', $date->month)
+                    ->count();
+
+                $advancedCount = BillingPayment::where('status', 'verified')
+                    ->whereNotNull('paid_at')
+                    ->whereYear('paid_at', $date->year)
+                    ->whereMonth('paid_at', $date->month)
+                    ->whereHas('billing', function ($query) {
+                        $query->whereColumn('billing_payments.paid_at', '<', 'billings.due_date');
+                    })
+                    ->count();
+
+                return [
+                    'month' => $date->format('M'),
+                    'delayed' => $delayedCount,
+                    'advanced' => $advancedCount,
+                ];
+            });
+
+        // CHANGED — monthly agent commissions using CommissionRequest (paid_at + status 'paid')
+        $monthlyCommissions = collect(range(5, 0))
+            ->map(function ($monthsAgo) {
+                $date = now()->subMonths($monthsAgo);
+
+                $amount = CommissionRequest::where('status', 'paid')
+                    ->whereNotNull('paid_at')
+                    ->whereYear('paid_at', $date->year)
+                    ->whereMonth('paid_at', $date->month)
+                    ->sum('requested_amount');
+
+                return [
+                    'month' => $date->format('M'),
+                    'amount' => $amount,
+                ];
+            });
+
             /**
          * Dynamic Performance Summary
          */
@@ -135,6 +180,8 @@ class Reports extends Component
             'delayedPayments' => $delayedPayments,
             'advancedPayments' => $advancedPayments,
             'monthlyCollections' => $monthlyCollections,
+            'monthlyDelayedAdvance' => $monthlyDelayedAdvance,
+            'monthlyCommissions' => $monthlyCommissions,
 
             'maxCollection' => max($monthlyCollections->max('amount'), 1),
 

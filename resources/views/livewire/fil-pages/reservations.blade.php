@@ -87,6 +87,7 @@
             @forelse($this->reservations as $reservation)
 
                 <div
+                    wire:key="reservation-{{ $reservation->id }}"
                     x-data="{
                         open: @js($highlight == $reservation->id),
                         shouldScroll: @js($highlight == $reservation->id),

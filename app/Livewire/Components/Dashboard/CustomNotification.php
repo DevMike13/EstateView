@@ -32,6 +32,13 @@ class CustomNotification extends Component
         $this->dispatch('notificationsRead');
     }
 
+    public function deleteNotification($notificationId)
+    {
+        auth()->user()
+            ->notifications()
+            ->detach($notificationId);
+    }
+
     public function markAllRead()
     {
         auth()->user()

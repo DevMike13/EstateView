@@ -5,6 +5,7 @@ namespace App\Livewire\FilPages;
 use App\Models\AccountLedger;
 use App\Models\Billing;
 use App\Models\BillingPayment;
+use App\Models\Lot;
 use App\Models\LotReservation;
 use App\Models\PurchaseAccount;
 use Filament\Notifications\Notification;
@@ -296,16 +297,18 @@ class ClientLedgers extends Component
             ],
 
             'officeReferenceNo' => [
-                'nullable',
+                'required',
                 'string',
                 'max:255',
             ],
 
             'officeProofOfPayment' => [
-                'nullable',
+                'required',
                 'file',
                 'max:20480',
             ],
+        ], [], [
+            'officeProofOfPayment' => 'proof / receipt Image',
         ]);
 
         DB::transaction(function () {
@@ -380,14 +383,10 @@ class ClientLedgers extends Component
 
             $proofPath = null;
 
-            if ($this->officeProofOfPayment) {
-                $proofPath =
-                    $this->officeProofOfPayment
-                        ->store(
-                            "billing-payments/{$billing->id}",
-                            'public'
-                        );
-            }
+            $proofPath = $this->officeProofOfPayment->store(
+                "billing-payments/{$billing->id}",
+                'public'
+            );
 
             /*
             |--------------------------------------------------------------------------
@@ -515,6 +514,15 @@ class ClientLedgers extends Component
                 'status' =>
                     $newStatus,
             ]);
+
+            // Mark mapped lot as sold when the client is fully paid
+            if ($newStatus === 'fully_paid' && $account->lot_id) {
+                Lot::whereKey($account->lot_id)
+                    ->update([
+                        'status' => 'sold',
+                        'user_id' => $account->user_id,
+                    ]);
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -705,60 +713,88 @@ class ClientLedgers extends Component
             }
 
             $billing =
-                $payment->billing;
+                Billing::query()
+                    ->whereKey($payment->billing_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
             $account =
-                $payment->purchaseAccount;
+                PurchaseAccount::query()
+                    ->whereKey($payment->purchase_account_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
             /*
             |--------------------------------------------------------------------------
-            | USE SNAPSHOT FROM CLIENT SUBMISSION
+            | Current Billing Values
             |--------------------------------------------------------------------------
+            |
+            | BillingPayment does not store adjustment snapshot columns.
+            | Therefore use the Billing's existing calculated values.
+            |
             */
 
             $baseAmount =
-                (float) (
-                    $payment->base_amount
-                    ?? $billing->remaining_balance
-                );
+                (float) $billing->remaining_balance;
 
             $discountAmount =
-                (float) (
-                    $payment->discount_amount
-                    ?? 0
-                );
+                (float) $billing->calculated_discount;
 
             $penaltyAmount =
-                (float) (
-                    $payment->penalty_amount
-                    ?? 0
-                );
+                (float) $billing->calculated_penalty;
+
+            $penaltyMonths =
+                (int) $billing->months_overdue;
+
+            /*
+            * This is the ACTUAL payable amount shown to the client.
+            *
+            * Example:
+            *
+            * Remaining = 160,000
+            * Discount  =     200
+            * Payable   = 159,800
+            */
+            $payableAmount =
+                (float) $billing->payable_amount;
 
             $amountReceived =
                 (float) $payment->amount;
 
             /*
-            * The exact payable amount AT SUBMISSION TIME.
+            |--------------------------------------------------------------------------
+            | Determine If Bill Is Fully Settled
+            |--------------------------------------------------------------------------
+            |
+            | IMPORTANT:
+            | Compare against payable_amount, NOT amount_due.
+            |
             */
-            $expectedPayable =
-                max(
-                    $baseAmount
-                    + $penaltyAmount
-                    - $discountAmount,
-                    0
-                );
 
             $fullySettled =
-                $amountReceived >=
-                $expectedPayable;
+                $amountReceived >= $payableAmount;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Update Billing
+            |--------------------------------------------------------------------------
+            */
+
+            $newAmountPaid =
+                (float) $billing->amount_paid
+                + $amountReceived;
 
             $billing->update([
                 'amount_paid' =>
-                    (float) $billing->amount_paid
-                    + $amountReceived,
+                    $newAmountPaid,
 
+                /*
+                * Store the adjustment that actually applied.
+                */
                 'discount_amount' =>
-                    $discountAmount,
+                    $fullySettled
+                        ? $discountAmount
+                        : 0,
 
                 'penalty_amount' =>
                     $penaltyAmount,
@@ -770,8 +806,15 @@ class ClientLedgers extends Component
             ]);
 
             /*
-            * Penalty doesn't reduce contract principal.
+            |--------------------------------------------------------------------------
+            | Calculate Principal Credit
+            |--------------------------------------------------------------------------
+            |
+            | Penalty is extra money and therefore does not reduce
+            | the property's principal balance.
+            |
             */
+
             $principalCredit = max(
                 $amountReceived
                 - $penaltyAmount,
@@ -779,17 +822,34 @@ class ClientLedgers extends Component
             );
 
             /*
-            * Discount closes the waived principal.
+            * If fully settled using an early-payment discount,
+            * the discount also removes the waived principal.
+            *
+            * Example:
+            *
+            * Cash received:       159,800
+            * Discount:                200
+            * Principal settled:   160,000
             */
             if ($fullySettled) {
                 $principalCredit +=
                     $discountAmount;
             }
 
+            /*
+            * Never credit more than this billing's
+            * remaining principal.
+            */
             $principalCredit = min(
                 $principalCredit,
                 $baseAmount
             );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Purchase Account Balance
+            |--------------------------------------------------------------------------
+            */
 
             $newRemainingBalance = max(
                 (float) $account->remaining_balance
@@ -800,6 +860,11 @@ class ClientLedgers extends Component
             $newStatus =
                 $account->status;
 
+            /*
+            * Bank loan:
+            * once every downpayment billing is paid,
+            * move account into bank processing.
+            */
             if (
                 $account->payment_scheme === 'bank_loan'
                 && $account->billings()
@@ -818,12 +883,18 @@ class ClientLedgers extends Component
                     'bank_processing';
             }
 
+            /*
+            * Completely paid property.
+            */
             if ($newRemainingBalance <= 0) {
                 $newStatus =
                     'fully_paid';
             }
 
             $account->update([
+                /*
+                * Actual cash received only.
+                */
                 'total_paid' =>
                     (float) $account->total_paid
                     + $amountReceived,
@@ -834,6 +905,33 @@ class ClientLedgers extends Component
                 'status' =>
                     $newStatus,
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sold Lot
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $newStatus === 'fully_paid'
+                && $account->lot_id
+            ) {
+                Lot::whereKey(
+                    $account->lot_id
+                )->update([
+                    'status' =>
+                        'sold',
+
+                    'user_id' =>
+                        $account->user_id,
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Account Ledger
+            |--------------------------------------------------------------------------
+            */
 
             AccountLedger::create([
                 'purchase_account_id' =>
@@ -846,12 +944,21 @@ class ClientLedgers extends Component
                     'Verified client payment for '
                     . $billing->title,
 
+                /*
+                * Actual cash received.
+                */
                 'amount' =>
                     $amountReceived,
 
                 'balance_after' =>
                     $newRemainingBalance,
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Early Payment Discount Ledger
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $fullySettled
@@ -876,6 +983,12 @@ class ClientLedgers extends Component
                 ]);
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Penalty Ledger
+            |--------------------------------------------------------------------------
+            */
+
             if ($penaltyAmount > 0) {
                 AccountLedger::create([
                     'purchase_account_id' =>
@@ -886,7 +999,12 @@ class ClientLedgers extends Component
 
                     'description' =>
                         'Late payment penalty for '
-                        . $billing->title,
+                        . $billing->title
+                        . ' ('
+                        . $penaltyMonths
+                        . ' period'
+                        . ($penaltyMonths !== 1 ? 's' : '')
+                        . ')',
 
                     'amount' =>
                         $penaltyAmount,
@@ -895,6 +1013,12 @@ class ClientLedgers extends Component
                         $newRemainingBalance,
                 ]);
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Verify Client Payment
+            |--------------------------------------------------------------------------
+            */
 
             $payment->update([
                 'status' =>
@@ -918,6 +1042,8 @@ class ClientLedgers extends Component
     {
         BillingPayment::findOrFail($paymentId)->update([
             'status' => 'rejected',
+            'verified_at' => now(),
+            'verified_by' => auth()->id(),
         ]);
 
         Notification::make()
@@ -933,10 +1059,19 @@ class ClientLedgers extends Component
             'accountStatus' => 'required|in:active,downpayment_pending,bank_processing,fully_paid,cancelled',
         ]);
 
-        PurchaseAccount::findOrFail($this->accountId)
-            ->update([
-                'status' => $this->accountStatus,
-            ]);
+        $account = PurchaseAccount::findOrFail($this->accountId);
+
+        $account->update([
+            'status' => $this->accountStatus,
+        ]);
+
+        if ($this->accountStatus === 'fully_paid' && $account->lot_id) {
+            Lot::whereKey($account->lot_id)
+                ->update([
+                    'status' => 'sold',
+                    'user_id' => $account->user_id,
+                ]);
+        }
 
         Notification::make()
             ->title('Status Updated')

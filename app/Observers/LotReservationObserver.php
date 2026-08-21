@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Mail\ReservationApprovedMail;
+use App\Mail\ReservationAwaitingFeeMail;
 use App\Mail\ReservationRejectedMail;
 use App\Models\LotReservation;
 use App\Models\Notification;
@@ -30,14 +31,27 @@ class LotReservationObserver
     public function updated(LotReservation $lotReservation): void
     {
         if ($lotReservation->wasChanged('status')) {
+            $title = match ($lotReservation->status) {
+                'awaiting_reservation_fee' => 'Reservation Submitted Documents Approved',
+                'reservation_fee_submitted' => 'Reservation Fee Submitted',
+                'approved' => 'Reservation Approved',
+                'rejected' => 'Reservation Rejected',
+                default => 'Reservation Status Updated',
+            };
+
             $this->notify(
                 $lotReservation,
-                'Reservation Status Updated',
+                $title,
                 $this->buildMessage($lotReservation),
                 'lot_reservation_updated'
             );
 
             $lotReservation->load('user', 'lot', 'houseModel');
+
+            if ($lotReservation->status === 'awaiting_reservation_fee') {
+                Mail::to($lotReservation->user->email)
+                    ->send(new ReservationAwaitingFeeMail($lotReservation));
+            }
 
             if ($lotReservation->status === 'approved') {
                 Mail::to($lotReservation->user->email)
@@ -243,11 +257,10 @@ class LotReservationObserver
             ->pluck('id');
 
         $client = $lotReservation->user_id;
-        $agent = $lotReservation->agent_id;
 
         $notification->users()->attach(
             $staffAdmins
-                ->merge([$client, $agent])
+                ->merge([$client])
                 ->filter()
                 ->unique()
                 ->toArray()

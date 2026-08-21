@@ -18,6 +18,7 @@ class ClientAppointment extends Model
         'name',
         'phone',
         'notes',
+        'document_path',
         'status',
     ];
 

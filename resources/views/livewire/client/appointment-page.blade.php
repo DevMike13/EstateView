@@ -184,6 +184,35 @@
                                         {{ $statusConfig['label'] }}
 
                                     </span>
+                                    {{-- VIEW ATTACHMENT --}}
+@if($appointment->document_path)
+    <a
+        href="{{ asset('storage/' . $appointment->document_path) }}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+               text-xs font-medium text-blue-600 bg-blue-50
+               hover:bg-blue-100 hover:text-blue-700 transition"
+    >
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-3.5 w-3.5"
+        >
+            <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+            <circle cx="12" cy="12" r="3"/>
+        </svg>
+
+        View Attachment
+    </a>
+@endif
 
                                 </div>
 
@@ -669,7 +698,7 @@
                 </div>
 
                 {{-- CLIENT INFO --}}
-                <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {{-- <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
 
                     <div>
 
@@ -710,8 +739,41 @@
 
                     </div>
 
-                </div>
+                </div> --}}
 
+                {{-- OPTIONAL CONCERN ATTACHMENT --}}
+<div class="mt-5">
+
+    <label class="text-sm font-medium text-gray-700">
+        Concern Attachment
+        <span class="font-normal text-gray-400">
+            (Optional)
+        </span>
+    </label>
+
+    <p class="mt-1 mb-3 text-xs text-gray-500">
+        You may attach an image or document related to your concern.
+    </p>
+
+    <x-filepond::upload
+        wire:model="document"
+        :accepted-file-types="[
+            'image/png',
+            'image/jpeg',
+            'image/webp',
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ]"
+    />
+
+    @error('document')
+        <p class="mt-1 text-sm text-red-500">
+            {{ $message }}
+        </p>
+    @enderror
+
+</div>
                 {{-- ACTION --}}
                 <div class="mt-6 flex justify-end">
 
@@ -724,13 +786,13 @@
                         icon="calendar"
                         lg
                         label="SCHEDULE APPOINTMENT"
-                        class="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+                        class="px-5 py-2 bg-black text-white rounded-lg hover:!bg-gray-800 transition"
                         :disabled="
                             empty($selectedDate)
                             || empty($timeSlot)
                             || empty($appointmentType)
-                            || empty($name)
-                            || empty($phone)
+                            // || empty($name)
+                            // || empty($phone)
                         "
                     />
 

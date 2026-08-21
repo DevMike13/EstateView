@@ -72,11 +72,14 @@
                 class="hs-collapse hidden w-full basis-full overflow-hidden transition-all duration-300 lg:block lg:w-auto lg:basis-auto"
             >
                 <div class="mt-5 flex flex-col gap-1 border-t border-gray-100 pt-5 lg:mt-0 lg:flex-row lg:items-center lg:gap-2 lg:border-0 lg:pt-0">
-
                     @php
                         $currentUser = auth()->user();
-                        $isAgent = auth()->check() && $currentUser->role === 'agent';
-                        $isClient = auth()->check() && $currentUser->role === 'user';
+
+                        $isAgent = auth()->check()
+                            && $currentUser->role === 'agent';
+
+                        $isClient = auth()->check()
+                            && $currentUser->role === 'user';
                     @endphp
 
                     {{-- HOME --}}
@@ -135,7 +138,9 @@
                     @endguest
 
                     @auth
-                        {{-- Client Navigation --}}
+                        {{-- ================================================= --}}
+                        {{-- CLIENT NAVIGATION --}}
+                        {{-- ================================================= --}}
                         @if($isClient)
                             <a
                                 href="{{ route('client.cost.breakdown') }}"
@@ -146,17 +151,6 @@
                                         : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
                             >
                                 COST BREAKDOWN
-                            </a>
-
-                            <a
-                                href="{{ route('client.bills') }}"
-                                wire:navigate
-                                class="rounded-lg px-3 py-2 text-sm font-medium transition
-                                    {{ request()->routeIs('client.bills')
-                                        ? 'text-[#d6b685]'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
-                            >
-                                MY BILLS
                             </a>
 
                             <a
@@ -181,23 +175,27 @@
                                 RESERVATIONS
                             </a>
 
+                            {{-- MOVED: MY BILLS AFTER RESERVATIONS --}}
                             <a
-                                href="{{ route('client.account') }}"
+                                href="{{ route('client.bills') }}"
                                 wire:navigate
                                 class="rounded-lg px-3 py-2 text-sm font-medium transition
-                                    {{ request()->routeIs('client.account')
+                                    {{ request()->routeIs('client.bills')
                                         ? 'text-[#d6b685]'
                                         : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
                             >
-                                ACCOUNT
+                                MY BILLS
                             </a>
 
+                            {{-- CLIENT ACCOUNT NAV REMOVED --}}
                             <div class="px-3 py-2">
                                 <livewire:partials.notification-badge />
                             </div>
                         @endif
 
-                        {{-- Agent Navigation: Home, Properties, Cost Breakdown only --}}
+                        {{-- ================================================= --}}
+                        {{-- AGENT NAVIGATION --}}
+                        {{-- ================================================= --}}
                         @if($isAgent)
                             <a
                                 href="{{ route('client.cost.breakdown') }}"
@@ -221,71 +219,31 @@
                                 COMMISSION
                             </a>
 
-                            <a
-                                href="{{ route('client.account') }}"
-                                wire:navigate
-                                class="rounded-lg px-3 py-2 text-sm font-medium transition
-                                    {{ request()->routeIs('client.account')
-                                        ? 'text-[#d6b685]'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-[#d6b685]' }}"
-                            >
-                                ACCOUNT
-                            </a>
-
+                            {{-- AGENT ACCOUNT NAV REMOVED --}}
                             <div class="px-3 py-2">
                                 <livewire:partials.notification-badge />
                             </div>
                         @endif
 
-                        {{-- Desktop User Profile --}}
-                        <div class="ml-2 hidden items-center gap-3 border-l border-gray-200 pl-5 lg:flex">
-                            @if($currentUser->profile_picture)
-                                <img
-                                    src="{{ asset($currentUser->profile_picture) }}"
-                                    alt="{{ $currentUser->name }}"
-                                    class="h-10 w-10 rounded-full object-cover"
-                                >
-                            @else
-                                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-6 w-6 text-gray-500"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                        />
-                                    </svg>
-                                </div>
-                            @endif
-
-                            <div class="min-w-0">
-                                <p class="max-w-36 truncate text-sm font-semibold text-gray-800">
-                                    {{ $currentUser->name }}
-                                </p>
-
-                                <p class="text-xs font-medium text-[#d6b685]">
-                                    {{ $isClient ? 'Client' : ucfirst($currentUser->role) }}
-                                </p>
-                            </div>
-                        </div>
-
-                        {{-- Mobile Profile --}}
-                        <div class="mt-4 border-t border-gray-100 pt-4 lg:hidden">
-                            <div class="mb-3 flex items-center gap-3 px-3">
+                        {{-- ================================================= --}}
+                        {{-- DESKTOP USER PROFILE --}}
+                        {{-- ================================================= --}}
+                        @if($isAgent || $isClient)
+                            <a
+                                href="{{ route('client.account') }}"
+                                wire:navigate
+                                class="ml-2 hidden items-center gap-3 border-l border-gray-200 pl-5 pr-3 py-1 rounded-lg transition hover:bg-gray-50 lg:flex"
+                            >
                                 @if($currentUser->profile_picture)
                                     <img
                                         src="{{ asset($currentUser->profile_picture) }}"
                                         alt="{{ $currentUser->name }}"
-                                        class="h-11 w-11 rounded-full object-cover"
+                                        class="h-10 w-10 rounded-full object-cover"
                                     >
                                 @else
-                                    <div class="flex h-11 w-11 items-center justify-center rounded-full bg-gray-200">
+                                    <div
+                                        class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200"
+                                    >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             class="h-6 w-6 text-gray-500"
@@ -293,31 +251,98 @@
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
                                         >
+
                                             <path
                                                 stroke-linecap="round"
                                                 stroke-linejoin="round"
                                                 stroke-width="2"
                                                 d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                                             />
+
                                         </svg>
                                     </div>
                                 @endif
-
                                 <div class="min-w-0">
-                                    <p class="truncate text-sm font-semibold text-gray-800">
+                                    <p
+                                        class="max-w-36 truncate text-sm font-semibold text-gray-800"
+                                    >
                                         {{ $currentUser->name }}
                                     </p>
 
-                                    <p class="truncate text-xs text-gray-500">
-                                        {{ $currentUser->email }}
-                                    </p>
 
-                                    <p class="text-xs font-medium text-[#d6b685]">
-                                        {{ $isClient ? 'Client' : ucfirst($currentUser->role) }}
+                                    <p
+                                        class="text-xs font-medium text-[#d6b685]"
+                                    >
+                                        {{ $isClient ? 'Client' : 'Agent' }}
                                     </p>
                                 </div>
+                            </a>
+                        @endif
+
+                        {{-- ================================================= --}}
+                        {{-- MOBILE PROFILE --}}
+                        {{-- ================================================= --}}
+                        @if($isAgent || $isClient)
+
+                            <div
+                                class="mt-4 border-t border-gray-100 pt-4 lg:hidden"
+                            >
+                                <a
+                                    href="{{ route('client.account') }}"
+                                    wire:navigate
+                                    class="mb-3 flex items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-gray-50"
+                                >
+                                    @if($currentUser->profile_picture)
+
+                                        <img
+                                            src="{{ asset($currentUser->profile_picture) }}"
+                                            alt="{{ $currentUser->name }}"
+                                            class="h-11 w-11 rounded-full object-cover"
+                                        >
+                                    @else
+                                        <div
+                                            class="flex h-11 w-11 items-center justify-center rounded-full bg-gray-200"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-6 w-6 text-gray-500"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M5.121 17.804A4 4 0 017 16h10a4 4 0 011.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                                />
+                                            </svg>
+                                        </div>
+                                    @endif
+
+                                    <div class="min-w-0">
+                                        <p
+                                            class="truncate text-sm font-semibold text-gray-800"
+                                        >
+                                            {{ $currentUser->name }}
+                                        </p>
+
+                                        <p
+                                            class="truncate text-xs text-gray-500"
+                                        >
+                                            {{ $currentUser->email }}
+                                        </p>
+
+                                        <p
+                                            class="text-xs font-medium text-[#d6b685]"
+                                        >
+                                            {{ $isClient ? 'Client' : 'Agent' }}
+                                        </p>
+                                    </div>
+                                </a>
                             </div>
-                        </div>
+                        @endif
                     @endauth
                 </div>
             </div>

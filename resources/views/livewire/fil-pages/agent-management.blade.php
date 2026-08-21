@@ -11,42 +11,42 @@
                     <tr>
                         <th
                             scope="col"
-                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase"
                         >
                             Agent Member
                         </th>
 
                         <th
                             scope="col"
-                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase"
                         >
                             Professional Information
                         </th>
 
                         <th
                             scope="col"
-                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase"
                         >
                             Commission
                         </th>
 
                         <th
                             scope="col"
-                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase"
                         >
                             Status
                         </th>
 
                         <th
                             scope="col"
-                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase"
+                            class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase"
                         >
                             Joined
                         </th>
 
                         <th
                             scope="col"
-                            class="px-6 py-3 text-end text-xs font-medium text-muted-foreground-1 uppercase"
+                            class="px-6 py-3 text-end text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase"
                         >
                             Action
                         </th>
@@ -73,22 +73,16 @@
                                             class="h-11 w-11 rounded-full border border-gray-200 object-cover"
                                         >
 
-                                        @if(($user->commission_requests_count ?? 0) > 0)
+                                        @if(($user->pending_commission_requests_count ?? 0) > 0)
                                             <span class="absolute -right-0.5 -top-0.5 flex h-4 w-4">
                                                 <span
-                                                    class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75
-                                                        {{ ($user->pending_commission_requests_count ?? 0) > 0
-                                                            ? 'bg-orange-400'
-                                                            : 'bg-blue-400' }}"
+                                                    class="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"
                                                 ></span>
 
                                                 <span
-                                                    class="relative inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white
-                                                        {{ ($user->pending_commission_requests_count ?? 0) > 0
-                                                            ? 'bg-orange-500'
-                                                            : 'bg-blue-500' }}"
+                                                    class="relative inline-flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[9px] font-bold text-white"
                                                 >
-                                                    {{ min($user->commission_requests_count, 9) }}
+                                                    {{ min($user->pending_commission_requests_count, 9) }}
                                                 </span>
                                             </span>
                                         @endif
@@ -104,10 +98,10 @@
                                                 <span class="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-semibold text-yellow-700">
                                                     Commission Request
                                                 </span>
-                                            @elseif(($user->commission_requests_count ?? 0) > 0)
+                                            {{-- @elseif(($user->commission_requests_count ?? 0) > 0)
                                                 <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
                                                     Commission History
-                                                </span>
+                                                </span> --}}
                                             @endif
                                         </div>
 

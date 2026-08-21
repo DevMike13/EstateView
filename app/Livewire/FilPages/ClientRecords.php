@@ -299,6 +299,7 @@ class ClientRecords extends Component
                 'purchaseAccounts.lot',
                 'purchaseAccounts.houseModel',
                 'purchaseAccounts.billings',
+                'purchaseAccounts.billings.payments',
                 'purchaseAccounts.ledgers',
                 'purchaseAccounts.reservation.requiredDocuments',
                 'purchaseAccounts.reservation.reservationPayments',

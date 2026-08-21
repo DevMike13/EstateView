@@ -20,8 +20,9 @@
             <select wire:model.live="status" class="rounded-lg border-gray-300">
                 <option value="">All Status</option>
                 <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
+                <option value="downpayment_pending">Downpayment Pending</option>
+                <option value="bank_processing">Bank Processing</option>
+                <option value="fully_paid">Fully Paid</option>
                 <option value="cancelled">Cancelled</option>
             </select>
         </div>
@@ -145,10 +146,10 @@
                                 $displayStatus = $account?->status ?? $reservation?->status ?? 'no_record';
 
                                 $statusColor = match($displayStatus) {
-                                    'active', 'approved' => 'bg-green-100 text-green-700',
-                                    'completed' => 'bg-blue-100 text-blue-700',
-                                    'pending' => 'bg-yellow-100 text-yellow-700',
-                                    'cancelled', 'rejected' => 'bg-red-100 text-red-700',
+                                    'active' => 'bg-green-100 text-green-700',
+                                    'fully_paid' => 'bg-blue-100 text-blue-700',
+                                    'downpayment_pending', 'bank_processing' => 'bg-yellow-100 text-yellow-700',
+                                    'cancelled' => 'bg-red-100 text-red-700',
                                     default => 'bg-gray-100 text-gray-700',
                                 };
                             @endphp
@@ -615,6 +616,440 @@
                                 </div>
                                 <div class="text-xs text-gray-400 mt-1">
                                     Documents, reservation payments, billings, and ledger records will appear here once available.
+                                </div>
+                            </div>
+                        @endif
+                        {{-- Billing Payment Receipts --}}
+                        @if($account)
+
+                            @php
+                                $paymentReceipts = $account->billings
+                                    ->flatMap(fn ($billing) => $billing->payments)
+                                    ->sortByDesc('paid_at');
+                            @endphp
+
+                            <div
+                                x-data="{ openReceipts: false }"
+                                class="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white"
+                            >
+                                {{-- SECTION HEADER --}}
+                                <button
+                                    type="button"
+                                    x-on:click="openReceipts = !openReceipts"
+                                    class="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-gray-50"
+                                >
+                                    <div>
+                                        <h4 class="text-lg font-semibold text-gray-900">
+                                            Billing Payment Receipts
+                                        </h4>
+
+                                        <p class="mt-0.5 text-xs text-gray-500">
+                                            {{ $paymentReceipts->count() }}
+                                            payment record{{ $paymentReceipts->count() !== 1 ? 's' : '' }}
+                                        </p>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <span class="hidden text-xs text-gray-400 sm:inline">
+                                            View payment history
+                                        </span>
+
+                                        <x-heroicon-o-chevron-down
+                                            class="h-5 w-5 text-gray-400 transition-transform duration-200"
+                                            x-bind:class="openReceipts ? 'rotate-180' : ''"
+                                        />
+                                    </div>
+                                </button>
+
+                                {{-- RECEIPTS --}}
+                                <div
+                                    x-show="openReceipts"
+                                    x-collapse
+                                    class="border-t border-gray-100"
+                                >
+                                    @if($paymentReceipts->count())
+                                        <div class="space-y-2 bg-gray-50/50 p-4">
+                                            @foreach($paymentReceipts as $payment)
+                                                @php
+                                                    $paymentStatusColor = match($payment->status) {
+                                                        'verified', 'paid', 'approved'
+                                                            => 'bg-green-100 text-green-700',
+
+                                                        'pending'
+                                                            => 'bg-yellow-100 text-yellow-700',
+
+                                                        'rejected', 'declined'
+                                                            => 'bg-red-100 text-red-700',
+
+                                                        default
+                                                            => 'bg-gray-100 text-gray-700',
+                                                    };
+
+                                                    $sourceLabel = match($payment->source) {
+                                                        'office_payment' => 'Office Payment',
+                                                        'client_upload' => 'Client Upload',
+
+                                                        default => $payment->source
+                                                            ? ucfirst(
+                                                                str_replace(
+                                                                    '_',
+                                                                    ' ',
+                                                                    $payment->source
+                                                                )
+                                                            )
+                                                            : 'N/A',
+                                                    };
+                                                @endphp
+
+                                                {{-- INDIVIDUAL PAYMENT --}}
+                                                <div
+                                                    x-data="{ open: false }"
+                                                    class="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                                                >
+                                                    {{-- COMPACT PAYMENT ROW --}}
+                                                    <button
+                                                        type="button"
+                                                        x-on:click="open = !open"
+                                                        class="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-gray-50"
+                                                    >
+                                                        <div class="flex min-w-0 flex-1 items-center gap-3">
+                                                            {{-- PAYMENT ICON --}}
+                                                            <div class="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 sm:flex">
+                                                                <x-heroicon-o-banknotes
+                                                                    class="h-5 w-5 text-gray-500"
+                                                                />
+                                                            </div>
+
+                                                            <div class="min-w-0">
+                                                                <div class="flex flex-wrap items-center gap-2">
+                                                                    <p class="truncate font-semibold text-gray-900">
+                                                                        {{ $payment->billing?->title ?? 'Billing Payment' }}
+                                                                    </p>
+
+                                                                    <span
+                                                                        class="shrink-0 rounded-full px-2 py-1 text-[10px] font-medium {{ $paymentStatusColor }}"
+                                                                    >
+                                                                        {{ ucfirst(
+                                                                            str_replace(
+                                                                                '_',
+                                                                                ' ',
+                                                                                $payment->status ?? 'unknown'
+                                                                            )
+                                                                        ) }}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                                                                    <span>
+                                                                        {{ $payment->paid_at
+                                                                            ? $payment->paid_at->format('M d, Y')
+                                                                            : 'No payment date'
+                                                                        }}
+                                                                    </span>
+
+                                                                    <span class="hidden sm:inline">
+                                                                        •
+                                                                    </span>
+
+                                                                    <span>
+                                                                        {{ $payment->payment_method
+                                                                            ? Str::headline($payment->payment_method)
+                                                                            : 'N/A'
+                                                                        }}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="flex shrink-0 items-center gap-4">
+                                                            {{-- AMOUNT --}}
+                                                            <div class="hidden text-right sm:block">
+                                                                <div class="text-[10px] uppercase tracking-wide text-gray-400">
+                                                                    Amount
+                                                                </div>
+
+                                                                <div class="text-sm font-semibold text-gray-900">
+                                                                    ₱{{ number_format(
+                                                                        $payment->amount ?? 0,
+                                                                        2
+                                                                    ) }}
+                                                                </div>
+                                                            </div>
+
+                                                            {{-- ARROW --}}
+                                                            <x-heroicon-o-chevron-down
+                                                                class="h-5 w-5 text-gray-400 transition-transform duration-200"
+                                                                x-bind:class="open ? 'rotate-180' : ''"
+                                                            />
+                                                        </div>
+                                                    </button>
+
+                                                    {{-- EXPANDED PAYMENT DETAILS --}}
+                                                    <div
+                                                        x-show="open"
+                                                        x-collapse
+                                                        class="border-t border-gray-100 bg-gray-50/60 p-4"
+                                                    >
+                                                        {{-- MOBILE AMOUNT --}}
+                                                        <div class="mb-4 sm:hidden">
+                                                            <div class="text-xs text-gray-400">
+                                                                Amount
+                                                            </div>
+
+                                                            <div class="font-semibold text-gray-900">
+                                                                ₱{{ number_format(
+                                                                    $payment->amount ?? 0,
+                                                                    2
+                                                                ) }}
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                                                            <div>
+                                                                <div class="text-xs text-gray-400">
+                                                                    Payment Method
+                                                                </div>
+
+                                                                <div class="mt-1 font-medium text-gray-900">
+                                                                    {{ $payment->payment_method
+                                                                        ? Str::headline($payment->payment_method)
+                                                                        : 'N/A'
+                                                                    }}
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div class="text-xs text-gray-400">
+                                                                    Source
+                                                                </div>
+
+                                                                <div class="mt-1 font-medium text-gray-900">
+                                                                    {{ $sourceLabel }}
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div class="text-xs text-gray-400">
+                                                                    Reference Number
+                                                                </div>
+
+                                                                <div class="mt-1 break-all font-medium text-gray-900">
+                                                                    {{ $payment->reference_no ?? 'N/A' }}
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div class="text-xs text-gray-400">
+                                                                    Paid At
+                                                                </div>
+
+                                                                <div class="mt-1 font-medium text-gray-900">
+                                                                    {{ $payment->paid_at
+                                                                        ? $payment->paid_at->format(
+                                                                            'M d, Y h:i A'
+                                                                        )
+                                                                        : 'N/A'
+                                                                    }}
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div class="text-xs text-gray-400">
+                                                                    Verified At
+                                                                </div>
+
+                                                                <div class="mt-1 font-medium text-gray-900">
+                                                                    {{ $payment->verified_at
+                                                                        ? $payment->verified_at->format(
+                                                                            'M d, Y h:i A'
+                                                                        )
+                                                                        : 'N/A'
+                                                                    }}
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div class="text-xs text-gray-400">
+                                                                    Status
+                                                                </div>
+
+                                                                <div class="mt-1">
+                                                                    <span
+                                                                        class="inline-flex rounded-full px-2 py-1 text-[10px] font-medium {{ $paymentStatusColor }}"
+                                                                    >
+                                                                        {{ Str::headline(
+                                                                            $payment->status ?? 'unknown'
+                                                                        ) }}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {{-- REMARKS --}}
+                                                        @if($payment->remarks)
+                                                            <div class="mt-4 rounded-lg border border-gray-100 bg-white p-3">
+                                                                <div class="text-xs text-gray-400">
+                                                                    Remarks
+                                                                </div>
+
+                                                                <div class="mt-1 text-sm text-gray-700">
+                                                                    {{ $payment->remarks }}
+                                                                </div>
+                                                            </div>
+                                                        @endif
+
+                                                        {{-- RECEIPT ACTION --}}
+                                                        <div class="mt-4 flex justify-end">
+                                                            @if($payment->proof_of_payment)
+                                                                <a
+                                                                    href="{{ asset(
+                                                                        'storage/' .
+                                                                        $payment->proof_of_payment
+                                                                    ) }}"
+                                                                    target="_blank"
+                                                                    class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
+                                                                >
+                                                                    <x-heroicon-o-document-magnifying-glass
+                                                                        class="h-4 w-4"
+                                                                    />
+
+                                                                    View Receipt
+                                                                </a>
+                                                            @else
+                                                                <span class="text-xs text-gray-400">
+                                                                    No receipt available
+                                                                </span>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="p-6 text-center">
+                                            <x-heroicon-o-receipt-percent
+                                                class="mx-auto mb-2 h-8 w-8 text-gray-300"
+                                            />
+
+                                            <div class="text-sm font-semibold text-gray-600">
+                                                No Billing Payment Receipts Yet
+                                            </div>
+
+                                            <div class="mt-1 text-xs text-gray-400">
+                                                Billing payment receipts will appear here once submitted.
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+                        {{-- Required Documents --}}
+                        @if($reservation)
+
+                            @php
+                                $requiredDocuments = $reservation->requiredDocuments
+                                    ->sortBy('document_type');
+                            @endphp
+
+                            <div
+                                x-data="{ openDocuments: false }"
+                                class="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white"
+                            >
+                                {{-- SECTION HEADER --}}
+                                <button
+                                    type="button"
+                                    x-on:click="openDocuments = !openDocuments"
+                                    class="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-gray-50"
+                                >
+                                    <div>
+                                        <h4 class="text-lg font-semibold text-gray-900">
+                                            Required Documents
+                                        </h4>
+
+                                        <p class="mt-0.5 text-xs text-gray-500">
+                                            {{ $requiredDocuments->count() }}
+                                            document{{ $requiredDocuments->count() !== 1 ? 's' : '' }}
+                                        </p>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <span class="hidden text-xs text-gray-400 sm:inline">
+                                            View submitted documents
+                                        </span>
+
+                                        <x-heroicon-o-chevron-down
+                                            class="h-5 w-5 text-gray-400 transition-transform duration-200"
+                                            x-bind:class="openDocuments ? 'rotate-180' : ''"
+                                        />
+                                    </div>
+                                </button>
+
+                                {{-- DOCUMENT LIST --}}
+                                <div
+                                    x-show="openDocuments"
+                                    x-collapse
+                                    class="border-t border-gray-100"
+                                >
+                                    @if($requiredDocuments->count())
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50/50 p-4">
+                                            @foreach($requiredDocuments as $document)
+                                                <div
+                                                    class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3"
+                                                >
+                                                    <div class="flex min-w-0 items-center gap-2">
+                                                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-100">
+                                                            <x-heroicon-o-document
+                                                                class="h-4 w-4 text-gray-500"
+                                                            />
+                                                        </div>
+
+                                                        <div class="min-w-0">
+                                                            <p class="truncate text-sm font-semibold text-gray-900">
+                                                                {{ Str::headline($document->document_type) }}
+                                                            </p>
+
+                                                            <p
+                                                                class="mt-0.5 max-w-[150px] truncate text-[10px] text-gray-400"
+                                                                title="{{ $document->original_name }}"
+                                                            >
+                                                                {{ $document->original_name ?? 'Uploaded document' }}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    @if($document->file_path)
+                                                        <a
+                                                            href="{{ asset('storage/' . $document->file_path) }}"
+                                                            target="_blank"
+                                                            class="inline-flex shrink-0 items-center justify-center gap-1 rounded-md border border-gray-200 px-2 py-1.5 text-[10px] font-medium text-gray-700 transition hover:bg-gray-50"
+                                                        >
+                                                            <x-heroicon-o-eye class="h-3.5 w-3.5" />
+
+                                                            View
+                                                        </a>
+                                                    @else
+                                                        <span class="shrink-0 text-[10px] text-gray-400">
+                                                            No file
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="p-6 text-center">
+                                            <x-heroicon-o-document
+                                                class="mx-auto mb-2 h-8 w-8 text-gray-300"
+                                            />
+
+                                            <div class="text-sm font-semibold text-gray-600">
+                                                No Required Documents Yet
+                                            </div>
+
+                                            <div class="mt-1 text-xs text-gray-400">
+                                                Submitted reservation documents will appear here.
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         @endif

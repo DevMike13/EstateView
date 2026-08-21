@@ -2,7 +2,9 @@
   <div class="min-h-screen bg-gray-50">
     <div class="space-y-8 md:space-y-12">
       <div class="bg-white shadow-sm p-4 md:p-8">
-        <h1 class="text-2xl md:text-4xl font-light text-gray-900 mb-2">Admin Dashboard</h1>
+        <h1 class="text-2xl md:text-4xl font-light text-gray-900 mb-2">
+            {{ ucfirst(auth()->user()?->role ?? 'guest') }} Dashboard
+        </h1>
         <p class="text-base md:text-lg text-gray-600">Complete overview and control of EstateView system</p>
       </div>
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

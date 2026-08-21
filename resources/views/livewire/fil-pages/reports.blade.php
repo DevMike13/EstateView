@@ -138,6 +138,30 @@
           </div>
       </div>
     </div>
+
+    {{-- ADDED: Delayed vs Advanced Payments + Agent Commissions --}}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+      <div class="bg-white rounded-xl border shadow-sm p-6">
+          <h3 class="text-lg font-semibold mb-4">
+              Delayed vs Advanced Payments (Monthly)
+          </h3>
+
+          <div class="h-[350px]" wire:ignore>
+              <canvas id="delayedAdvanceChart"></canvas>
+          </div>
+      </div>
+      <div class="bg-white rounded-xl border shadow-sm p-6">
+          <h3 class="text-lg font-semibold mb-4">
+              Agent Commissions (Monthly)
+          </h3>
+
+          <div class="h-[350px]" wire:ignore>
+              <canvas id="commissionsChart"></canvas>
+          </div>
+      </div>
+    </div>
+    {{-- END ADDED --}}
+
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="p-6 border-b bg-red-50">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -321,6 +345,8 @@
             function initReportsCharts() {
                 initPropertyChart();
                 initCollectionChart();
+                initDelayedAdvanceChart(); // ADDED
+                initCommissionsChart();    // ADDED
             }
 
             function initPropertyChart() {
@@ -414,6 +440,149 @@
                             borderColor: '#059669',
                             borderWidth: 1,
                             borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                            },
+
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return '₱' + Number(context.raw).toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₱' + Number(value).toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ADDED: Delayed vs Advanced Payments Chart
+            function initDelayedAdvanceChart() {
+                const ctx = document.getElementById('delayedAdvanceChart');
+
+                if (!ctx || typeof Chart === 'undefined') return;
+
+                const existingChart = Chart.getChart(ctx);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+
+                window.delayedAdvanceChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [
+                            @foreach($monthlyDelayedAdvance as $month)
+                                '{{ $month["month"] }}',
+                            @endforeach
+                        ],
+                        datasets: [
+                            {
+                                label: 'Delayed',
+                                data: [
+                                    @foreach($monthlyDelayedAdvance as $month)
+                                        {{ $month["delayed"] }},
+                                    @endforeach
+                                ],
+                                backgroundColor: '#ef4444',
+                                borderColor: '#dc2626',
+                                borderWidth: 1,
+                                borderRadius: 8,
+                            },
+                            {
+                                label: 'Advanced',
+                                data: [
+                                    @foreach($monthlyDelayedAdvance as $month)
+                                        {{ $month["advanced"] }},
+                                    @endforeach
+                                ],
+                                backgroundColor: '#22c55e',
+                                borderColor: '#16a34a',
+                                borderWidth: 1,
+                                borderRadius: 8,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.raw;
+                                    }
+                                }
+                            }
+                        },
+
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ADDED: Agent Commissions Chart
+            function initCommissionsChart() {
+                const ctx = document.getElementById('commissionsChart');
+
+                if (!ctx || typeof Chart === 'undefined') return;
+
+                const existingChart = Chart.getChart(ctx);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+
+                window.commissionsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [
+                            @foreach($monthlyCommissions as $month)
+                                '{{ $month["month"] }}',
+                            @endforeach
+                        ],
+                        datasets: [{
+                            label: 'Agent Commissions',
+                            data: [
+                                @foreach($monthlyCommissions as $month)
+                                    {{ $month["amount"] }},
+                                @endforeach
+                            ],
+                            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                            borderColor: '#6366f1',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            pointBackgroundColor: '#6366f1',
                         }]
                     },
                     options: {

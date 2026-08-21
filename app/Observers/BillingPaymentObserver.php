@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Mail\BillingPaymentApprovedMail;
 use App\Mail\BillingPaymentRejectedMail;
 use App\Mail\BillingPaymentSubmittedMail;
+use App\Mail\OfficeBillingPaymentRecordedMail;
 use App\Models\BillingPayment;
 use App\Models\Notification;
 use App\Models\User;
@@ -42,12 +43,31 @@ class BillingPaymentObserver
         }
 
         if ($billingPayment->source === 'office_payment') {
+
+            $billingPayment->loadMissing([
+                'billing',
+                'purchaseAccount.user',
+                'verifier',
+            ]);
+
+            $recordedBy = $billingPayment->verifier?->name
+                ?? auth()->user()?->name
+                ?? 'Admin / Staff';
+
             $this->notifyClientAndAdmins(
                 $billingPayment,
                 'Office Payment Recorded',
-                "An office payment was recorded for {$billingPayment->billing?->title}.",
+                "{$recordedBy} recorded an office payment for {$billingPayment->billing?->title}.",
                 'office_payment_recorded'
             );
+
+            if ($billingPayment->purchaseAccount?->user?->email) {
+                Mail::to(
+                    $billingPayment->purchaseAccount->user->email
+                )->send(
+                    new OfficeBillingPaymentRecordedMail($billingPayment)
+                );
+            }
         }
     }
 
@@ -123,11 +143,8 @@ class BillingPaymentObserver
             'created_by' => auth()->id(),
         ]);
 
-        $agentId = $payment->purchaseAccount?->reservation?->agent_id;
-
         $users = User::whereIn('role', ['admin', 'staff'])
             ->pluck('id')
-            ->merge([$agentId])
             ->filter()
             ->unique()
             ->toArray();
@@ -177,13 +194,10 @@ class BillingPaymentObserver
             'created_by' => auth()->id(),
         ]);
 
-        $agentId = $payment->purchaseAccount?->reservation?->agent_id;
-
         $users = User::whereIn('role', ['admin', 'staff'])
             ->pluck('id')
             ->merge([
                 $payment->purchaseAccount?->user_id,
-                $agentId,
             ])
             ->filter()
             ->unique()

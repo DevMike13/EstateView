@@ -44,13 +44,10 @@ class PurchaseAccountObserver
             'created_by' => auth()->id(),
         ]);
 
-        $agentId = $purchaseAccount->reservation?->agent_id;
-
         $users = User::whereIn('role', ['admin', 'staff'])
             ->pluck('id')
             ->merge([
                 $purchaseAccount->user_id,
-                $agentId,
             ])
             ->filter()
             ->unique()
@@ -145,13 +142,10 @@ class PurchaseAccountObserver
             'created_by' => auth()->id(),
         ]);
 
-        $agentId = $purchaseAccount->reservation?->agent_id;
-
         $users = User::whereIn('role', ['admin', 'staff'])
             ->pluck('id')
             ->merge([
                 $purchaseAccount->user_id,
-                $agentId,
             ])
             ->filter()
             ->unique()

@@ -748,6 +748,23 @@ class AgentManagement extends Component
         $this->reloadWeb();
     }
 
+    private function resetCreateForm(): void
+    {
+        $this->reset([
+            'name',
+            'email',
+            'phone',
+            'password',
+            'commissionPercentage',
+            'professionalAgentId',
+            'realEstateLicenseNumber',
+        ]);
+
+        $this->is_active = 1;
+
+        $this->resetValidation();
+    }
+
     public function getSelectedAgentMember($id)
     {
         $agent = User::query()
@@ -853,10 +870,27 @@ class AgentManagement extends Component
             'is_active' => $validated['edit_is_active'],
         ];
 
+        $passwordChanged = false;
+
         if (! empty($validated['editPassword'])) {
             $userData['password'] = Hash::make(
                 $validated['editPassword']
             );
+
+            // Invalidate "Remember Me" login
+            $userData['remember_token'] = null;
+
+            $passwordChanged = true;
+        }
+
+        $user->update($userData);
+
+        // Force logout the agent from all active sessions
+        // ONLY when the admin changed their password.
+        if ($passwordChanged) {
+            DB::table('sessions')
+                ->where('user_id', $user->id)
+                ->delete();
         }
 
         $user->update($userData);

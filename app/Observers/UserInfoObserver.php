@@ -19,12 +19,45 @@ class UserInfoObserver
     /**
      * Handle the UserInfo "updated" event.
      */
+    protected array $trackedFields = [
+        'first_name'   => 'First Name',
+        'middle_name'  => 'Middle Name',
+        'last_name'    => 'Last Name',
+        'suffix'       => 'Suffix',
+        'phone'        => 'Phone Number',
+        'region'       => 'Region',
+        'province'     => 'Province',
+        'municipality' => 'Municipality',
+        'barangay'     => 'Barangay',
+    ];
+
     public function updated(UserInfo $userInfo): void
     {
         if (! auth()->check()) return;
-        if (! in_array(auth()->user()->role, ['admin', 'staff'])) return;
 
         $userInfo->loadMissing('user');
+
+        $changes  = $userInfo->getChanges();
+        $original = $userInfo->getOriginal();
+
+        $diff = [];
+
+        foreach ($this->trackedFields as $field => $label) {
+            if (! array_key_exists($field, $changes)) continue;
+
+            $old = $original[$field] ?? null;
+            $new = $changes[$field] ?? null;
+
+            if ($old === $new) continue;
+
+            $diff[$field] = [
+                'label' => $label,
+                'old'   => $old,
+                'new'   => $new,
+            ];
+        }
+
+        if (empty($diff)) return;
 
         $notification = Notification::create([
             'title' => 'Client Personal Info Updated',
@@ -32,14 +65,9 @@ class UserInfoObserver
             'type' => 'client_personal_info_updated',
             'url' => route('filament.ev-admin.pages.client-records'),
             'data' => [
-                'client_id' => $userInfo->user_id,
+                'client_id'   => $userInfo->user_id,
                 'client_name' => $userInfo->user?->name,
-                'phone' => $userInfo->phone,
-                'region' => $userInfo->region,
-                'province' => $userInfo->province,
-                'municipality' => $userInfo->municipality,
-                'barangay' => $userInfo->barangay,
-                'changes' => $userInfo->getChanges(),
+                'changes'     => $diff,
             ],
             'created_by' => auth()->id(),
         ]);

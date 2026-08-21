@@ -183,13 +183,39 @@
                             button.onclick = (e) => {
                                 e.stopPropagation();
 
+                                const currentScene = scene;
+
                                 const idx = this.scenes.findIndex(
-                                    s => s.id === h.target_scene_id
+                                    s => Number(s.id) === Number(h.target_scene_id)
                                 );
 
-                                if (idx !== -1) {
-                                    this.loadScene(idx);
+                                if (idx === -1) return;
+
+                                const targetScene = this.scenes[idx];
+
+                                /*
+                                * Find the hotspot in the destination scene
+                                * that points back to the scene we came from.
+                                */
+                                const returnHotspot = (targetScene.hotspots || []).find(
+                                    targetHotspot =>
+                                        Number(targetHotspot.target_scene_id) ===
+                                        Number(currentScene.id)
+                                );
+
+                                let targetPitch = null;
+                                let targetYaw = null;
+
+                                if (returnHotspot) {
+                                    targetPitch = Number(returnHotspot.pitch);
+                                    targetYaw = Number(returnHotspot.yaw);
                                 }
+
+                                this.loadScene(
+                                    idx,
+                                    targetPitch,
+                                    targetYaw
+                                );
                             };
 
                             wrapper.appendChild(ping);
@@ -202,7 +228,7 @@
                     }));
                 },
 
-                loadScene(index) {
+                loadScene(index, initialPitch = null, initialYaw = null) {
 
                     const scene = this.scenes[index];
                     if (!scene) return;
@@ -238,13 +264,32 @@
 
                         container.innerHTML = "";
 
-                        this.viewer = pannellum.viewer(container, {
+                        const viewerOptions = {
                             type: "equirectangular",
                             panorama: scene.image,
                             autoLoad: true,
                             showControls: true,
                             hotSpots: this.buildHotspots(scene)
-                        });
+                        };
+
+                        /*
+                        * If we entered this scene through another hotspot,
+                        * face the hotspot that leads back to where we came from.
+                        */
+                        if (
+                            initialPitch !== null &&
+                            initialYaw !== null &&
+                            Number.isFinite(initialPitch) &&
+                            Number.isFinite(initialYaw)
+                        ) {
+                            viewerOptions.pitch = initialPitch;
+                            viewerOptions.yaw = initialYaw;
+                        }
+
+                        this.viewer = pannellum.viewer(
+                            container,
+                            viewerOptions
+                        );
 
                         requestAnimationFrame(() => {
                             fade.style.opacity = "0";

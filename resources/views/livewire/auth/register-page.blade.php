@@ -95,6 +95,30 @@
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                </div>
+                                <div class="w-full mt-4">
+                                    <x-select
+                                        label="Agent"
+                                        placeholder="Select an agent (optional)"
+                                        wire:model.defer="agentId"
+                                        :options="$this->agents"
+                                        :template="[
+                                            'name' => 'user-option',
+                                            'config' => ['src' => 'profile_picture']
+                                        ]"
+                                        option-label="name"
+                                        option-value="id"
+                                        option-description="professional_agent_id"
+                                        searchable
+                                        clearable
+                                    />
+
+                                    @error('agentId')
+                                        <span class="text-xs text-red-500">
+                                            {{ $message }}
+                                        </span>
+                                    @enderror
                                 </div>
                                 <div class="w-full flex flex-col md:flex-row gap-5 mt-5">
                                     <x-select
@@ -221,7 +245,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-input label="Email" placeholder="ex: johndoe@gmai.com" class="py-3 -mt-1" wire:model="email" />
+                                                <x-input label="Email" placeholder="ex: johndoe@gmai.com" class="py-3 -mt-1" wire:model.live.debounce.300ms="email" />
                                             </div>
                                         </div>
                                     </div>
@@ -229,7 +253,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-inputs.phone label="Mobile No." placeholder="+63 912 345 6789" mask="['+63 ### ### ####']" class="py-3 -mt-1" wire:model="phone" />
+                                                <x-inputs.phone label="Mobile No." placeholder="+63 912 345 6789" mask="['+63 ### ### ####']" class="py-3 -mt-1" wire:model.live.debounce.300ms="phone" />
                                             </div>
                                         </div>
                                     </div>
@@ -239,7 +263,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-inputs.password label="Password" placeholder="Enter your password" class="py-3 -mt-1" wire:model="password" />
+                                                <x-inputs.password label="Password" placeholder="Enter your password" class="py-3 -mt-1" wire:model.live.debounce.300ms="password" />
                                             </div>
                                         </div>
                                     </div>
@@ -247,7 +271,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative whitespace-nowrap">
-                                                <x-inputs.password label="Confirm Password" placeholder="Confirm password" class="py-3 -mt-1" wire:model="confirmPassword" />
+                                                <x-inputs.password label="Confirm Password" placeholder="Confirm password" class="py-3 -mt-1" wire:model.live.debounce.300ms="confirmPassword" />
                                             </div>
                                         </div>
                                     </div>
@@ -279,7 +303,11 @@
                                 </svg>
                             </button>
                         @else
-                            <button type="submit" class="ml-auto mt-4 py-2 px-3 inline-flex items-center gap-x-1 text-sm font-semibold rounded-lg border border-transparent bg-[#101727] text-white hover:bg-[#101727] disabled:opacity-50 disabled:pointer-events-none"
+                            <button type="submit" 
+                                @disabled(
+                                    ! $termsAccepted || ! $firstName || ! $middleName || ! $lastName || ! $email || ! $phone || ! $password || ! $confirmPassword
+                                ) 
+                                class="ml-auto mt-4 py-2 px-3 inline-flex items-center gap-x-1 text-sm font-semibold rounded-lg border border-transparent bg-[#101727] text-white hover:bg-[#101727] disabled:opacity-50 disabled:pointer-events-none"
                             >
                                 Finish
                                 <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -297,7 +325,7 @@
         <div class="flex flex-col w-[90%] md:w-[80%] md:mt-0">
             <hr>
             <div class="flex items-start gap-2 my-3">
-                <input type="checkbox" id="terms">
+                <input type="checkbox" id="terms" wire:model.live="termsAccepted">
 
                 <label for="terms" class="text-sm text-gray-500">
                     I agree to the 

@@ -95,7 +95,8 @@
                 <div
                     wire:key="reservation-{{ $reservation->id }}"
                     x-data="{
-                        shouldScroll: @js((int) $highlight === (int) $reservation->id)
+                        shouldScroll: @js((int) $highlight === (int) $reservation->id),
+                        open: @js((int) $highlight === (int) $reservation->id)
                     }"
                     x-init="
                         if (shouldScroll) {
@@ -107,11 +108,65 @@
                             }, 500);
                         }
                     "
-                    class="bg-white rounded-xl p-5 shadow border mb-4 transition-all
+                    x-on:click="open = !open"
+                    class="bg-white rounded-xl p-5 shadow border mb-4 transition-all cursor-pointer
                         {{ (int) $highlight === (int) $reservation->id
                             ? 'ring-2 ring-green-500 bg-green-50'
                             : '' }}"
                 >
+
+                    {{-- COLLAPSED SUMMARY (shown when card is closed) --}}
+                    <div
+                        x-show="!open"
+                        class="w-full flex items-center justify-between gap-3 text-left"
+                    >
+                        <div class="flex items-center gap-3 md:gap-4 min-w-0">
+
+                            <div class="h-10 w-10 md:h-12 md:w-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <x-icon name="home-modern" class="w-6 h-6 text-green-600" />
+                            </div>
+
+                            <div class="min-w-0">
+                                <h3 class="text-base md:text-lg font-semibold text-gray-900 truncate">
+                                    {{ $reservation->lot?->name }}
+                                </h3>
+
+                                <p class="text-xs md:text-sm text-gray-500">
+                                    Click to view reservation details
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <div class="flex items-center gap-3 flex-shrink-0">
+
+                            <span class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap
+                                @if($reservation->status === 'pending')
+                                    bg-yellow-100 text-yellow-700
+
+                                @elseif($reservation->status === 'awaiting_reservation_fee')
+                                    bg-blue-100 text-blue-700
+
+                                @elseif($reservation->status === 'reservation_fee_submitted')
+                                    bg-purple-100 text-purple-700
+
+                                @elseif($reservation->status === 'approved')
+                                    bg-green-100 text-green-700
+
+                                @else
+                                    bg-red-100 text-red-700
+                                @endif
+                            ">
+                                {{ ucfirst(str_replace('_', ' ', $reservation->status)) }}
+                            </span>
+
+                            <x-icon name="chevron-down" class="w-5 h-5 text-gray-500" />
+
+                        </div>
+                    </div>
+
+                    {{-- EXPANDED DETAILS (shown when card is open) --}}
+                    <div x-show="open" x-cloak>
 
                     {{-- HEADER --}}
                     <div class="flex items-start mb-4 gap-3 md:gap-4">
@@ -171,6 +226,10 @@
 
                             </div>
 
+                        </div>
+
+                        <div class="flex-shrink-0 p-1">
+                            <x-icon name="chevron-up" class="w-5 h-5 text-gray-500" />
                         </div>
 
                     </div>
@@ -262,11 +321,11 @@
                                 <x-button
                                     label="Proceed to Payment"
                                     icon="banknotes"
-                                    x-on:click="
+                                    x-on:click.stop="
                                         $wire.reservationId = {{ $reservation->id }};
                                         $openModal('reservationPayment')
                                     "
-                                    class="bg-[#101727] text-white"
+                                    class="bg-[#101727] text-white hover:!bg-[#3b4a68] hover:!text-white transition-colors"
                                 />
 
                             </div>
@@ -358,6 +417,7 @@
                             <a
                                 href="{{ asset('storage/' . $reservation->latestReservationPayment->proof_of_payment) }}"
                                 target="_blank"
+                                x-on:click.stop
                                 class="mt-3 inline-flex text-purple-700 font-medium"
                             >
                                 View Uploaded Proof
@@ -410,6 +470,7 @@
                                 <a
                                     href="{{ asset('storage/' . $document->file_path) }}"
                                     target="_blank"
+                                    x-on:click.stop
                                     class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition"
                                 >
                                     <div>
@@ -431,6 +492,9 @@
 
                     </div>
 
+                    </div>
+                    {{-- END EXPANDED DETAILS --}}
+
                 </div>
 
             @empty
@@ -448,7 +512,21 @@
     </div>
 
     {{-- CREATE MODAL --}}
-    <x-modal blur name="createReservation" persistent align="center" max-width="xl">
+    <x-modal
+        blur
+        name="createReservation"
+        persistent
+        align="center"
+        max-width="xl"
+
+        x-on:reservation-created.window="
+            close();
+
+            setTimeout(() => {
+                $wire.showReservationSuccess();
+            }, 350);
+        "
+    >
         <x-card title="Create New Reservation">
             
             <div class="mt-3">
@@ -494,22 +572,24 @@
                 @enderror
             </div>
            
-            <div class="mt-3">
-                <x-select
-                    label="Agent"
-                    placeholder="Select an agent (optional)"
-                    wire:model.defer="agentId"
-                    :options="$this->agents"
-                    :template="[
-                        'name' => 'user-option',
-                        'config' => ['src' => 'profile_picture']
-                    ]"
-                    option-label="name"
-                    option-value="id"
-                    option-description="email"
-                    searchable
-                    clearable
-                />
+            <div class="mt-3 relative">
+                <div class="pointer-events-none">
+                    <x-select
+                        label="Agent"
+                        placeholder="Select an agent (optional)"
+                        wire:model.defer="agentId"
+                        :options="$this->agents"
+                        :template="[
+                            'name' => 'user-option',
+                            'config' => ['src' => 'profile_picture']
+                        ]"
+                        option-label="name"
+                        option-value="id"
+                        option-description="email"
+                        searchable
+                        clearable
+                    />
+                </div>
 
                 @error('agentId')
                     <span class="text-xs italic text-red-500">
@@ -523,7 +603,7 @@
                     <x-select
                         label="House Model"
                         wire:model.defer="houseModelId"
-                        placeholder="Select some client"
+                        placeholder="Select some house model"
                         :async-data="route('api.house-models.index')"
                         :template="[
                             'name'   => 'user-option',
@@ -645,6 +725,18 @@
                         multiple
                         :accepted-file-types="['image/png','image/jpeg','image/webp']"
                     />
+
+                    @error('doc_1x1')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
+                    @error('doc_1x1.*')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
                 </div>
 
                 {{-- Primary IDs --}}
@@ -654,6 +746,18 @@
                         wire:model="doc_primary_ids"
                         multiple
                     />
+
+                    @error('doc_primary_ids')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
+                    @error('doc_primary_ids.*')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
                 </div>
 
                 {{-- Billing --}}
@@ -663,6 +767,18 @@
                         wire:model="doc_billing"
                         multiple
                     />
+
+                    @error('doc_billing')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
+                    @error('doc_billing.*')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
                 </div>
 
                 {{-- PSA --}}
@@ -672,6 +788,18 @@
                         wire:model="doc_psa"
                         multiple
                     />
+
+                    @error('doc_psa')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
+                    @error('doc_psa.*')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
                 </div>
 
                 {{-- Income --}}
@@ -681,6 +809,18 @@
                         wire:model="doc_income"
                         multiple
                     />
+
+                    @error('doc_income')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
+                    @error('doc_income.*')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
                 </div>
 
                 {{-- TIN --}}
@@ -690,6 +830,18 @@
                         wire:model="doc_tin"
                         multiple
                     />
+
+                    @error('doc_tin')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
+                    @error('doc_tin.*')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
+                    @enderror
                 </div>
             </div>
 
@@ -769,6 +921,11 @@
                 <x-input
                     label="Reference Number"
                     wire:model="referenceNo"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    required
                 />
             </div>
 
@@ -779,7 +936,14 @@
 
                 <x-filepond::upload
                     wire:model="proofOfPayment"
+                    required
                 />
+
+                @error('proofOfPayment')
+                    <span class="text-sm text-red-500">
+                        {{ $message }}
+                    </span>
+                @enderror
             </div>
 
             <x-slot name="footer">

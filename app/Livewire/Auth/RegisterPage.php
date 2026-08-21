@@ -40,6 +40,7 @@ class RegisterPage extends Component
 
     public $password;
     public $confirmPassword;
+    public bool $termsAccepted = false;
 
     public int $currentStep;
     public bool $isFinishedStepOne;
@@ -48,6 +49,8 @@ class RegisterPage extends Component
     public $regionCode;
     public $provinceCode;
     public $municipalityCode;
+
+    public $agentId = null;
 
     public function mount(){
         $this->initialData();
@@ -81,6 +84,7 @@ class RegisterPage extends Component
             'lastName' => 'required|max:255',
             'middleName' => 'required|max:255',
             'suffix' => 'nullable|max:255',
+            'agentId' => 'nullable|exists:users,id',
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|unique:users,email|max:255',
             'region' => 'required|max:255',
@@ -119,6 +123,7 @@ class RegisterPage extends Component
                 'middle_name' => $this->middleName,
                 'last_name' => $this->lastName,
                 'suffix' => $this->suffix,
+                'agent_id' => $this->agentId,
                 'phone' => '+63' . $this->phone,
                 'region' => $this->region,
                 'province' => $this->province,
@@ -168,6 +173,26 @@ class RegisterPage extends Component
         if($this->municipality){
             $this->municipalityCode = PHCities::where('city_municipality_description', $this->municipality)->value('city_municipality_code');
         }
+    }
+
+    public function getAgentsProperty()
+    {
+        return User::query()
+            ->with('info')
+            ->where('role', 'agent')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'profile_picture'])
+            ->map(function ($agent) {
+                return [
+                    'id' => $agent->id,
+                    'name' => $agent->name,
+                    'email' => $agent->email,
+                    'profile_picture' => $agent->profile_picture,
+
+                    'professional_agent_id' => $agent->info?->professional_agent_id,
+                ];
+            })
+            ->toArray();
     }
 
     public function render()

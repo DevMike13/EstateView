@@ -8,11 +8,13 @@ use Illuminate\Support\Carbon;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use WireUi\Traits\Actions;
+use Livewire\WithFileUploads;
+use Spatie\LivewireFilepond\WithFilePond;
 
 #[Title('Appointment')]
 class AppointmentPage extends Component
 {
-    use Actions;
+    use Actions, WithFileUploads, WithFilePond;
 
     public $selectedDate;
     public $currentMonth;
@@ -21,8 +23,9 @@ class AppointmentPage extends Component
     public $appointmentType;
     public $timeSlot;
     public $notes;
-    public $name;
-    public $phone;
+    // public $name;
+    // public $phone;
+    public $document;
 
     public $activeTab = 'pending';
 
@@ -70,6 +73,45 @@ class AppointmentPage extends Component
             ? (int) request()
                 ->query('highlight')
             : null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Show Appointment Success Toast After Refresh
+        |--------------------------------------------------------------------------
+        */
+
+        if (session()->has('appointment_success')) {
+            $this->notification()->success(
+                'Appointment Created',
+                'Appointment booked successfully!'
+            );
+        }
+    }
+
+    public function rules(): array
+    {
+        return [
+            'document' => [
+                'nullable',
+                'file',
+                'mimes:pdf,jpg,jpeg,png,doc,docx',
+                'max:10240',
+            ],
+        ];
+    }
+
+    public function validateUploadedFile()
+    {
+        $this->validate([
+            'document' => [
+                'nullable',
+                'file',
+                'mimes:pdf,jpg,jpeg,png,doc,docx',
+                'max:10240',
+            ],
+        ]);
+
+        return true;
     }
 
     /*
@@ -454,22 +496,29 @@ class AppointmentPage extends Component
                 'string',
             ],
 
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+            // 'name' => [
+            //     'required',
+            //     'string',
+            //     'max:255',
+            // ],
 
-            'phone' => [
-                'required',
-                'string',
-                'max:30',
-            ],
+            // 'phone' => [
+            //     'required',
+            //     'string',
+            //     'max:30',
+            // ],
 
             'notes' => [
                 'nullable',
                 'string',
                 'max:2000',
+            ],
+
+            'document' => [
+                'nullable',
+                'file',
+                'mimes:pdf,jpg,jpeg,png,doc,docx',
+                'max:10240',
             ],
         ]);
 
@@ -638,43 +687,52 @@ class AppointmentPage extends Component
         |--------------------------------------------------------------------------
         */
 
-        $phone =
-            preg_replace(
-                '/\D+/',
-                '',
-                $this->phone
-            );
+        // $phone =
+        //     preg_replace(
+        //         '/\D+/',
+        //         '',
+        //         $this->phone
+        //     );
 
         /*
          * Remove existing country prefix.
          */
-        if (
-            str_starts_with(
-                $phone,
-                '63'
-            )
-        ) {
-            $phone =
-                substr(
-                    $phone,
-                    2
-                );
-        }
+        // if (
+        //     str_starts_with(
+        //         $phone,
+        //         '63'
+        //     )
+        // ) {
+        //     $phone =
+        //         substr(
+        //             $phone,
+        //             2
+        //         );
+        // }
 
         /*
          * Remove leading zero.
          */
-        $phone =
-            ltrim(
-                $phone,
-                '0'
-            );
+        // $phone =
+        //     ltrim(
+        //         $phone,
+        //         '0'
+        //     );
 
         /*
         |--------------------------------------------------------------------------
         | Save
         |--------------------------------------------------------------------------
         */
+
+        $documentPath = null;
+
+        if ($this->document) {
+            $documentPath = $this->document->store(
+                'appointment-documents',
+                'public'
+            );
+        }
 
         ClientAppointment::create([
             'user_id' =>
@@ -690,14 +748,17 @@ class AppointmentPage extends Component
             'appointment_type' =>
                 $this->appointmentType,
 
-            'name' =>
-                $this->name,
+            // 'name' =>
+            //     $this->name,
 
-            'phone' =>
-                '+63' . $phone,
+            // 'phone' =>
+            //     '+63' . $phone,
 
             'notes' =>
                 $this->notes,
+
+            'document_path' =>
+                $documentPath,
 
             'status' =>
                 'pending',
@@ -709,23 +770,17 @@ class AppointmentPage extends Component
         |--------------------------------------------------------------------------
         */
 
-        $this->notification()->success(
-            'Appointment Created',
-            'Appointment booked successfully!'
+        session()->flash(
+            'appointment_success',
+            true
         );
-
-        $this->reset([
-            'selectedDate',
-            'timeSlot',
-            'appointmentType',
-            'name',
-            'phone',
-            'notes',
-        ]);
 
         session()->forget(
             'selectedDate'
         );
+
+        return redirect()
+            ->route('client.appointment');
     }
 
     /*
@@ -757,13 +812,19 @@ class AppointmentPage extends Component
                 'required',
             ],
 
-            'name' => [
-                'required',
-                'string',
-            ],
+            // 'name' => [
+            //     'required',
+            //     'string',
+            // ],
 
-            'phone' => [
-                'required',
+            // 'phone' => [
+            //     'required',
+            // ],
+            'document' => [
+                'nullable',
+                'file',
+                'mimes:pdf,jpg,jpeg,png,doc,docx',
+                'max:10240',
             ],
         ]);
 

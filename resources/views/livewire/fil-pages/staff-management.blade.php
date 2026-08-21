@@ -9,10 +9,10 @@
             <table class="min-w-full divide-y divide-table-line">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase">Staff Member</th>
-                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase">Status</th>
-                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 uppercase">Joined</th>
-                        <th scope="col" class="px-6 py-3 text-end text-xs font-medium text-muted-foreground-1 uppercase">Action</th>
+                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase">Staff Member</th>
+                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase">Status</th>
+                        <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase">Joined</th>
+                        <th scope="col" class="px-6 py-3 text-end text-xs font-medium text-muted-foreground-1 dark:text-gray-500 uppercase">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-table-line">

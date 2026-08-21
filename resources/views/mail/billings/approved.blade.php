@@ -11,6 +11,8 @@ Your payment has been approved successfully.
 - Billing: {{ $payment->billing->title }}
 - Amount: ₱{{ number_format($payment->amount, 2) }}
 - Method: {{ Str::headline($payment->payment_method) }}
+- Approved By: {{ $payment->verifier?->name ?? 'Admin / Staff' }}
+- Approved At: {{ $payment->verified_at->format('F j, Y g:i A') }}
 
 Thank you for your payment.
 

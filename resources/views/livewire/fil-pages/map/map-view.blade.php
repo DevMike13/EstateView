@@ -357,7 +357,7 @@
                             <x-select
                                 label="House Model"
                                 wire:model.defer="houseModelId"
-                                placeholder="Select some client"
+                                placeholder="Select some house model"
                                 :async-data="route('api.house-models.index')"
                                 :template="[
                                     'name'   => 'user-option',
@@ -656,7 +656,7 @@
                             <x-select
                                 label="House Model"
                                 wire:model.defer="editHouseModelId"
-                                placeholder="Select some client"
+                                placeholder="Select some house model"
                                 :async-data="route('api.house-models.index')"
                                 :template="[
                                     'name'   => 'user-option',
@@ -948,8 +948,11 @@
                     .map(Number);
 
                 const type = area.dataset.type;
+                const status = (area.dataset.status || '').toLowerCase().trim();
 
-                const color = colors[type] || "#0096ff";
+                const color = status === 'sold'
+                    ? colors["Sold"]
+                    : (colors[type] || "#0096ff");
 
                 ctx.beginPath();
 
@@ -976,6 +979,27 @@
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.stroke();
+                if (status === 'sold') {
+                    const xValues = [];
+                    const yValues = [];
+
+                    for (let i = 0; i < coords.length; i += 2) {
+                        xValues.push(coords[i]);
+                        yValues.push(coords[i + 1]);
+                    }
+
+                    const centerX = (Math.min(...xValues) + Math.max(...xValues)) / 2;
+                    const centerY = (Math.min(...yValues) + Math.max(...yValues)) / 2;
+
+                    ctx.save();
+                    ctx.globalAlpha = 0.8;
+                    ctx.fillStyle = "#000000";
+                    ctx.font = "bold 14px Arial";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText("SOLD", centerX, centerY);
+                    ctx.restore();
+                }
 
             });
 

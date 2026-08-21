@@ -32,14 +32,40 @@ class PurchaseAccountObserver
             'type' => 'ledger_created',
             'url' => route('filament.ev-admin.pages.client-ledgers'),
             'data' => [
-                'purchase_account_id' => $purchaseAccount->id,
-                'client_name' => $purchaseAccount->user?->name,
-                'client_email' => $purchaseAccount->user?->email,
-                'agent_id' => $purchaseAccount->reservation?->agent_id,
-                'agent_name' => $purchaseAccount->reservation?->agent?->name,
-                'lot_name' => $purchaseAccount->lot?->name,
-                'payment_scheme' => $purchaseAccount->payment_scheme,
-                'remaining_balance' => $purchaseAccount->remaining_balance,
+                'purchase_account_id' =>
+                    $purchaseAccount->id,
+
+                'client_name' =>
+                    $purchaseAccount->user?->name,
+
+                'client_email' =>
+                    $purchaseAccount->user?->email,
+
+                'agent_id' =>
+                    $purchaseAccount->reservation?->agent_id,
+
+                'agent_name' =>
+                    $purchaseAccount->reservation?->agent?->name,
+
+                'lot_name' =>
+                    $purchaseAccount->lot?->name,
+
+                'payment_scheme' =>
+                    $purchaseAccount->payment_scheme,
+
+                'remaining_balance' =>
+                    $purchaseAccount->remaining_balance,
+
+                'client_url' => route(
+                    'client.bills',
+                    [
+                        'account' =>
+                            $purchaseAccount->id,
+
+                        'tab' =>
+                            'unpaid',
+                    ]
+                ),
             ],
             'created_by' => auth()->id(),
         ]);

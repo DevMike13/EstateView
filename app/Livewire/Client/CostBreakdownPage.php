@@ -147,9 +147,16 @@ class CostBreakdownPage extends Component
         }
 
         if ($this->paymentOption === 'cash') {
+
             $this->calculateCashPayment();
+
         } elseif ($this->paymentOption === 'bank-loan') {
+
             $this->calculateBankLoan();
+
+        } elseif ($this->paymentOption === 'deferred-payment') {
+
+            $this->calculateDeferredPayment();
         }
     }
 
@@ -210,6 +217,30 @@ class CostBreakdownPage extends Component
             $this->loanableAmount *
             (($monthlyRate * $compoundFactor) /
             ($compoundFactor - 1));
+    }
+
+    protected function calculateDeferredPayment()
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | DEFERRED PAYMENT
+        |--------------------------------------------------------------------------
+        |
+        | Existing ledger behavior:
+        | Total contract price is divided over 36 months.
+        |
+        */
+
+        $months = 36;
+
+        $this->downpaymentAmount = 0;
+
+        $this->loanableAmount = 0;
+
+        $this->cashDiscount = 0;
+
+        $this->monthlyAmortization =
+            $this->totalContractPrice / $months;
     }
 
     protected function updateLotApiUrl($value)

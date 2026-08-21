@@ -1,4 +1,4 @@
-<div class="w-full h-auto pt-10 md:pt-40 p-5 md:p-0">
+<div class="w-full h-auto pt-28 md:pt-40 p-5 md:p-0">
     <div class="w-full h-auto max-w-5xl mx-auto flex justify-end">
         <x-button icon="clipboard-list" label="Create Reservation" x-on:click="$openModal('createReservation')" class="bg-[#101727] text-white hover:text-[#101727] rounded-xl ml-auto block" />
     </div>
@@ -643,11 +643,18 @@
                 <x-select
                     label="Preferred Payment"
                     placeholder="Select preferred payment"
-                    :options="[
-                        ['id' => 'cash', 'name' => 'Cash'],
-                        ['id' => 'bank_loan', 'name' => 'Bank Loan'],
-                        ['id' => 'deferred_payment', 'name' => 'Deferred Payment'],
-                    ]"
+                    :options="
+                        $reservationType === 'Lot Only'
+                            ? [
+                                ['id' => 'cash', 'name' => 'Cash'],
+                                ['id' => 'bank_loan', 'name' => 'Bank Loan'],
+                                ['id' => 'deferred_payment', 'name' => 'Deferred Payment'],
+                            ]
+                            : [
+                                ['id' => 'cash', 'name' => 'Cash'],
+                                ['id' => 'bank_loan', 'name' => 'Bank Loan'],
+                            ]
+                    "
                     option-label="name"
                     option-value="id"
                     wire:model.live="preferredPayment"

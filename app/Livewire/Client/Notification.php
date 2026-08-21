@@ -71,9 +71,74 @@ class Notification extends Component
 
         $data = $notification->data ?? [];
 
+        /*
+        |--------------------------------------------------------------------------
+        | PAYMENT APPROVED
+        |--------------------------------------------------------------------------
+        |
+        | Always send approved payments to Paid Bills.
+        | This also fixes older notifications that were saved with tab=unpaid.
+        |
+        */
+        if (
+            $notification->type === 'billing_payment_approved' &&
+            ! empty($data['purchase_account_id'])
+        ) {
+            return redirect()->to(
+                route('client.bills', [
+                    'account' => $data['purchase_account_id'],
+                    'tab' => 'paid',
+                    'highlight' => $data['billing_id'] ?? null,
+                ])
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PAYMENT REJECTED
+        |--------------------------------------------------------------------------
+        |
+        | Rejected payments stay under Unpaid.
+        |
+        */
+        if (
+            $notification->type === 'billing_payment_rejected' &&
+            ! empty($data['purchase_account_id'])
+        ) {
+            return redirect()->to(
+                route('client.bills', [
+                    'account' => $data['purchase_account_id'],
+                    'tab' => 'unpaid',
+                    'highlight' => $data['billing_id'] ?? null,
+                ])
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CLIENT LEDGER CREATED
+        |--------------------------------------------------------------------------
+        */
+        if (
+            $notification->type === 'ledger_created' &&
+            ! empty($data['purchase_account_id'])
+        ) {
+            return redirect()->to(
+                route('client.bills', [
+                    'account' => $data['purchase_account_id'],
+                    'tab' => 'unpaid',
+                ])
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | DEFAULT CLIENT URL
+        |--------------------------------------------------------------------------
+        */
         $clientUrl = $data['client_url'] ?? null;
 
-        if (!$clientUrl) {
+        if (! $clientUrl) {
             return;
         }
 

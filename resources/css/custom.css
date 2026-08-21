@@ -152,3 +152,7 @@
     animation: hotspot-ping 1.8s ease-out infinite;
     z-index: -1;
 }
+
+.pnlm-load-box {
+    display: none !important;
+}

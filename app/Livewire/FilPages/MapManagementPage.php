@@ -715,11 +715,11 @@ class MapManagementPage extends Component
             ]
         );
 
-        Notification::make()
-            ->title('Scene Removed')
-            ->body('The scene has been removed from this tour. Click "Update Tour" to save this change permanently.')
-            ->success()
-            ->send();
+        // Notification::make()
+        //     ->title('Scene Removed')
+        //     ->body('The scene has been removed from this tour. Click "Update Tour" to save this change permanently.')
+        //     ->success()
+        //     ->send();
     }
 
     /*
@@ -1228,6 +1228,58 @@ class MapManagementPage extends Component
             'selectedHouseModel.id' =>
                 'required',
         ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDATE: EVERY SCENE MUST HAVE A PANORAMA IMAGE
+        |--------------------------------------------------------------------------
+        |
+        | Existing scenes may use their already-saved panorama.
+        | New / replaced scenes may contain a TemporaryUploadedFile.
+        |
+        */
+
+        if (empty($this->scenes)) {
+
+            Notification::make()
+                ->title('Missing Scene')
+                ->body(
+                    'The virtual tour must contain at least one scene.'
+                )
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        foreach ($this->scenes as $scene) {
+
+            $hasNewFile =
+                isset($scene['file'])
+                && $scene['file']
+                    instanceof TemporaryUploadedFile;
+
+            $hasExistingPanorama =
+                ! empty($scene['preview']);
+
+            if (
+                ! $hasNewFile
+                && ! $hasExistingPanorama
+            ) {
+
+                Notification::make()
+                    ->title('Missing Panorama')
+                    ->body(
+                        'Scene "'
+                        . ($scene['name'] ?: 'Untitled')
+                        . '" has no panorama image. Please upload one before updating the tour.'
+                    )
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
 
         if (! $this->selectedTour) {
 

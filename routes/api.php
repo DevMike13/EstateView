@@ -163,23 +163,65 @@ Route::get('/api/lots', function (Request $request) {
 
     return Lot::query()
 
+        /*
+        |--------------------------------------------------------------------------
+        | CURRENTLY SELECTED LOT
+        |--------------------------------------------------------------------------
+        | WireUI sends the selected ID when it needs to resolve the label
+        | of an existing value.
+        */
+        ->when($request->selected, function ($query, $selected) {
+            $query->whereIn(
+                'id',
+                Arr::wrap($selected)
+            );
+        })
+
+        /*
+        |--------------------------------------------------------------------------
+        | SEARCH
+        |--------------------------------------------------------------------------
+        */
         ->when($request->search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%");
+                    ->orWhere('type', 'like', "%{$search}%");
             });
         })
 
-        // ✅ dynamic type filter (SAFE + clean)
+        /*
+        |--------------------------------------------------------------------------
+        | RESERVATION TYPE
+        |--------------------------------------------------------------------------
+        */
         ->when($request->type, function ($query, $type) {
             $query->where('type', $type);
         })
 
+        /*
+        |--------------------------------------------------------------------------
+        | AVAILABLE LOTS ONLY
+        |--------------------------------------------------------------------------
+        */
         ->where('status', 'available')
 
-        ->select('id', 'name', 'price', 'lot_area', 'image', 'type')
+        ->select(
+            'id',
+            'name',
+            'price',
+            'lot_area',
+            'image',
+            'type'
+        )
 
-        ->limit(20)
+        /*
+        |--------------------------------------------------------------------------
+        | LIMIT ONLY NORMAL SEARCH RESULTS
+        |--------------------------------------------------------------------------
+        */
+        ->unless($request->selected, function ($query) {
+            $query->limit(20);
+        })
 
         ->get()
 
@@ -199,7 +241,6 @@ Route::get('/api/lots', function (Request $request) {
         });
 
 })->name('api.lots.index');
-
 // EDIT CLIENT
 Route::get('/api/client/regions', [ApiController::class, 'getRegions'])->name('api.regions.client');
 Route::get('/api/client/provinces', [ApiController::class, 'getProvinces'])->name('api.provinces.client');

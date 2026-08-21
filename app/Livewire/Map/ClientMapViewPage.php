@@ -14,11 +14,10 @@ use Illuminate\Support\Str;
 class ClientMapViewPage extends Component
 {
     use WithFilePond, Actions, WithFileUploads;
-    
+
     // LOT MANAGEMENT
     public $map;
     public $lots;
-
     public $lotName;
     public $lotType;
     public $lotImage;
@@ -29,14 +28,14 @@ class ClientMapViewPage extends Component
     public $lotStatus = 'available';
     public $lotCoordinates = '';
     public $points = [];
-
     public $lotCounts = [];
     // LOT MANEGEMENT END
 
     // EDIT
     public $activeLotId;
 
-   
+    public $lastLotVersion = null;
+
     public $typeColors = [
         'Playground & Community Amenities' => '#f2b879',
         'Model House' => '#c8c9c3',
@@ -47,12 +46,18 @@ class ClientMapViewPage extends Component
 
     public function mount()
     {
-        $this->map = Map::with('lots')->first();
+        $this->map = Map::with([
+            'lots.user',
+            'lots.houseModel',
+        ])->first();
+
         $this->lots = $this->map?->lots ?? [];
 
         $this->generateLotCounts();
+
+        $this->lastLotVersion = $this->getLotVersion();
     }
-    
+
     public function generateLotCounts()
     {
         $this->lotCounts = collect(array_keys($this->typeColors))
@@ -67,6 +72,58 @@ class ClientMapViewPage extends Component
         $this->lotCounts = array_merge($this->lotCounts, $counts);
     }
 
+    public function refreshLots(): void
+    {
+        $newVersion = $this->getLotVersion();
+
+        /*
+         * Nothing changed.
+         * Do not let Livewire render the component,
+         * because replacing the canvas causes the overlay to disappear.
+         */
+        if ($newVersion === $this->lastLotVersion) {
+            $this->skipRender();
+
+            return;
+        }
+
+        /*
+         * Something changed.
+         */
+        $this->lastLotVersion = $newVersion;
+
+        $this->map = Map::with([
+            'lots.user',
+            'lots.houseModel',
+        ])->first();
+
+        $this->lots = $this->map?->lots ?? [];
+
+        $this->generateLotCounts();
+
+        /*
+         * After Livewire morphs the new <area> elements,
+         * redraw the responsive map overlay.
+         */
+        $this->dispatch('refresh-client-map');
+    }
+
+    private function getLotVersion(): string
+    {
+        return Lot::query()
+            ->orderBy('id')
+            ->get([
+                'id',
+                'updated_at',
+            ])
+            ->map(
+                fn ($lot) =>
+                    $lot->id . '-'
+                    . optional($lot->updated_at)->timestamp
+            )
+            ->implode('|');
+    }
+
     public function openLot($id)
     {
         $lot = Lot::find($id);
@@ -74,7 +131,7 @@ class ClientMapViewPage extends Component
         if (!$lot) {
             return; // Safety check
         }
-        
+
         Notification::make()
             ->title('Success!')
             ->body("You clicked on lot: {$lot->name}")
@@ -87,21 +144,21 @@ class ClientMapViewPage extends Component
         $this->activeLotId = $id;
     }
 
-
     /* =========================
         HELPERS
     ==========================*/
+
     private function reloadMap()
     {
         $this->map = Map::with('lots')->first();
         $this->lots = $this->map->lots;
     }
 
-    public function reloadWeb(){
-
+    public function reloadWeb()
+    {
         $this->dispatch('reload');
-        return redirect()->back();
 
+        return redirect()->back();
     }
 
     public function render()

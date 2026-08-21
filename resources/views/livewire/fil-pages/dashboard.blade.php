@@ -93,56 +93,58 @@
           <div class="text-4xl font-light text-gray-900 mb-2">{{ $soldLots }}</div>
           <div class="text-sm text-gray-600 uppercase tracking-wide">Sold Lots</div>
         </a>
-        <a class="bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.agent-management') }}" data-discover="true">
-          <div class="flex items-center justify-between mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users h-10 w-10 text-gray-400 group-hover:text-gray-900 transition-colors">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <div class="flex items-center gap-1 text-sm text-green-600">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up h-4 w-4">
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-                <polyline points="16 7 22 7 22 13"></polyline>
-              </svg>+3
+        @if(auth()->user()?->role !== 'staff')
+          <a class="bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.agent-management') }}" data-discover="true">
+            <div class="flex items-center justify-between mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users h-10 w-10 text-gray-400 group-hover:text-gray-900 transition-colors">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <div class="flex items-center gap-1 text-sm text-green-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up h-4 w-4">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>+3
+              </div>
             </div>
-          </div>
-          <div class="text-4xl font-light text-gray-900 mb-2">{{ $totalAgents }}</div>
-          <div class="text-sm text-gray-600 uppercase tracking-wide">Total Agents</div>
-        </a>
-        <a class="bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.reports') }}" data-discover="true">
-          <div class="flex items-center justify-between mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock h-10 w-10 text-gray-400 group-hover:text-gray-900 transition-colors">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <div class="flex items-center gap-1 text-sm text-orange-600">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up h-4 w-4">
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-                <polyline points="16 7 22 7 22 13"></polyline>
-              </svg>-1
+            <div class="text-4xl font-light text-gray-900 mb-2">{{ $totalAgents }}</div>
+            <div class="text-sm text-gray-600 uppercase tracking-wide">Total Agents</div>
+          </a>
+          <a class="bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.reports') }}" data-discover="true">
+            <div class="flex items-center justify-between mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock h-10 w-10 text-gray-400 group-hover:text-gray-900 transition-colors">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <div class="flex items-center gap-1 text-sm text-orange-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up h-4 w-4">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>-1
+              </div>
             </div>
-          </div>
-          <div class="text-4xl font-light text-gray-900 mb-2">{{ $delayedPayments }}</div>
-          <div class="text-sm text-gray-600 uppercase tracking-wide">Delayed Payments</div>
-        </a>
-        <a class="bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.reports') }}" data-discover="true">
-          <div class="flex items-center justify-between mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big h-10 w-10 text-gray-400 group-hover:text-gray-900 transition-colors">
-              <path d="M21.801 10A10 10 0 1 1 17 3.335"></path>
-              <path d="m9 11 3 3L22 4"></path>
-            </svg>
-            <div class="flex items-center gap-1 text-sm text-green-600">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up h-4 w-4">
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-                <polyline points="16 7 22 7 22 13"></polyline>
-              </svg>+1
+            <div class="text-4xl font-light text-gray-900 mb-2">{{ $delayedPayments }}</div>
+            <div class="text-sm text-gray-600 uppercase tracking-wide">Delayed Payments</div>
+          </a>
+          <a class="bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.reports') }}" data-discover="true">
+            <div class="flex items-center justify-between mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big h-10 w-10 text-gray-400 group-hover:text-gray-900 transition-colors">
+                <path d="M21.801 10A10 10 0 1 1 17 3.335"></path>
+                <path d="m9 11 3 3L22 4"></path>
+              </svg>
+              <div class="flex items-center gap-1 text-sm text-green-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up h-4 w-4">
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>+1
+              </div>
             </div>
-          </div>
-          <div class="text-4xl font-light text-gray-900 mb-2">{{ $advancedPayments }}</div>
-          <div class="text-sm text-gray-600 uppercase tracking-wide">Advanced Payments</div>
-        </a>
+            <div class="text-4xl font-light text-gray-900 mb-2">{{ $advancedPayments }}</div>
+            <div class="text-sm text-gray-600 uppercase tracking-wide">Advanced Payments</div>
+          </a>
+        @endif
       </div>
       <div class="bg-yellow-50 border border-yellow-200 p-4 md:p-8">
         <div class="flex items-start gap-3 md:gap-4 mb-4 md:mb-6">

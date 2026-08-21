@@ -1,27 +1,74 @@
-<div>
+<div wire:poll.5s="refreshLots">
+
     <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100 mt-10">
         <div class="w-full h-auto flex justify-between items-center mb-5">
             <div>
                 <h2 class="text-lg font-semibold">Subdivision Lot Map</h2>
-                <p class="text-sm text-gray-500">Click on any lot to view details or assign to a client</p>
+                {{-- <p class="text-sm text-gray-500">Click on any lot to view details or assign to a client</p> --}}
             </div>
         </div>
-       
-        <div class="relative">
+        {{-- MAP LEGEND --}}
+        <div class="mb-6">
+
+            <div class="mb-3">
+                <h3 class="text-sm font-semibold text-gray-800">
+                    Map Legend
+                </h3>
+
+                <p class="text-xs text-gray-500">
+                    Colors indicate the type and status of each mapped lot.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+
+                @foreach($typeColors as $type => $color)
+
+                    <div
+                        class="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-3 py-3 shadow-sm"
+                    >
+
+                        {{-- COLOR INDICATOR --}}
+                        <div
+                            class="w-10 h-10 rounded-lg border flex-shrink-0"
+                            style="
+                                background-color: {{ $color }}73;
+                                border-color: {{ $color }};
+                            "
+                        ></div>
+
+                        {{-- LABEL --}}
+                        <div class="min-w-0">
+
+                            <div class="text-xs sm:text-sm font-medium text-gray-700 leading-tight">
+                                {{ $type }}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                @endforeach
+
+            </div>
+
+        </div>
+        <div class="relative mx-auto flex w-full justify-center">
             @if($map)
+                <div class="relative inline-block max-w-full">
+                    <img 
+                        id="map-image"
+                        src="{{ asset($map->image_path) }}"
+                        usemap="#estate-map"
+                        class="block max-w-full max-h-[80vh] w-auto h-auto object-contain"
+                    />
 
-                <img 
-                    id="map-image"
-                    src="{{ asset($map->image_path) }}"
-                    usemap="#estate-map"
-                    class="w-full"
-                />
+                    <canvas 
+                        id="lot-overlay"
+                        class="absolute top-0 left-0 pointer-events-none"
+                    ></canvas>
+                </div>
 
-                <canvas 
-                    id="lot-overlay"
-                    class="absolute top-0 left-0 pointer-events-none"
-                    {{-- wire:ignore --}}
-                ></canvas>
                 <div
                     id="lot-tooltip"
                     class="absolute hidden z-10 bg-white shadow-2xl overflow-visible rounded-xl border
@@ -29,7 +76,9 @@
                 >
                     <div class="relative overflow-visible">
 
-                        
+
+
+
 
                         <div id="tooltip-arrow"></div>
 
@@ -62,7 +111,8 @@
                         <div
                             id="tooltip-panorama"
                             class="w-full h-32 sm:h-40 rounded-t-xl overflow-hidden"
-                        ></div>
+                        >
+                        </div>
 
                         <div class="p-3 sm:p-4">
 
@@ -73,7 +123,9 @@
                                     <div
                                         class="text-base sm:text-lg font-bold break-words"
                                         id="tooltip-name"
-                                    ></div>
+                                    >
+                                    </div>
+
                                     <div id="tooltip-under-construction" class="flex items-center gap-2 text-orange-600 text-xs font-semibold mb-1">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
@@ -85,7 +137,9 @@
                                         <div
                                             class="text-xs sm:text-sm text-gray-500 italic"
                                             id="tooltip-type"
-                                        ></div>
+                                        >
+                                        </div>
+
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-2">
                                             <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm6-2.438c0-.724.588-1.312 1.313-1.312h4.874c.725 0 1.313.588 1.313 1.313v4.874c0 .725-.588 1.313-1.313 1.313H9.564a1.312 1.312 0 0 1-1.313-1.313V9.564Z" clip-rule="evenodd" />
                                         </svg>
@@ -93,27 +147,37 @@
                                         <div
                                             class="text-xs sm:text-sm text-gray-500"
                                             id="tooltip-area"
-                                        ></div>
+                                        >
+                                        </div>
+
                                     </div>
                                 </div>
 
                                 <div
                                     class="text-xs sm:text-sm mt-1 capitalize bg-green-200 text-green-800 px-4 py-2 rounded-full"
                                     id="tooltip-status"
-                                ></div>
+                                >
+                                </div>
+
                             </div>
-                            
+
+
 
                             <div class="border-2 border-dashed rounded-lg my-4 p-3 space-y-4">
 
-                                <div id="tooltip-extra-section" >
-                                    <!-- USER -->
-                                    <div class="flex items-center gap-1 hidden">
-                                        <p id="tooltip-to" class="bg-blue-200 text-xs text-blue-800 px-2 rounded-full capitalize"></p>
+                                <div id="tooltip-extra-section">
+                                    <div class="flex items-center gap-1">
+                                        <p
+                                            id="tooltip-to"
+                                            class="bg-blue-200 text-xs text-blue-800 px-2 rounded-full capitalize"
+                                        >
+                                        </p>
 
                                         <hr class="flex-1 border-t border-blue-500" />
                                     </div>
-                                    <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-lg mt-2 hidden">
+
+                                    <div class="flex items-center gap-3 bg-gray-100 p-2 rounded-lg mt-2">
+
                                         <img
                                             id="tooltip-user-picture"
                                             class="w-10 h-10 rounded-full object-cover border"
@@ -124,12 +188,14 @@
                                         <div
                                             id="tooltip-user-name"
                                             class="text-sm font-semibold text-gray-800"
-                                        ></div>
+                                        >
+                                        </div>
+
                                     </div>
+
                                 </div>
 
                                 <div id="tooltip-extra-section-model">
-                                    <!-- MODEL -->
                                     <div class="flex items-center gap-1">
                                         <p class="bg-blue-200 text-xs text-blue-800 px-2 rounded-full capitalize">Model Name</p>
 
@@ -146,7 +212,8 @@
                                         <div
                                             id="tooltip-model-name"
                                             class="text-sm font-semibold text-gray-800"
-                                        ></div>
+                                        >
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -154,7 +221,9 @@
                             <div
                                 class="text-lg text-gray-800 text-right font-semibold"
                                 id="tooltip-price"
-                            ></div>
+
+                            >
+                            </div>
                             <div class="mt-4 text-right" id="tooltip-reserve-btn-wrapper">
                                 <button
                                     id="tooltip-reserve-btn"
@@ -167,7 +236,8 @@
                                 class="text-gray-400 mt-2 hidden"
                                 id="tooltip-coords"
                                 style="font-size:8px;"
-                            ></div>
+                            >
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -189,6 +259,7 @@
                             data-coords="{{ $lot->coords }}"
 
                             data-model-id="{{ $lot->house_model_id }}"
+                            data-user-id="{{ $lot->user_id }}"
                             data-user-name="{{ $lot->user?->name }}"
                             data-user-picture="{{ asset($lot->user?->profile_picture) }}"
 
@@ -199,7 +270,6 @@
                         />
                     @endforeach
                 </map>
-                
             @endif
         </div>
     </div>
@@ -229,23 +299,36 @@
         }
 
         function drawLots() {
-
-            const img = document.getElementById('map-image');
+            const mapImage = document.getElementById('map-image');
             const canvas = document.getElementById('lot-overlay');
 
-            if (!img || !canvas) return;
+            if (!mapImage || !canvas) return;
 
-            const rect = img.getBoundingClientRect();
+            // Wait until the original image dimensions are available.
+            if (!mapImage.complete || !mapImage.naturalWidth || !mapImage.naturalHeight) {
+                mapImage.addEventListener('load', drawLots, { once: true });
+                return;
+            }
 
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+            const rect = mapImage.getBoundingClientRect();
+            const displayWidth = rect.width;
+            const displayHeight = rect.height;
 
-            canvas.style.width = rect.width + "px";
-            canvas.style.height = rect.height + "px";
+            if (!displayWidth || !displayHeight) return;
+
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+            canvas.style.width = displayWidth + "px";
+            canvas.style.height = displayHeight + "px";
 
             const ctx = canvas.getContext("2d");
-
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Always scale from the ORIGINAL database coordinates.
+            // jQuery-rwdImageMaps modifies area.coords, so area.coords
+            // must not be used for drawing the canvas overlay.
+            const scaleX = displayWidth / mapImage.naturalWidth;
+            const scaleY = displayHeight / mapImage.naturalHeight;
 
             const colors = {
                 "Playground & Community Amenities": "#f2b879",
@@ -255,14 +338,30 @@
                 "Sold": "#e9b4ae",
             };
 
-            document.querySelectorAll("area").forEach(area => {
+            document.querySelectorAll('map[name="estate-map"] area').forEach(area => {
+                const originalCoords = (area.dataset.coords || '')
+                    .split(',')
+                    .map(Number);
 
-                const coords = area.coords.split(',').map(Number);
+                if (
+                    originalCoords.length < 6 ||
+                    originalCoords.some(Number.isNaN)
+                ) {
+                    return;
+                }
+
+                const coords = [];
+
+                for (let i = 0; i < originalCoords.length; i += 2) {
+                    coords.push(
+                        originalCoords[i] * scaleX,
+                        originalCoords[i + 1] * scaleY
+                    );
+                }
+
                 const status = (area.dataset.status ?? '').toLowerCase().trim();
                 const type = area.dataset.type;
 
-                // If sold, use the existing Sold color.
-                // Otherwise, use the normal property type color.
                 const color = status === 'sold'
                     ? colors["Sold"]
                     : (colors[type] || "#0096ff");
@@ -284,240 +383,160 @@
                 }
 
                 ctx.closePath();
-
                 ctx.fillStyle = hexToRGBA(color, 0.45);
                 ctx.fill();
-
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.stroke();
+
+                // -------------------------
+                // POLYGON CENTROID
+                // -------------------------
+                const n = coords.length / 2;
+                let areaSum = 0;
+                let cx = 0;
+                let cy = 0;
+
+                for (let i = 0; i < n; i++) {
+                    const x1 = coords[i * 2];
+                    const y1 = coords[i * 2 + 1];
+                    const x2 = coords[((i + 1) % n) * 2];
+                    const y2 = coords[((i + 1) % n) * 2 + 1];
+
+                    const cross = (x1 * y2) - (x2 * y1);
+
+                    areaSum += cross;
+                    cx += (x1 + x2) * cross;
+                    cy += (y1 + y2) * cross;
+                }
+
+                areaSum *= 0.5;
+
+                if (areaSum !== 0) {
+                    cx = cx / (6 * areaSum);
+                    cy = cy / (6 * areaSum);
+                } else {
+                    cx = 0;
+                    cy = 0;
+
+                    for (let i = 0; i < coords.length; i += 2) {
+                        cx += coords[i];
+                        cy += coords[i + 1];
+                    }
+
+                    cx /= n;
+                    cy /= n;
+                }
 
                 // -------------------------
                 // SOLD LABEL
                 // -------------------------
                 if (status === 'sold') {
 
-                    const n = coords.length / 2;
-
-                    let areaSum = 0;
-                    let cx = 0;
-                    let cy = 0;
-
-                    // Calculate polygon centroid
-                    for (let i = 0; i < n; i++) {
-
-                        const x1 = coords[i * 2];
-                        const y1 = coords[i * 2 + 1];
-
-                        const x2 = coords[((i + 1) % n) * 2];
-                        const y2 = coords[((i + 1) % n) * 2 + 1];
-
-                        const cross = (x1 * y2) - (x2 * y1);
-
-                        areaSum += cross;
-                        cx += (x1 + x2) * cross;
-                        cy += (y1 + y2) * cross;
-                    }
-
-                    areaSum *= 0.5;
-
-                    if (areaSum !== 0) {
-
-                        cx = cx / (6 * areaSum);
-                        cy = cy / (6 * areaSum);
-
-                    } else {
-
-                        cx = 0;
-                        cy = 0;
-
-                        for (let i = 0; i < coords.length; i += 2) {
-                            cx += coords[i];
-                            cy += coords[i + 1];
-                        }
-
-                        cx /= n;
-                        cy /= n;
-                    }
-
                     ctx.save();
+
                     ctx.globalAlpha = 0.8;
+
                     ctx.fillStyle = "#000000";
-                    ctx.font = "bold 13px Arial";
+
+                    const soldFontSize =
+                        displayWidth < 640 ? 6 :
+                        displayWidth < 1024 ? 9 :
+                        13;
+
+                    ctx.font = `bold ${soldFontSize}px Arial`;
+
                     ctx.textAlign = "center";
+
                     ctx.textBaseline = "middle";
 
                     ctx.fillText("SOLD", cx, cy);
 
                     ctx.restore();
+
                 }
 
                 // -------------------------
-                // RESERVED ICON (MODERN MINIMALIST)
+                // RESERVED ICON
                 // -------------------------
-                if ((area.dataset.status ?? '').toLowerCase().trim() === 'reserved') {
-
-                    const coords = area.coords.split(',').map(Number);
-                    const n = coords.length / 2;
-
-                    // --- centroid (same as before, keep accuracy)
-                    let areaSum = 0;
-                    let cx = 0;
-                    let cy = 0;
-
-                    for (let i = 0; i < n; i++) {
-
-                        const x1 = coords[i * 2];
-                        const y1 = coords[i * 2 + 1];
-
-                        const x2 = coords[((i + 1) % n) * 2];
-                        const y2 = coords[((i + 1) % n) * 2 + 1];
-
-                        const cross = (x1 * y2) - (x2 * y1);
-
-                        areaSum += cross;
-                        cx += (x1 + x2) * cross;
-                        cy += (y1 + y2) * cross;
-                    }
-
-                    areaSum *= 0.5;
-
-                    if (areaSum !== 0) {
-                        cx = cx / (6 * areaSum);
-                        cy = cy / (6 * areaSum);
-                    } else {
-                        cx = 0;
-                        cy = 0;
-                        for (let i = 0; i < coords.length; i += 2) {
-                            cx += coords[i];
-                            cy += coords[i + 1];
-                        }
-                        cx /= n;
-                        cy /= n;
-                    }
-
-                    ctx.save();
-
-                    // -------------------------
-                    // MODERN ICON BACKGROUND
-                    // -------------------------
-                    const radius = 11;
-
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                    ctx.fillStyle = "rgba(17, 24, 39, 0.85)"; // dark neutral (modern UI)
-                    ctx.fill();
-
-                    ctx.strokeStyle = "rgba(255,255,255,0.15)";
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-
-                    // -------------------------
-                    // MINIMAL LOCK ICON (SVG → canvas)
-                    // -------------------------
-                    const svg = `
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="5" y="11" width="14" height="9" rx="2"/>
-                            <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
-                        </svg>
-                    `;
-
-                    const img = new Image();
-                    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-
-                    const size = 12;
-
-                    img.onload = () => {
-                        ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
-                    };
-
-                    ctx.restore();
-                }
+                // if (status === 'reserved') {
+                //     drawLotIcon(ctx, cx, cy, 'reserved');
+                // }
 
                 // -------------------------
                 // UNDER CONSTRUCTION ICON
                 // -------------------------
-                if ((area.dataset.underConstruction ?? '').toString() === '1') {
-
-                    const coords = area.coords.split(',').map(Number);
-                    const n = coords.length / 2;
-
-                    // --- centroid calculation (same as reserved)
-                    let areaSum = 0;
-                    let cx = 0;
-                    let cy = 0;
-
-                    for (let i = 0; i < n; i++) {
-
-                        const x1 = coords[i * 2];
-                        const y1 = coords[i * 2 + 1];
-
-                        const x2 = coords[((i + 1) % n) * 2];
-                        const y2 = coords[((i + 1) % n) * 2 + 1];
-
-                        const cross = (x1 * y2) - (x2 * y1);
-
-                        areaSum += cross;
-                        cx += (x1 + x2) * cross;
-                        cy += (y1 + y2) * cross;
-                    }
-
-                    areaSum *= 0.5;
-
-                    if (areaSum !== 0) {
-                        cx = cx / (6 * areaSum);
-                        cy = cy / (6 * areaSum);
-                    } else {
-                        cx = 0;
-                        cy = 0;
-                        for (let i = 0; i < coords.length; i += 2) {
-                            cx += coords[i];
-                            cy += coords[i + 1];
-                        }
-                        cx /= n;
-                        cy /= n;
-                    }
-
-                    ctx.save();
-
-                    // -------------------------
-                    // ICON BACKGROUND
-                    // -------------------------
-                    const radius = 11;
-
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                    ctx.fillStyle = "rgba(245, 158, 11, 0.9)"; // amber/orange theme
-                    ctx.fill();
-
-                    ctx.strokeStyle = "rgba(255,255,255,0.2)";
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-
-                    // -------------------------
-                    // SVG ICON (YOUR PROVIDED ONE)
-                    // -------------------------
-                    const svg = `
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            fill="none" viewBox="0 0 24 24"
-                            stroke-width="1.5" stroke="white">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"/>
-                        </svg>
-                    `;
-
-                    const img = new Image();
-                    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-
-                    const size = 12;
-
-                    img.onload = () => {
-                        ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
-                    };
-
-                    ctx.restore();
-                }
+                // if ((area.dataset.underConstruction ?? '').toString() === '1') {
+                //     drawLotIcon(ctx, cx, cy, 'construction');
+                // }
             });
+        }
+
+        function drawLotIcon(ctx, cx, cy, type) {
+            ctx.save();
+
+            const radius = 11;
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+
+            ctx.fillStyle = type === 'construction'
+                ? "rgba(245, 158, 11, 0.9)"
+                : "rgba(17, 24, 39, 0.85)";
+
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255,255,255,0.2)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            let svg;
+
+            if (type === 'reserved') {
+                svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="5" y="11" width="14" height="9" rx="2"/>
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                    </svg>
+                `;
+            } else {
+                svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="white">
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"/>
+                    </svg>
+                `;
+            }
+
+            const icon = new Image();
+
+            icon.src = "data:image/svg+xml;charset=utf-8,"
+                + encodeURIComponent(svg);
+
+            const size = 12;
+
+            icon.onload = () => {
+                ctx.drawImage(
+                    icon,
+                    cx - size / 2,
+                    cy - size / 2,
+                    size,
+                    size
+                );
+            };
+
+            ctx.restore();
         }
 
         window.addEventListener("load", drawLots);
@@ -536,7 +555,7 @@
             const tImage = document.getElementById('tooltip-image');
             const tCoords = document.getElementById('tooltip-coords');
             const tID = document.getElementById('tooltip-id');
-            
+
             const tPrice = document.getElementById('tooltip-price');
             const tStatus = document.getElementById('tooltip-status');
             const tLotArea = document.getElementById('tooltip-area');
@@ -555,7 +574,8 @@
             const tUnderConstruction = document.getElementById('tooltip-under-construction');
 
             const closeBtn = document.getElementById('tooltip-close');
-        
+
+
 
             const img = document.getElementById('map-image');
 
@@ -565,7 +585,8 @@
 
             function show(area, e) {
 
-                
+
+
                 currentLotId = area.dataset.id;
                 const panoContainer = document.getElementById('tooltip-panorama');
                 panoContainer.innerHTML = "";
@@ -589,26 +610,90 @@
                     </span>
                 `;
 
-                tTo.textContent = area.dataset.status + ' to'  ?? '';
-                    
                 const reserveBtn = document.getElementById('tooltip-reserve-btn');
-                const status = (area.dataset.status ?? '').toLowerCase().trim();
 
-                if (status === 'available') {
-                    extraSection.style.display = 'none';
+                const status = (area.dataset.status ?? '')
+                    .toLowerCase()
+                    .trim();
 
-                    tModelPicture.src = area.dataset.modelImage || '/default-model.png';
-                    tModelName.textContent = area.dataset.modelName || 'No Model';
-                } else {
+                /*
+                |--------------------------------------------------------------------------
+                | CHECK IF LOT BELONGS TO LOGGED-IN USER
+                |--------------------------------------------------------------------------
+                */
+
+                const loggedInUserId = @json(auth()->id());
+
+                const lotUserId = area.dataset.userId
+                    ? Number(area.dataset.userId)
+                    : null;
+
+                const currentUserId = loggedInUserId
+                    ? Number(loggedInUserId)
+                    : null;
+
+                const belongsToLoggedInUser =
+                    lotUserId !== null &&
+                    currentUserId !== null &&
+                    lotUserId === currentUserId;
+
+                /*
+                |--------------------------------------------------------------------------
+                | SHOW SOLD TO / RESERVED TO ONLY TO OWNER
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    status !== 'available' &&
+                    belongsToLoggedInUser
+                ) {
+
                     extraSection.style.display = 'block';
 
-                    tUserPicture.src = area.dataset.userPicture || '/default-user.png';
-                    tUserName.textContent = area.dataset.userName || 'No User';
+                    tUserPicture.src =
+                        area.dataset.userPicture || '/default-user.png';
 
-                    tModelPicture.src = area.dataset.modelImage || '/default-model.png';
-                    tModelName.textContent = area.dataset.modelName || 'No Model';
+                    tUserName.textContent =
+                        area.dataset.userName || 'No User';
+
+                    if (status === 'sold') {
+
+                        tTo.textContent = 'Sold To';
+
+                    } else if (status === 'reserved') {
+
+                        tTo.textContent = 'Reserved To';
+
+                    } else {
+
+                        tTo.textContent =
+                            (area.dataset.status || '') + ' To';
+
+                    }
+
+                } else {
+
+                    extraSection.style.display = 'none';
+
+                    tUserPicture.src = '';
+
+                    tUserName.textContent = '';
+
+                    tTo.textContent = '';
 
                 }
+
+                /*
+                |--------------------------------------------------------------------------
+                | KEEP EXISTING MODEL DATA
+                |--------------------------------------------------------------------------
+                */
+
+                tModelPicture.src =
+                    area.dataset.modelImage || '/default-model.png';
+
+                tModelName.textContent =
+                    area.dataset.modelName || 'No Model';
 
                 const isClientUser = @json(auth()->check() && auth()->user()->role === 'user');
 
@@ -671,7 +756,7 @@
                     name: area.dataset.name
                 };
 
-                // 👇 IMPORTANT: wait for layout BEFORE initializing pannellum
+                // IMPORTANT: wait for layout BEFORE initializing pannellum
                 requestAnimationFrame(() => {
 
                     tooltipViewer = pannellum.viewer(panoContainer, {
@@ -712,7 +797,8 @@
                 tooltip.style.left = x + "px";
                 tooltip.style.top = y + "px";
 
-                // 🔥 HANDLE ARROW
+                // HANDLE ARROW
+
                 const arrow = document.getElementById('tooltip-arrow');
 
                 if (placedAbove) {
@@ -754,7 +840,13 @@
             function bind() {
                 let activeArea = null;
 
-                document.querySelectorAll('area').forEach(area => {
+                document.querySelectorAll('map[name="estate-map"] area').forEach(area => {
+                    // Prevent duplicate listeners when Livewire polls / morphs.
+                    if (area.dataset.tooltipBound === '1') {
+                        return;
+                    }
+
+                    area.dataset.tooltipBound = '1';
 
                     area.addEventListener('click', (e) => {
                         e.preventDefault();
@@ -767,10 +859,8 @@
                         }
 
                         activeArea = area;
-
                         show(area, e); // show once
                     });
-
                 });
             }
 
@@ -781,7 +871,10 @@
 
                     $('img[usemap]').rwdImageMaps();
 
-                    setTimeout(bind, 300);
+                    setTimeout(() => {
+                        bind();
+                        drawLots();
+                    }, 300);
 
                 } else {
                     setTimeout(waitForMap, 200);
@@ -792,17 +885,169 @@
             waitForMap();
 
             // Livewire safety hook (VERY IMPORTANT)
-            document.addEventListener('livewire:navigated', () => {
-                setTimeout(bind, 300);
-            });
+            // document.addEventListener('livewire:navigated', () => {
 
-            document.addEventListener('livewire:init', () => {
-                setTimeout(bind, 300);
+            //     setTimeout(() => {
+            //         if (
+            //             window.jQuery
+            //             && $('img[usemap]').length
+            //         ) {
+            //             $('img[usemap]').rwdImageMaps();
+            //         }
+
+            //         bind();
+            //         drawLots();
+            //     }, 300);
+
+            // });
+
+            // Redraw only after Livewire actually detects changed lot data.
+            Livewire.on('refresh-client-map', () => {
+
+                setTimeout(() => {
+                    if (
+                        window.jQuery
+                        && $('img[usemap]').length
+                    ) {
+                        $('img[usemap]').rwdImageMaps();
+                    }
+
+                    bind();
+                    drawLots();
+                }, 200);
+
             });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | INITIALIZE CLIENT MAP
+        |--------------------------------------------------------------------------
+        */
+
+        function initClientMap() {
+
+            setTimeout(() => {
+
+                const img =
+                    document.getElementById('map-image');
+
+                const canvas =
+                    document.getElementById('lot-overlay');
+
+                /*
+                * We may currently be on another page.
+                */
+                if (!img || !canvas) {
+                    return;
+                }
+
+                /*
+                * Initialize responsive image map.
+                */
+                if (
+                    window.jQuery
+                    && $('img[usemap]').length
+                ) {
+
+                    $('img[usemap]')
+                        .rwdImageMaps();
+
+                }
+
+                /*
+                * Initialize tooltip / area click events.
+                */
+                initLotTooltip();
+
+                /*
+                * Draw mapped lots.
+                */
+                if (
+                    img.complete
+                    && img.naturalWidth > 0
+                    && img.naturalHeight > 0
+                ) {
+
+                    requestAnimationFrame(() => {
+                        drawLots();
+                    });
+
+                } else {
+
+                    img.addEventListener(
+                        'load',
+                        () => {
+
+                            if (
+                                window.jQuery
+                                && $('img[usemap]').length
+                            ) {
+
+                                $('img[usemap]')
+                                    .rwdImageMaps();
+
+                            }
+
+                            requestAnimationFrame(() => {
+                                drawLots();
+                            });
+
+                        },
+                        {
+                            once: true
+                        }
+                    );
+
+                }
+
+            }, 150);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | NORMAL FULL PAGE LOAD
+        |--------------------------------------------------------------------------
+        */
+
+        document.addEventListener(
+            'DOMContentLoaded',
+            () => {
+
+                initClientMap();
+
+            }
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | LIVEWIRE WIRE:NAVIGATE
+        |--------------------------------------------------------------------------
+        |
+        | This is the important part.
+        |
+        | DOMContentLoaded does not fire again when navigating
+        | with wire:navigate.
+        |
+        */
+
+        if (!window.clientMapNavigationListenerBound) {
+
+            window.clientMapNavigationListenerBound = true;
+
+            document.addEventListener(
+                'livewire:navigated',
+                () => {
+
+                    initClientMap();
+
+                }
+            );
 
         }
 
-        document.addEventListener('DOMContentLoaded', initLotTooltip);
-
     </script>
+
 </div>

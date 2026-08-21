@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
 use Spatie\LivewireFilepond\WithFilePond;
+use App\Mail\CommissionPaidMail;
+use Illuminate\Support\Facades\Mail;
 
 class AgentManagement extends Component
 {
@@ -518,7 +520,21 @@ class AgentManagement extends Component
             ],
         ]);
 
-        DB::transaction(function () use ($validated) {
+        /*
+        |--------------------------------------------------------------------------
+        | Keep the paid request ID
+        |--------------------------------------------------------------------------
+        |
+        | We'll use this after the transaction to send the email.
+        |
+        */
+
+        $paidCommissionRequestId = null;
+
+        DB::transaction(function () use (
+            $validated,
+            &$paidCommissionRequestId
+        ) {
 
             $request = CommissionRequest::query()
                 ->where(
@@ -538,11 +554,23 @@ class AgentManagement extends Component
                     $this->payingCommissionRequestId
                 );
 
+            /*
+            |--------------------------------------------------------------------------
+            | Store Receipt
+            |--------------------------------------------------------------------------
+            */
+
             $path = $validated['commissionReceipt']
                 ->store(
                     "commission-receipts/{$request->agent_id}",
                     'public'
                 );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Delete Previous Receipt
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $request->receipt_path
@@ -554,6 +582,12 @@ class AgentManagement extends Component
                     $request->receipt_path
                 );
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Payment Notes
+            |--------------------------------------------------------------------------
+            */
 
             $notes = collect([
                 $validated['commissionPaymentReference']
@@ -567,29 +601,104 @@ class AgentManagement extends Component
                 ->filter()
                 ->implode("\n");
 
+            /*
+            |--------------------------------------------------------------------------
+            | Mark Commission As Paid
+            |--------------------------------------------------------------------------
+            */
+
             $request->update([
-                'status' => 'paid',
+                'status' =>
+                    'paid',
 
-                'receipt_path' => $path,
+                'receipt_path' =>
+                    $path,
 
-                'remarks' => $notes
-                    ?: $request->remarks,
+                'remarks' =>
+                    $notes
+                        ?: $request->remarks,
 
-                'reviewed_by' => auth()->id(),
+                'reviewed_by' =>
+                    auth()->id(),
 
-                'reviewed_at' => now(),
+                'reviewed_at' =>
+                    now(),
 
-                'paid_at' => now(),
+                'paid_at' =>
+                    now(),
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | In-App Notification
+            |--------------------------------------------------------------------------
+            */
 
             $this->notifyAgentCommissionPaid(
                 $request
             );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Remember Request
+            |--------------------------------------------------------------------------
+            */
+
+            $paidCommissionRequestId =
+                $request->id;
         });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | EMAIL AGENT
+        |--------------------------------------------------------------------------
+        |
+        | Send only AFTER the payment transaction has succeeded.
+        |
+        */
+
+        if ($paidCommissionRequestId) {
+
+            $paidRequest = CommissionRequest::query()
+                ->with([
+                    'agent',
+                    'purchaseAccount.user',
+                    'purchaseAccount.lot',
+                ])
+                ->find($paidCommissionRequestId);
+
+            if (
+                $paidRequest
+                && $paidRequest->agent?->email
+            ) {
+                Mail::to(
+                    $paidRequest->agent->email
+                )->send(
+                    new CommissionPaidMail(
+                        $paidRequest
+                    )
+                );
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Close / Reset
+        |--------------------------------------------------------------------------
+        */
 
         $this->showCommissionPaymentModal = false;
 
         $this->resetCommissionPaymentForm();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Success Toast
+        |--------------------------------------------------------------------------
+        */
 
         Notification::make()
             ->title('Commission Paid')
@@ -598,6 +707,7 @@ class AgentManagement extends Component
             )
             ->success()
             ->send();
+
         $this->reloadWeb();
     }
 

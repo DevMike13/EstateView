@@ -1,5 +1,6 @@
 <header class="fixed top-0 left-0 z-50 w-full bg-white shadow-sm">
     <nav
+        x-data="{ mobileMenuOpen: false }"
         class="mx-auto flex w-full max-w-[97rem] flex-wrap items-center justify-between px-5 py-4 sm:px-8 lg:px-14"
         aria-label="Global Navigation"
     >
@@ -7,6 +8,7 @@
         <a
             href="{{ route('user.home') }}"
             wire:navigate
+            @click="mobileMenuOpen = false"
             class="flex items-center gap-3 text-lg font-bold text-[#2b2b31] lg:text-3xl"
         >
             <img
@@ -27,49 +29,90 @@
         )
 
             {{-- Mobile Toggle --}}
-            <button
-                type="button"
-                class="hs-collapse-toggle inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2.5 text-gray-800 shadow-sm hover:bg-gray-50 lg:hidden"
-                data-hs-collapse="#estateview-navbar"
-                aria-controls="estateview-navbar"
-                aria-label="Toggle navigation"
-            >
-                {{-- Menu icon --}}
-                <svg
-                    class="hs-collapse-open:hidden size-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <line x1="3" x2="21" y1="6" y2="6"/>
-                    <line x1="3" x2="21" y1="12" y2="12"/>
-                    <line x1="3" x2="21" y1="18" y2="18"/>
-                </svg>
+            @php
+                $mobilePageTitle = match (true) {
+                    request()->routeIs('user.home') => 'HOME',
+                    request()->routeIs('user.about') => 'ABOUT',
+                    request()->routeIs('user.properties') => 'PROPERTIES',
 
-                {{-- Close icon --}}
-                <svg
-                    class="hs-collapse-open:block hidden size-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    request()->routeIs('client.cost.breakdown') => 'COST BREAKDOWN',
+                    request()->routeIs('client.appointment') => 'APPOINTMENTS',
+                    request()->routeIs('client.reservation') => 'RESERVATIONS',
+                    request()->routeIs('client.bills') => 'MY BILLS',
+                    request()->routeIs('client.account') => 'PROFILE',
+
+                    request()->routeIs('agent.dashboard') => 'HOME',
+                    request()->routeIs('agent.commission') => 'COMMISSION',
+
+                    default => null,
+                };
+            @endphp
+
+            <div class="flex items-center gap-3 lg:hidden">
+
+                @if($mobilePageTitle)
+                    <span class="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-sm font-semibold text-[#d6b685] lg:hidden">
+                        {{ $mobilePageTitle }}
+                    </span>
+                @endif
+
+                <button
+                    type="button"
+                    @click="mobileMenuOpen = !mobileMenuOpen"
+                    class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2.5 text-gray-800 shadow-sm hover:bg-gray-50"
+                    aria-label="Toggle navigation"
+                    :aria-expanded="mobileMenuOpen.toString()"
                 >
-                    <path d="M18 6 6 18"/>
-                    <path d="m6 6 12 12"/>
-                </svg>
-            </button>
+                    {{-- Hamburger --}}
+                    <svg
+                        x-show="!mobileMenuOpen"
+                        x-cloak
+                        class="size-5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="3" x2="21" y1="6" y2="6"/>
+                        <line x1="3" x2="21" y1="12" y2="12"/>
+                        <line x1="3" x2="21" y1="18" y2="18"/>
+                    </svg>
+
+                    {{-- Close --}}
+                    <svg
+                        x-show="mobileMenuOpen"
+                        x-cloak
+                        class="size-5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M18 6 6 18"/>
+                        <path d="m6 6 12 12"/>
+                    </svg>
+                </button>
+
+            </div>
 
             {{-- Responsive Navbar --}}
             <div
                 id="estateview-navbar"
-                class="hs-collapse hidden w-full basis-full overflow-hidden transition-all duration-300 lg:block lg:w-auto lg:basis-auto"
+                x-show="mobileMenuOpen"
+                x-cloak
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 -translate-y-2"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-y-0"
+                x-transition:leave-end="opacity-0 -translate-y-2"
+                class="w-full basis-full overflow-hidden lg:!block lg:w-auto lg:basis-auto"
             >
                 <div class="mt-5 flex flex-col gap-1 border-t border-gray-100 pt-5 lg:mt-0 lg:flex-row lg:items-center lg:gap-2 lg:border-0 lg:pt-0">
                     @php
@@ -103,6 +146,7 @@
                         <a
                             href="{{ route('user.about') }}"
                             wire:navigate
+                            @click="mobileMenuOpen = false"
                             class="rounded-lg px-3 py-2 text-sm font-medium transition
                                 {{ request()->routeIs('user.about')
                                     ? 'text-[#d6b685]'
@@ -116,6 +160,7 @@
                     <a
                         href="{{ route('user.properties') }}"
                         wire:navigate
+                        @click="mobileMenuOpen = false"
                         class="rounded-lg px-3 py-2 text-sm font-medium transition
                             {{ request()->routeIs('user.properties')
                                 ? 'text-[#d6b685]'
@@ -130,6 +175,7 @@
                             <a
                                 href="{{ route('login') }}"
                                 wire:navigate
+                                @click="mobileMenuOpen = false"
                                 class="inline-flex w-full items-center justify-center bg-[#2b2b31] px-7 py-3 text-sm font-semibold text-white transition hover:bg-black lg:w-auto"
                             >
                                 LOGIN
@@ -145,6 +191,7 @@
                             <a
                                 href="{{ route('client.cost.breakdown') }}"
                                 wire:navigate
+                                @click="mobileMenuOpen = false"
                                 class="rounded-lg px-3 py-2 text-sm font-medium transition
                                     {{ request()->routeIs('client.cost.breakdown')
                                         ? 'text-[#d6b685]'
@@ -156,6 +203,7 @@
                             <a
                                 href="{{ route('client.appointment') }}"
                                 wire:navigate
+                                @click="mobileMenuOpen = false"
                                 class="rounded-lg px-3 py-2 text-sm font-medium transition
                                     {{ request()->routeIs('client.appointment')
                                         ? 'text-[#d6b685]'
@@ -167,6 +215,7 @@
                             <a
                                 href="{{ route('client.reservation') }}"
                                 wire:navigate
+                                @click="mobileMenuOpen = false"
                                 class="rounded-lg px-3 py-2 text-sm font-medium transition
                                     {{ request()->routeIs('client.reservation')
                                         ? 'text-[#d6b685]'
@@ -179,6 +228,7 @@
                             <a
                                 href="{{ route('client.bills') }}"
                                 wire:navigate
+                                @click="mobileMenuOpen = false"
                                 class="rounded-lg px-3 py-2 text-sm font-medium transition
                                     {{ request()->routeIs('client.bills')
                                         ? 'text-[#d6b685]'
@@ -200,6 +250,7 @@
                             <a
                                 href="{{ route('client.cost.breakdown') }}"
                                 wire:navigate
+                                @click="mobileMenuOpen = false"
                                 class="rounded-lg px-3 py-2 text-sm font-medium transition
                                     {{ request()->routeIs('client.cost.breakdown')
                                         ? 'text-[#d6b685]'
@@ -211,6 +262,7 @@
                             <a
                                 href="{{ route('agent.commission') }}"
                                 wire:navigate
+                                @click="mobileMenuOpen = false"
                                 class="rounded-lg px-3 py-2 text-sm font-medium transition
                                     {{ request()->routeIs('agent.commission')
                                         ? 'text-[#d6b685]'
@@ -232,6 +284,7 @@
                             <a
                                 href="{{ route('client.account') }}"
                                 wire:navigate
+                                @click="mobileMenuOpen = false"
                                 class="ml-2 hidden items-center gap-3 border-l border-gray-200 pl-5 pr-3 py-1 rounded-lg transition hover:bg-gray-50 lg:flex"
                             >
                                 @if($currentUser->profile_picture)
@@ -290,6 +343,7 @@
                                 <a
                                     href="{{ route('client.account') }}"
                                     wire:navigate
+                                    @click="mobileMenuOpen = false"
                                     class="mb-3 flex items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-gray-50"
                                 >
                                     @if($currentUser->profile_picture)

@@ -119,7 +119,7 @@
 
                                 @if(
                                     $notification->title !== 'Client Ledger Updated' &&
-                                    !in_array(auth()->user()->role, ['agent', 'user'])
+                                    !in_array(auth()->user()->role, ['agent'])
                                 )
                                     <button
                                         wire:click.stop="openNotification({{ $notification->id }})"

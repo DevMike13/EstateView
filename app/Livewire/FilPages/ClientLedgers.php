@@ -46,6 +46,7 @@ class ClientLedgers extends Component
     public $officePaymentMethod;
     public $officeReferenceNo;
     public $officeProofOfPayment;
+    public $approvalReceipts = [];
 
     public function mount()
     {
@@ -695,9 +696,100 @@ class ClientLedgers extends Component
             ->send();
     }
 
+    public function approveBillingPaymentConfirmation($paymentId)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | REQUIRE ADMIN RECEIPT FIRST
+    |--------------------------------------------------------------------------
+    */
+
+    $this->validate([
+        "approvalReceipts.$paymentId" => [
+            'required',
+            'file',
+            'mimes:jpg,jpeg,png,webp,pdf',
+            'max:20480',
+        ],
+    ], [], [
+        "approvalReceipts.$paymentId" => 'receipt',
+    ]);
+
+    $payment = BillingPayment::with([
+        'billing',
+        'purchaseAccount.user',
+    ])->findOrFail($paymentId);
+
+    $this->dialog()->confirm([
+        'title' => 'Approve Payment?',
+        'description' =>
+            'Are you sure you want to approve the payment for '
+            . $payment->purchaseAccount?->user?->name
+            . ' amounting to ₱'
+            . number_format($payment->amount, 2)
+            . '?',
+
+        'icon' => 'success',
+
+        'accept' => [
+            'label' => 'Yes, Approve',
+            'method' => 'approveBillingPayment',
+            'params' => $paymentId,
+        ],
+
+        'reject' => [
+            'label' => 'Cancel',
+        ],
+    ]);
+}
+
+
+public function rejectBillingPaymentConfirmation($paymentId)
+{
+    $payment = BillingPayment::with([
+        'billing',
+        'purchaseAccount.user',
+    ])->findOrFail($paymentId);
+
+    $this->dialog()->confirm([
+        'title' => 'Reject Payment?',
+        'description' =>
+            'Are you sure you want to reject the payment for '
+            . $payment->purchaseAccount?->user?->name
+            . ' amounting to ₱'
+            . number_format($payment->amount, 2)
+            . '?',
+
+        'icon' => 'error',
+
+        'accept' => [
+            'label' => 'Yes, Reject',
+            'method' => 'rejectBillingPayment',
+            'params' => $paymentId,
+        ],
+
+        'reject' => [
+            'label' => 'Cancel',
+        ],
+    ]);
+}
+
     public function approveBillingPayment($paymentId)
     {
-        DB::transaction(function () use ($paymentId) {
+        $this->validate([
+            "approvalReceipts.$paymentId" => [
+                'required',
+                'file',
+                'mimes:jpg,jpeg,png,webp,pdf',
+                'max:20480',
+            ],
+        ], [], [
+            "approvalReceipts.$paymentId" => 'receipt',
+        ]);
+
+        $receiptFile = $this->approvalReceipts[$paymentId];
+
+        DB::transaction(function () use ($paymentId, $receiptFile) {
 
             $payment =
                 BillingPayment::query()
@@ -711,6 +803,17 @@ class ClientLedgers extends Component
             if ($payment->status !== 'pending') {
                 return;
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | ADMIN APPROVAL RECEIPT
+            |--------------------------------------------------------------------------
+            */
+
+            $adminReceiptPath = $receiptFile->store(
+                "billing-payments/{$payment->billing_id}/admin-receipts",
+                'public'
+            );
 
             $billing =
                 Billing::query()
@@ -1029,8 +1132,15 @@ class ClientLedgers extends Component
 
                 'verified_by' =>
                     auth()->id(),
+
+                'admin_receipt' =>
+                    $adminReceiptPath,
             ]);
         });
+
+        unset(
+            $this->approvalReceipts[$paymentId]
+        );
 
         Notification::make()
             ->title('Payment Approved')

@@ -393,6 +393,13 @@ class ReservationPage extends Component
                 $this->lotLocationId = null;
             }
         }
+
+        if (
+            $value !== 'Lot Only' &&
+            $this->preferredPayment === 'deferred_payment'
+        ) {
+            $this->preferredPayment = null;
+        }
     }
 
 

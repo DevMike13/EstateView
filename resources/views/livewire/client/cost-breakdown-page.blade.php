@@ -109,6 +109,23 @@
                   </label>
                 </div>
 
+                @if($reservationType === 'Lot Only')
+                  <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <label class="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50/50 transition">
+                      <input
+                        type="radio"
+                        wire:model.live="paymentOption"
+                        name="paymentOption"
+                        class="text-blue-600 focus:ring-blue-500"
+                        value="deferred-payment"
+                      >
+                      <span class="text-sm font-medium text-gray-900">
+                        Deferred Payment (36 Months)
+                      </span>
+                    </label>
+                  </div>
+                @endif
+
               </div>
             </div>
 
@@ -249,6 +266,48 @@
                       </span>
                     </div>
                   @endif
+
+                  @if($paymentOption === 'deferred-payment')
+
+                  <div class="space-y-4 text-sm">
+
+                      <div class="flex justify-between items-center text-white/70">
+                          <span>Total Contract Price:</span>
+
+                          <span class="font-mono text-white">
+                              ₱{{ number_format($totalContractPrice, 2) }}
+                          </span>
+                      </div>
+
+                      <div class="flex justify-between items-center text-white/70">
+                          <span>Payment Term:</span>
+
+                          <span class="font-mono text-white">
+                              36 Months
+                          </span>
+                      </div>
+
+                      <div class="flex flex-col bg-purple-600/20 border border-purple-500/30 p-5 rounded-xl mt-4">
+
+                          <span class="text-xs text-purple-300 uppercase tracking-wide mb-1 font-medium">
+                              Estimated Monthly Deferred Payment
+                          </span>
+
+                          <span class="text-3xl font-light font-mono text-purple-400">
+
+                              ₱{{ number_format($monthlyAmortization, 2) }}
+
+                              <span class="text-xs font-normal text-white/50 font-sans">
+                                  / month
+                              </span>
+
+                          </span>
+
+                      </div>
+
+                  </div>
+
+              @endif
 
                 </div>
               @endif

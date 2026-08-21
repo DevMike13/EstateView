@@ -843,40 +843,62 @@
 
                         </div>
 
+                        {{-- Proof + Admin Receipt --}}
+                        @if(
+                            $latestPayment->proof_of_payment
+                            || $latestPayment->admin_receipt
+                        )
+                            <div class="mt-3 flex flex-wrap items-center gap-4">
 
-                        {{-- Proof --}}
-                        @if($latestPayment->proof_of_payment)
+                                {{-- Client Payment Proof --}}
+                                @if($latestPayment->proof_of_payment)
+                                    <a
+                                        href="{{ asset(
+                                            'storage/'
+                                            . $latestPayment->proof_of_payment
+                                        ) }}"
+                                        target="_blank"
+                                        class="inline-flex items-center gap-2 text-sm font-semibold
+                                            {{ $latestPayment->status === 'pending'
+                                                ? 'text-purple-700'
+                                                : '' }}
+                                            {{ $latestPayment->status === 'verified'
+                                                ? 'text-green-700'
+                                                : '' }}
+                                            {{ $latestPayment->status === 'rejected'
+                                                ? 'text-red-700'
+                                                : '' }}"
+                                    >
+                                        <x-icon
+                                            name="arrow-top-right-on-square"
+                                            class="w-4 h-4"
+                                        />
 
-                            <a
-                                href="{{ asset(
-                                    'storage/'
-                                    . $latestPayment
-                                        ->proof_of_payment
-                                ) }}"
-                                target="_blank"
-                                class="mt-3 inline-flex items-center gap-2 text-sm font-semibold
-                                    {{ $latestPayment->status === 'pending'
-                                        ? 'text-purple-700'
-                                        : '' }}
+                                        View Proof
+                                    </a>
+                                @endif
 
-                                    {{ $latestPayment->status === 'verified'
-                                        ? 'text-green-700'
-                                        : '' }}
 
-                                    {{ $latestPayment->status === 'rejected'
-                                        ? 'text-red-700'
-                                        : '' }}"
-                            >
+                                {{-- Admin Receipt --}}
+                                @if($latestPayment->admin_receipt)
+                                    <a
+                                        href="{{ asset(
+                                            'storage/'
+                                            . $latestPayment->admin_receipt
+                                        ) }}"
+                                        target="_blank"
+                                        class="inline-flex items-center gap-2 text-sm font-semibold text-green-700"
+                                    >
+                                        <x-icon
+                                            name="document-check"
+                                            class="w-4 h-4"
+                                        />
 
-                                <x-icon
-                                    name="arrow-top-right-on-square"
-                                    class="w-4 h-4"
-                                />
+                                        View Admin Receipt
+                                    </a>
+                                @endif
 
-                                View Proof
-
-                            </a>
-
+                            </div>
                         @endif
 
 

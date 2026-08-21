@@ -919,17 +919,49 @@
 
             if (!img || !canvas) return;
 
+            /*
+             * IMPORTANT:
+             * Wait for the original image dimensions.
+             * All mapped lot coordinates are stored against
+             * the natural/original map image size.
+             */
+            if (!img.complete || !img.naturalWidth || !img.naturalHeight) {
+
+                img.addEventListener('load', drawLots, { once: true });
+
+                return;
+            }
+
             const rect = img.getBoundingClientRect();
 
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+            const displayWidth = rect.width;
 
-            canvas.style.width = rect.width + "px";
-            canvas.style.height = rect.height + "px";
+            const displayHeight = rect.height;
+
+            if (!displayWidth || !displayHeight) return;
+
+            canvas.width = displayWidth;
+
+            canvas.height = displayHeight;
+
+            canvas.style.width = displayWidth + "px";
+
+            canvas.style.height = displayHeight + "px";
 
             const ctx = canvas.getContext("2d");
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            /*
+             * Always scale from the ORIGINAL database coordinates.
+             *
+             * jQuery-rwdImageMaps modifies area.coords whenever the
+             * image changes size. Using area.coords here causes the
+             * polygons to be scaled repeatedly and become scattered.
+             */
+            const scaleX = displayWidth / img.naturalWidth;
+
+            const scaleY = displayHeight / img.naturalHeight;
 
             const colors = {
 
@@ -941,14 +973,38 @@
 
             };
 
-            document.querySelectorAll("area").forEach(area => {
+            document.querySelectorAll('map[name="estate-map"] area').forEach(area => {
 
-                const coords = area.coords
+                /*
+                 * data-coords is never changed by rwdImageMaps,
+                 * so this remains the reliable source.
+                 */
+                const originalCoords = (area.dataset.coords || '')
                     .split(',')
                     .map(Number);
 
+                if (
+                    originalCoords.length < 6 ||
+                    originalCoords.some(Number.isNaN)
+                ) {
+                    return;
+                }
+
+                const coords = [];
+
+                for (let i = 0; i < originalCoords.length; i += 2) {
+
+                    coords.push(
+                        originalCoords[i] * scaleX,
+                        originalCoords[i + 1] * scaleY
+                    );
+                }
+
                 const type = area.dataset.type;
-                const status = (area.dataset.status || '').toLowerCase().trim();
+
+                const status = (area.dataset.status || '')
+                    .toLowerCase()
+                    .trim();
 
                 const color = status === 'sold'
                     ? colors["Sold"]
@@ -965,8 +1021,8 @@
                         ctx.moveTo(x, y);
                     } else {
                         ctx.lineTo(x, y);
-                    }
 
+                    }
                 }
 
                 ctx.closePath();
@@ -988,13 +1044,26 @@
                         yValues.push(coords[i + 1]);
                     }
 
-                    const centerX = (Math.min(...xValues) + Math.max(...xValues)) / 2;
-                    const centerY = (Math.min(...yValues) + Math.max(...yValues)) / 2;
+                    const centerX =
+                        (Math.min(...xValues) + Math.max(...xValues)) / 2;
+
+                    const centerY =
+                        (Math.min(...yValues) + Math.max(...yValues)) / 2;
 
                     ctx.save();
                     ctx.globalAlpha = 0.8;
                     ctx.fillStyle = "#000000";
-                    ctx.font = "bold 14px Arial";
+
+                    /*
+                     * Keep SOLD readable while scaling with the map.
+                     */
+                    const soldFontSize = Math.max(
+                        5,
+                        Math.min(14, 14 * scaleX)
+                    );
+
+                    ctx.font = `bold ${soldFontSize}px Arial`;
+
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
                     ctx.fillText("SOLD", centerX, centerY);

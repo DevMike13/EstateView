@@ -636,7 +636,7 @@
                                                                 class="h-4 w-4"
                                                             />
 
-                                                            View Proof
+                                                            View Client Proof
                                                         </a>
 
                                                     @else
@@ -647,13 +647,43 @@
 
                                                     @endif
 
+                                                    {{-- ADMIN RECEIPT --}}
+                                                        <div>
+                                                            <label
+                                                                class="mb-2 block text-xs font-semibold
+                                                                    {{ $errors->has('approvalReceipts.' . $pendingPayment->id)
+                                                                        ? 'text-red-600'
+                                                                        : 'text-gray-700'
+                                                                    }}"
+                                                            >
+                                                                Approval Receipt
+                                                                <span class="text-red-500">*</span>
+                                                            </label>
+
+                                                            <x-filepond::upload
+                                                                wire:model="approvalReceipts.{{ $pendingPayment->id }}"
+                                                                :accepted-file-types="[
+                                                                    'image/png',
+                                                                    'image/jpeg',
+                                                                    'image/webp',
+                                                                    'application/pdf',
+                                                                ]"
+                                                                label="Upload receipt before approving"
+                                                            />
+
+                                                            @error('approvalReceipts.' . $pendingPayment->id)
+                                                                <p class="mt-1 text-xs text-red-500">
+                                                                    {{ $message }}
+                                                                </p>
+                                                            @enderror
+                                                        </div>
 
                                                     <div class="grid grid-cols-2 gap-2">
 
                                                         <x-button
                                                             label="Reject"
                                                             icon="x-mark"
-                                                            wire:click="rejectBillingPayment({{ $pendingPayment->id }})"
+                                                            wire:click="rejectBillingPaymentConfirmation({{ $pendingPayment->id }})"
                                                             class="w-full border border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-700"
                                                         />
 
@@ -661,7 +691,7 @@
                                                         <x-button
                                                             label="Approve"
                                                             icon="check"
-                                                            wire:click="approveBillingPayment({{ $pendingPayment->id }})"
+                                                            wire:click="approveBillingPaymentConfirmation({{ $pendingPayment->id }})"
                                                             class="w-full bg-[#101727] text-white"
                                                         />
 
@@ -1121,8 +1151,10 @@
 
 
                                                                 {{-- RECEIPT --}}
-                                                                <div class="shrink-0">
+                                                                {{-- RECEIPTS --}}
+                                                                <div class="shrink-0 space-y-2">
 
+                                                                    {{-- CLIENT PAYMENT PROOF --}}
                                                                     @if($payment->proof_of_payment)
 
                                                                         <a
@@ -1138,14 +1170,42 @@
                                                                                 class="h-4 w-4"
                                                                             />
 
-                                                                            View Receipt
+                                                                            View Client Proof
                                                                         </a>
 
                                                                     @else
 
-                                                                        <span class="text-xs text-gray-400">
-                                                                            No receipt
-                                                                        </span>
+                                                                        <div class="text-xs text-gray-400">
+                                                                            No client proof
+                                                                        </div>
+
+                                                                    @endif
+
+
+                                                                    {{-- ADMIN APPROVAL RECEIPT --}}
+                                                                    @if($payment->admin_receipt)
+
+                                                                        <a
+                                                                            href="{{ asset(
+                                                                                'storage/' .
+                                                                                $payment->admin_receipt
+                                                                            ) }}"
+                                                                            target="_blank"
+                                                                            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-medium text-green-700 transition hover:bg-green-100 sm:w-auto"
+                                                                        >
+                                                                            <x-icon
+                                                                                name="document-check"
+                                                                                class="h-4 w-4"
+                                                                            />
+
+                                                                            View Admin Receipt
+                                                                        </a>
+
+                                                                    @else
+
+                                                                        <div class="text-xs text-gray-400">
+                                                                            No admin receipt
+                                                                        </div>
 
                                                                     @endif
 
@@ -1332,7 +1392,7 @@
             <div class="mt-4">
                 <x-input
                     label="Reference Number"
-                    placeholder="Optional for cash"
+                    placeholder="Enter reference number"
                     wire:model="officeReferenceNo"
                     x-on:keypress="if (!/[0-9]/.test($event.key)) $event.preventDefault()"
                     x-on:paste.prevent="

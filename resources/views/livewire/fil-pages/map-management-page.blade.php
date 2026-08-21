@@ -514,8 +514,10 @@
 
                     {{-- ACTIVE SCENE --}}
                     @if(isset($scenes[$activeScene]))
-                        <div class="mt-4">
-
+                        <div
+                            wire:key="scene-upload-{{ $activeScene }}"
+                            class="mt-4"
+                        >
                             <div x-data="{ isDragging: false }" class="mt-4">
                                 <label
                                     for="scene-upload-{{ $activeScene }}"
@@ -604,7 +606,7 @@
                                 <button
                                     type="button"
                                     wire:click="removeScenePanorama"
-                                    class="absolute top-3 left-3 z-[10000] flex items-center justify-center w-8 h-8 rounded-full bg-white/90 text-red-600 shadow-md hover:bg-red-50 hover:text-red-700 transition"
+                                    class="absolute top-1 left-11 z-[10000] flex items-center justify-center w-8 h-8 rounded-full bg-white/90 text-red-600 shadow-md hover:bg-red-50 hover:text-red-700 transition"
                                     title="Remove Panorama"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
@@ -971,9 +973,13 @@
                     x-init="setScenes(@js($viewScenes ?? [])); init()"
                     class="relative w-full h-[500px]"
                 >
-                    <!-- Viewer -->
-                    <div x-show="scenes.length > 0" x-ref="viewer" class="w-full h-[100%] bg-transparent rounded"></div>
-                    
+                    <div
+                        x-show="scenes.length > 0"
+                        x-ref="viewer"
+                        wire:ignore
+                        class="w-full h-full bg-black rounded"
+                    >
+                    </div>
                     <!-- No tour fallback -->
                     <template x-if="scenes.length === 0">
                         <div class="w-full h-[500px] flex items-center justify-center text-gray-500">
@@ -1028,7 +1034,7 @@
 
     <livewire:fil-pages.map.map-view />
 
-   {{-- VIEW TOUR SCRIPT  --}}
+    {{-- VIEW TOUR SCRIPT  --}}
     <script>
         document.addEventListener('alpine:init', () => {
 
@@ -1038,201 +1044,364 @@
                 activeIndex: 0,
 
                 setScenes(data) {
-                    this.scenes = Array.isArray(data) ? data : [];
-                    console.log('SCENES LOADED:', this.scenes);
+            this.scenes =
+                Array.isArray(data)
+                    ? data
+                    : [];
+        },
+
+        preloadScenes() {
+            this.scenes.forEach(scene => {
+                if (!scene.image) return;
+
+                const img = new Image();
+                img.src = scene.image;
+            });
+        },
+
+        init() {
+
+            if (this.scenes.length === 0) {
+                return;
+            }
+
+            // Preload every panorama
+            this.preloadScenes();
+
+            this.$nextTick(() => {
+                this.createViewer();
+            });
+        },
+
+                getSceneKey(index) {
+                    return `scene-${index}`;
                 },
 
-                init() {
-                    if (this.scenes.length > 0) {
-                        this.$nextTick(() => this.loadScene(0));
+                createViewer() {
+
+                    const container =
+                        this.$refs.viewer;
+
+                    if (!container) {
+                        return;
                     }
+
+                    const pannellumScenes = {};
+
+                    this.scenes.forEach((scene, index) => {
+
+                        pannellumScenes[
+                            this.getSceneKey(index)
+                        ] = {
+
+                            type: 'equirectangular',
+
+                            panorama: scene.image,
+
+                            hotSpots:
+                                this.buildHotspots(
+                                    scene
+                                ),
+                        };
+                    });
+
+                    this.viewer =
+                        pannellum.viewer(
+                            container,
+                            {
+                                default: {
+                                    firstScene:
+                                        this.getSceneKey(0),
+
+                                    autoLoad:
+                                        true,
+
+                                    sceneFadeDuration:
+                                        300,
+
+                                    showControls:
+                                        true,
+
+                                    showZoomCtrl:
+                                        true,
+
+                                    showFullscreenCtrl:
+                                        true,
+                                },
+
+                                scenes:
+                                    pannellumScenes,
+                            }
+                        );
                 },
 
                 buildHotspots(scene) {
 
-                    return (scene.hotspots || []).map(h => ({
+                    return (
+                        scene.hotspots || []
+                    ).map(h => ({
 
-                        pitch: Number(h.pitch),
-                        yaw: Number(h.yaw),
+                        pitch:
+                            Number(h.pitch),
 
-                        type: "custom",
+                        yaw:
+                            Number(h.yaw),
 
-                        createTooltipFunc: (hotSpotDiv) => {
+                        type:
+                            'custom',
 
-                            const wrapper = document.createElement("div");
+                        createTooltipFunc:
+                            (hotSpotDiv) => {
 
-                            wrapper.style.position = "relative";
-                            wrapper.style.display = "inline-flex";
-                            wrapper.style.alignItems = "center";
-                            wrapper.style.justifyContent = "center";
+                                const wrapper =
+                                    document.createElement(
+                                        'div'
+                                    );
 
-                            
-                            const ping = document.createElement("div");
+                                wrapper.style.position =
+                                    'relative';
 
-                            Object.assign(ping.style, {
-                                position: "absolute",
-                                inset: "-10px",                 
-                                borderRadius: "9999px",
-                                background: "rgba(37, 99, 235, 0.25)",
-                                animation: "hotspot-ping 1.6s ease-out infinite",
-                                zIndex: "0"
-                            });
+                                wrapper.style.display =
+                                    'inline-flex';
 
-                            const button = document.createElement("button");
+                                wrapper.style.alignItems =
+                                    'center';
 
-                            button.innerText = h.label;
+                                wrapper.style.justifyContent =
+                                    'center';
 
-                            Object.assign(button.style, {
-                                position: "relative",
-                                zIndex: "2",
-                                background: "#2563eb",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "999px",
-                                padding: "10px 14px",
-                                fontSize: "13px",
-                                fontWeight: "600",
-                                cursor: "pointer",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
-                                whiteSpace: "nowrap",
-                                transition: "transform .2s ease, background .2s ease"
-                            });
 
-                            button.onmouseover = () => {
-                                button.style.transform = "scale(1.08)";
-                                button.style.background = "#1d4ed8";
-                            };
+                                const ping =
+                                    document.createElement(
+                                        'div'
+                                    );
 
-                            button.onmouseout = () => {
-                                button.style.transform = "scale(1)";
-                                button.style.background = "#2563eb";
-                            };
+                                Object.assign(
+                                    ping.style,
+                                    {
+                                        position:
+                                            'absolute',
 
-                            button.onclick = (e) => {
-                                e.stopPropagation();
+                                        inset:
+                                            '-10px',
 
-                                const currentScene = scene;
+                                        borderRadius:
+                                            '9999px',
 
-                                const idx = this.scenes.findIndex(
-                                    s => Number(s.id) === Number(h.target_scene_id)
+                                        background:
+                                            'rgba(37, 99, 235, 0.25)',
+
+                                        animation:
+                                            'hotspot-ping 1.6s ease-out infinite',
+
+                                        zIndex:
+                                            '0'
+                                    }
                                 );
 
-                                if (idx === -1) {
-                                    return;
-                                }
 
-                                const targetScene = this.scenes[idx];
+                                const button =
+                                    document.createElement(
+                                        'button'
+                                    );
 
-                                /*
-                                * Find the hotspot in the TARGET scene
-                                * that points back to the CURRENT scene.
-                                *
-                                * This gives us the nearest logical point
-                                * to face when entering the next scene.
-                                */
-                                const returnHotspot = (targetScene.hotspots || []).find(
-                                    targetHotspot =>
-                                        Number(targetHotspot.target_scene_id) ===
-                                        Number(currentScene.id)
+                                button.type =
+                                    'button';
+
+                                button.innerText =
+                                    h.label;
+
+
+                                Object.assign(
+                                    button.style,
+                                    {
+                                        position:
+                                            'relative',
+
+                                        zIndex:
+                                            '2',
+
+                                        background:
+                                            '#2563eb',
+
+                                        color:
+                                            'white',
+
+                                        border:
+                                            'none',
+
+                                        borderRadius:
+                                            '999px',
+
+                                        padding:
+                                            '10px 14px',
+
+                                        fontSize:
+                                            '13px',
+
+                                        fontWeight:
+                                            '600',
+
+                                        cursor:
+                                            'pointer',
+
+                                        boxShadow:
+                                            '0 4px 12px rgba(0,0,0,0.35)',
+
+                                        whiteSpace:
+                                            'nowrap',
+
+                                        transition:
+                                            'transform .2s ease, background .2s ease'
+                                    }
                                 );
 
-                                let targetPitch = null;
-                                let targetYaw = null;
 
-                                if (returnHotspot) {
-                                    targetPitch = Number(returnHotspot.pitch);
-                                    targetYaw = Number(returnHotspot.yaw);
-                                }
+                                button.onmouseover =
+                                    () => {
 
-                                this.loadScene(
-                                    idx,
-                                    targetPitch,
-                                    targetYaw
+                                        button.style.transform =
+                                            'scale(1.08)';
+
+                                        button.style.background =
+                                            '#1d4ed8';
+                                    };
+
+
+                                button.onmouseout =
+                                    () => {
+
+                                        button.style.transform =
+                                            'scale(1)';
+
+                                        button.style.background =
+                                            '#2563eb';
+                                    };
+
+
+                                button.onclick =
+                                    (e) => {
+
+                                        e.preventDefault();
+
+                                        e.stopPropagation();
+
+                                        const currentScene =
+                                            scene;
+
+                                        const targetIndex =
+                                            this.scenes.findIndex(
+                                                s =>
+                                                    Number(s.id)
+                                                    ===
+                                                    Number(
+                                                        h.target_scene_id
+                                                    )
+                                            );
+
+                                        if (
+                                            targetIndex === -1
+                                        ) {
+                                            return;
+                                        }
+
+                                        const targetScene =
+                                            this.scenes[
+                                                targetIndex
+                                            ];
+
+                                        /*
+                                        |--------------------------------------------------------------------------
+                                        | FACE RETURN HOTSPOT
+                                        |--------------------------------------------------------------------------
+                                        */
+
+                                        const returnHotspot =
+                                            (
+                                                targetScene.hotspots
+                                                || []
+                                            ).find(
+                                                targetHotspot =>
+                                                    Number(
+                                                        targetHotspot
+                                                            .target_scene_id
+                                                    )
+                                                    ===
+                                                    Number(
+                                                        currentScene.id
+                                                    )
+                                            );
+
+                                        const sceneKey =
+                                            this.getSceneKey(
+                                                targetIndex
+                                            );
+
+                                        if (returnHotspot) {
+
+                                            const pitch =
+                                                Number(
+                                                    returnHotspot.pitch
+                                                );
+
+                                            const yaw =
+                                                Number(
+                                                    returnHotspot.yaw
+                                                );
+
+                                            if (
+                                                Number.isFinite(
+                                                    pitch
+                                                )
+                                                &&
+                                                Number.isFinite(
+                                                    yaw
+                                                )
+                                            ) {
+
+                                                this.viewer.loadScene(
+                                                    sceneKey,
+                                                    pitch,
+                                                    yaw
+                                                );
+
+                                            } else {
+
+                                                this.viewer.loadScene(
+                                                    sceneKey
+                                                );
+                                            }
+
+                                        } else {
+
+                                            this.viewer.loadScene(
+                                                sceneKey
+                                            );
+                                        }
+
+                                        this.activeIndex =
+                                            targetIndex;
+                                    };
+
+
+                                wrapper.appendChild(
+                                    ping
                                 );
-                            };
 
-                            wrapper.appendChild(ping);
-                            wrapper.appendChild(button);
-                            hotSpotDiv.appendChild(wrapper);
+                                wrapper.appendChild(
+                                    button
+                                );
 
-                            hotSpotDiv.style.transform = "translate(-50%, -50%)";
-                        }
+                                hotSpotDiv.appendChild(
+                                    wrapper
+                                );
 
+                                hotSpotDiv.style.transform =
+                                    'translate(-50%, -50%)';
+                            }
                     }));
-                },
-
-                loadScene(index, initialPitch = null, initialYaw = null) {
-
-                    const scene = this.scenes[index];
-                    if (!scene) return;
-
-                    this.activeIndex = index;
-
-                    const container = this.$refs.viewer;
-
-                    const fade = document.createElement("div");
-                    fade.style.position = "absolute";
-                    fade.style.top = 0;
-                    fade.style.left = 0;
-                    fade.style.width = "100%";
-                    fade.style.height = "100%";
-                    fade.style.background = "black";
-                    fade.style.opacity = "0";
-                    fade.style.transition = "opacity 300ms ease";
-                    fade.style.zIndex = "9999";
-
-                    container.style.position = "relative";
-                    container.appendChild(fade);
-
-                    requestAnimationFrame(() => {
-                        fade.style.opacity = "1";
-                    });
-
-                    setTimeout(() => {
-
-                        if (this.viewer) {
-                            try { this.viewer.destroy(); } catch (e) {}
-                            this.viewer = null;
-                        }
-
-                        container.innerHTML = "";
-
-                        const viewerOptions = {
-                            type: "equirectangular",
-                            panorama: scene.image,
-                            autoLoad: true,
-                            showControls: true,
-                            hotSpots: this.buildHotspots(scene)
-                        };
-
-                        /*
-                        * If we entered the scene from another hotspot,
-                        * face the hotspot that points back to the scene
-                        * we came from.
-                        */
-                        if (
-                            initialPitch !== null &&
-                            initialYaw !== null &&
-                            Number.isFinite(initialPitch) &&
-                            Number.isFinite(initialYaw)
-                        ) {
-                            viewerOptions.pitch = initialPitch;
-                            viewerOptions.yaw = initialYaw;
-                        }
-
-                        this.viewer = pannellum.viewer(
-                            container,
-                            viewerOptions
-                        );
-
-                        requestAnimationFrame(() => {
-                            fade.style.opacity = "0";
-                        });
-
-                        setTimeout(() => fade.remove(), 300);
-
-                    }, 250);
                 }
+
             }));
 
         });

@@ -1,4 +1,4 @@
-<div class="w-full h-auto pt-10 md:pt-40 p-5 md:p-0">
+<div class="w-full h-auto pt-28 md:pt-40 p-5 md:p-0">
     <div class="text-center mb-12">
         <h1 class="text-4xl font-light text-gray-900 mb-3">My Appointments</h1>
         <p class="text-gray-600">Book and manage your property visits and consultations</p>

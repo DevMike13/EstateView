@@ -165,45 +165,98 @@ class BillingPaymentObserver
             'purchaseAccount.reservation.agent',
         ]);
 
-        $billingTab = $payment->billing?->status === 'paid'
-        ? 'paid'
-        : 'unpaid';
+        /*
+        |--------------------------------------------------------------------------
+        | CLIENT BILL TAB
+        |--------------------------------------------------------------------------
+        |
+        | Verified payment = Paid tab
+        | Rejected / other payment = Unpaid tab
+        |
+        */
+        $billingTab = $payment->status === 'verified'
+            ? 'paid'
+            : 'unpaid';
 
         $notification = Notification::create([
             'title' => $title,
             'message' => $message,
             'type' => $type,
-            'url' => route('filament.ev-admin.pages.client-ledgers'),
-            'data' => [
-                'billing_payment_id' => $payment->id,
-                'billing_id' => $payment->billing_id,
-                'purchase_account_id' => $payment->purchase_account_id,
-                'client_name' => $payment->purchaseAccount?->user?->name,
-                'amount' => $payment->amount,
-                'status' => $payment->status,
-                'source' => $payment->source,
-                'agent_id' => $payment->purchaseAccount?->reservation?->agent_id,
-                'agent_name' => $payment->purchaseAccount?->reservation?->agent?->name,
 
-                'client_url' => route('client.bills', [
-                    'account' => $payment->purchase_account_id,
-                    'tab' => $billingTab,
-                    'highlight' => $payment->billing_id,
-                ]),
+            'url' => route(
+                'filament.ev-admin.pages.client-ledgers'
+            ),
+
+            'data' => [
+                'billing_payment_id' =>
+                    $payment->id,
+
+                'billing_id' =>
+                    $payment->billing_id,
+
+                'purchase_account_id' =>
+                    $payment->purchase_account_id,
+
+                'client_name' =>
+                    $payment->purchaseAccount?->user?->name,
+
+                'amount' =>
+                    $payment->amount,
+
+                'status' =>
+                    $payment->status,
+
+                'source' =>
+                    $payment->source,
+
+                'agent_id' =>
+                    $payment
+                        ->purchaseAccount
+                        ?->reservation
+                        ?->agent_id,
+
+                'agent_name' =>
+                    $payment
+                        ->purchaseAccount
+                        ?->reservation
+                        ?->agent
+                        ?->name,
+
+                'client_url' => route(
+                    'client.bills',
+                    [
+                        'account' =>
+                            $payment->purchase_account_id,
+
+                        'tab' =>
+                            $billingTab,
+
+                        'highlight' =>
+                            $payment->billing_id,
+                    ]
+                ),
             ],
+
             'created_by' => auth()->id(),
         ]);
 
-        $users = User::whereIn('role', ['admin', 'staff'])
+        $users = User::whereIn(
+            'role',
+            ['admin', 'staff']
+        )
             ->pluck('id')
             ->merge([
-                $payment->purchaseAccount?->user_id,
+                $payment
+                    ->purchaseAccount
+                    ?->user_id,
             ])
             ->filter()
             ->unique()
             ->toArray();
 
-        $notification->users()->attach($users);
+        $notification
+            ->users()
+            ->attach($users);
     }
 
     /**

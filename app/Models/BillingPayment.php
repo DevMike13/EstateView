@@ -17,6 +17,7 @@ class BillingPayment extends Model
         'payment_method',
         'reference_no',
         'proof_of_payment',
+        'admin_receipt',
         'status',
         'remarks',
         'paid_at',

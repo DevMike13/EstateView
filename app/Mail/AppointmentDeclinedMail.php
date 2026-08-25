@@ -15,13 +15,15 @@ class AppointmentDeclinedMail extends Mailable
     use Queueable, SerializesModels;
 
     public $appointment;
+    public $performedBy;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(ClientAppointment $appointment)
+    public function __construct(ClientAppointment $appointment, string $performedBy)
     {
         $this->appointment = $appointment;
+        $this->performedBy = $performedBy;
     }
 
     /**

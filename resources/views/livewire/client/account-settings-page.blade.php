@@ -351,6 +351,7 @@
                         ->with([
                             'lot',
                             'houseModel',
+                            'reservation',
                         ])
                         ->latest()
                         ->get();
@@ -491,24 +492,46 @@
 
                             @foreach($clientProperties as $property)
 
-                                @php
+                               @php
                                     $isPaid =
                                         $property->status === 'fully_paid';
+
+                                    $hasAccount =
+                                        ! is_null($property);
 
                                     $lotName =
                                         $property->lot?->name
                                         ?? 'No assigned lot';
 
+                                    // Property type from lots table
+                                    $propertyType =
+                                        $property->lot?->type
+                                        ?? 'Property';
+
+                                    // House model, if the purchase has one
                                     $houseModel =
                                         $property->houseModel?->model_name
                                         ?? null;
+
+                                    // Reservation linked to this property
+                                    $reservationId =
+                                        $property->reservation?->id;
                                 @endphp
 
 
-                                <div
-                                    class="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md"
+                                <a
+                                    @if($reservationId)
+                                        href="{{ route('client.reservation', [
+                                            'activeTab' => 'approved',
+                                            'highlight' => $reservationId,
+                                        ]) }}"
+                                    @endif
+                                    class="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md
+                                        {{ $reservationId
+                                            ? 'cursor-pointer hover:border-blue-200 hover:shadow-md'
+                                            : 'cursor-default'
+                                        }}"
                                 >
-
                                     {{-- PROPERTY INFO --}}
                                     <div
                                         class="flex min-w-0 items-center gap-3"
@@ -536,6 +559,10 @@
                                                 {{ $lotName }}
                                             </p>
 
+                                            {{-- PROPERTY TYPE --}}
+                                            <p class="mt-0.5 truncate text-[10px] font-medium text-gray-500">
+                                                {{ $propertyType }}
+                                            </p>
 
                                             {{-- HOUSE MODEL --}}
                                             @if($houseModel)
@@ -548,9 +575,13 @@
 
                                             @endif
 
-
+                                            <p          
+                                                class="mt-0.5 text-[10px] leading-relaxed text-gray-400 whitespace-normal break-words"
+                                            >
+                                                Manhattan Residences Candelaria
+                                            </p>
                                             {{-- PAYMENT SCHEME --}}
-                                            @if($property->payment_scheme)
+                                            {{-- @if($property->payment_scheme)
 
                                                 <p
                                                     class="mt-0.5 truncate text-[10px] text-gray-400"
@@ -558,11 +589,11 @@
                                                     {{ str($property->payment_scheme)->headline() }}
                                                 </p>
 
-                                            @endif
+                                            @endif --}}
 
 
                                             {{-- CONTRACT PRICE --}}
-                                            @if(! is_null($property->total_contract_price))
+                                            {{-- @if(! is_null($property->total_contract_price))
 
                                                 <p
                                                     class="mt-1 text-xs font-medium text-gray-700"
@@ -570,7 +601,7 @@
                                                     ₱{{ number_format($property->total_contract_price, 2) }}
                                                 </p>
 
-                                            @endif
+                                            @endif --}}
 
                                         </div>
 
@@ -586,7 +617,7 @@
                                             Paid
                                         </span>
 
-                                    @else
+                                    @elseif($hasAccount)
 
                                         <span
                                             class="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-semibold text-blue-600"
@@ -601,9 +632,17 @@
 
                                         </span>
 
+                                    @else
+
+                                        <span
+                                            class="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-500"
+                                        >
+                                            Pending
+                                        </span>
+
                                     @endif
 
-                                </div>
+                                    </a>
 
                             @endforeach
 

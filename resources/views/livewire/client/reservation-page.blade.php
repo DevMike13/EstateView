@@ -572,7 +572,7 @@
                 @enderror
             </div>
            
-            <div class="mt-3 relative">
+            {{-- <div class="mt-3 relative">
                 <div class="pointer-events-none">
                     <x-select
                         label="Agent"
@@ -596,7 +596,7 @@
                         {{ $message }}
                     </span>
                 @enderror
-            </div>
+            </div> --}}
             
             @if ($reservationType && $reservationType === "House & Lot")
                 <div class="mt-3">

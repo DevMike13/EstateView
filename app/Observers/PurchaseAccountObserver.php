@@ -22,9 +22,22 @@ class PurchaseAccountObserver
             'reservation.agent',
         ]);
 
+        $performedBy = 'System';
+
+        if (auth()->check()) {
+            $performedBy = match (auth()->user()->role) {
+                'staff' => auth()->user()->name,
+                'admin' => 'Admin',
+                'user'  => auth()->user()->name,
+                'agent' => auth()->user()->name,
+                default => auth()->user()->name ?? 'System',
+            };
+        }
+
         $message = "A ledger account was created for {$purchaseAccount->user?->name}. "
             . "Payment scheme: " . str($purchaseAccount->payment_scheme)->headline()
-            . ". Remaining balance: ₱" . number_format($purchaseAccount->remaining_balance, 2) . ".";
+            . ". Remaining balance: ₱" . number_format($purchaseAccount->remaining_balance, 2)
+            . ". Updated by: {$performedBy}.";
 
         $notification = Notification::create([
             'title' => 'Client Ledger Created',
@@ -70,8 +83,19 @@ class PurchaseAccountObserver
             'created_by' => auth()->id(),
         ]);
 
-        $users = User::whereIn('role', ['admin', 'staff'])
-            ->pluck('id')
+        $staffAdmins = User::whereIn('role', ['admin', 'staff'])
+            ->when(
+                auth()->check(),
+                fn ($query) =>
+                    $query->where(
+                        'id',
+                        '!=',
+                        auth()->id()
+                    )
+            )
+            ->pluck('id');
+
+        $users = $staffAdmins
             ->merge([
                 $purchaseAccount->user_id,
             ])
@@ -83,7 +107,7 @@ class PurchaseAccountObserver
 
         if ($purchaseAccount->user?->email) {
             Mail::to($purchaseAccount->user->email)
-                ->send(new LedgerCreatedMail($purchaseAccount));
+                ->send(new LedgerCreatedMail($purchaseAccount, $performedBy));
         }
     }
 
@@ -168,8 +192,19 @@ class PurchaseAccountObserver
             'created_by' => auth()->id(),
         ]);
 
-        $users = User::whereIn('role', ['admin', 'staff'])
-            ->pluck('id')
+        $staffAdmins = User::whereIn('role', ['admin', 'staff'])
+            ->when(
+                auth()->check(),
+                fn ($query) =>
+                    $query->where(
+                        'id',
+                        '!=',
+                        auth()->id()
+                    )
+            )
+            ->pluck('id');
+
+        $users = $staffAdmins
             ->merge([
                 $purchaseAccount->user_id,
             ])

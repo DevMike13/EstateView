@@ -20,7 +20,14 @@
                 />
 
                 <x-input label="Account Name" wire:model.defer="account_name" />
-                <x-input label="Account Number" wire:model.defer="account_number" />
+                <x-input
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    label="Account Number"
+                    wire:model.defer="account_number"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                />
 
                 <div class="col-span-2">
                     <label class="text-sm font-medium text-gray-700">

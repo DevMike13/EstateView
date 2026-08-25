@@ -4,22 +4,18 @@ namespace App\Mail;
 
 use App\Models\LotReservation;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ReservationRejectedMail extends Mailable
+class ReservationDocumentsRejectedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $reservation;
-    public $performedBy;
+    public LotReservation $reservation;
+    public string $performedBy;
 
-    /**
-     * Create a new message instance.
-     */
     public function __construct(
         LotReservation $reservation,
         string $performedBy
@@ -28,35 +24,23 @@ class ReservationRejectedMail extends Mailable
         $this->performedBy = $performedBy;
     }
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Reservation was Rejected',
+            subject: 'Reservation Fee Rejected',
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.reservations.rejected',
+            markdown: 'mail.reservations.documents-rejected',
             with: [
                 'reservation' => $this->reservation,
-                'user' => $this->reservation->user,
-            ]
+            ],
         );
     }
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
     public function attachments(): array
     {
         return [];

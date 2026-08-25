@@ -101,19 +101,46 @@
 
         </div>
 
+        {{-- ACCOUNT STATUS TABS --}}
+        <div class="mb-5 flex items-center gap-2 rounded-xl border bg-white p-1.5 shadow-sm">
+            <button
+                type="button"
+                wire:click="$set('statusFilter', 'active')"
+                class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
+                    {{ $statusFilter === 'active'
+                        ? 'bg-[#101727] text-white'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }}"
+            >
+                Active
+            </button>
+
+            <button
+                type="button"
+                wire:click="$set('statusFilter', 'fully_paid')"
+                class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
+                    {{ $statusFilter === 'fully_paid'
+                        ? 'bg-green-600 text-white'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }}"
+            >
+                Fully Paid
+            </button>
+        </div>
+        
         <div class="grid gap-4">
 
             @forelse($accounts as $account)
 
-                <div class="bg-white border rounded-xl shadow-sm p-5">
+                <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
 
                     <div class="flex justify-between gap-4 mb-4">
                         <div>
-                            <div class="font-bold text-lg">
+                            <div class="font-bold text-lg text-gray-900 dark:text-white">
                                 {{ $account->user->name }}
                             </div>
 
-                            <div class="text-sm text-gray-500">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
                                 {{ $account->lot->name ?? 'N/A' }}
                                 —
                                 {{ Str::headline($account->payment_scheme) }}
@@ -125,41 +152,57 @@
                         </span>
                     </div>
 
-                    <div class="grid md:grid-cols-5 gap-4 bg-gray-50 p-4 rounded-lg text-sm">
+                    <div class="grid md:grid-cols-5 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg text-sm">
 
                         <div>
-                            <div class="text-xs text-gray-500">TCP</div>
-                            <div class="font-semibold">
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                TCP
+                            </div>
+
+                            <div class="font-semibold text-gray-900 dark:text-white">
                                 ₱{{ number_format($account->total_contract_price, 2) }}
                             </div>
                         </div>
 
                         <div>
-                            <div class="text-xs text-gray-500">Reservation Fee</div>
-                            <div class="font-semibold text-green-700">
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                Reservation Fee
+                            </div>
+
+                            <div class="font-semibold text-green-700 dark:text-green-400">
                                 ₱{{ number_format($account->reservation_fee_credit, 2) }}
                             </div>
                         </div>
 
                         <div>
-                            <div class="text-xs text-gray-500">Remaining DP</div>
-                            <div class="font-semibold">
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                Remaining DP
+                            </div>
+
+                            <div class="font-semibold text-gray-900 dark:text-white">
                                 ₱{{ number_format($account->remaining_downpayment, 2) }}
                             </div>
                         </div>
 
                         <div>
-                            <div class="text-xs text-gray-500">
-                                {{ $account->payment_scheme === 'bank_loan' ? 'Monthly Downpayment' : 'Monthly Amortization' }}
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ $account->payment_scheme === 'bank_loan'
+                                    ? 'Monthly Downpayment'
+                                    : 'Monthly Amortization'
+                                }}
                             </div>
-                            <div class="font-semibold">
+
+                            <div class="font-semibold text-gray-900 dark:text-white">
                                 ₱{{ number_format($account->monthly_amortization, 2) }}
                             </div>
                         </div>
 
                         <div>
-                            <div class="text-xs text-gray-500">Remaining Balance</div>
-                            <div class="font-semibold text-red-700">
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                Remaining Balance
+                            </div>
+
+                            <div class="font-semibold text-red-700 dark:text-red-400">
                                 ₱{{ number_format($account->remaining_balance, 2) }}
                             </div>
                         </div>
@@ -197,17 +240,17 @@
                             open: false,
                             billingTab: 'unpaid'
                         }"
-                        class="mt-5 border rounded-2xl overflow-hidden bg-white"
+                        class="mt-5 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white dark:bg-gray-900"
                     >
 
                         {{-- MAIN BILLING HEADER --}}
                         <button
                             type="button"
                             x-on:click="open = !open"
-                            class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition"
+                            class="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                         >
                             <div>
-                                <div class="font-semibold text-gray-900">
+                                <div class="font-semibold text-gray-900 dark:text-white">
                                     Billing Schedule
                                 </div>
 

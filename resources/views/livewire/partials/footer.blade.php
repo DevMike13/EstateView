@@ -11,16 +11,16 @@
         <h3 class="text-sm tracking-wide uppercase mb-6 font-normal">Quick Links</h3>
         <ul class="space-y-3">
           <li>
-            <a class="text-gray-400 hover:text-white transition-colors" href="/client" data-discover="true">Home</a>
+            <a class="text-gray-400 hover:text-white transition-colors" href="{{ route('user.home') }}" data-discover="true">Home</a>
           </li>
           <li>
-            <a class="text-gray-400 hover:text-white transition-colors" href="/client/about" data-discover="true">About</a>
+            <a class="text-gray-400 hover:text-white transition-colors" href="{{ route('user.about') }}" data-discover="true">About</a>
           </li>
           <li>
-            <a class="text-gray-400 hover:text-white transition-colors" href="/client/properties" data-discover="true">Properties</a>
+            <a class="text-gray-400 hover:text-white transition-colors" href="{{ route('user.properties') }}" data-discover="true">Properties</a>
           </li>
           <li>
-            <a class="text-gray-400 hover:text-white transition-colors" href="/client/appointments" data-discover="true">Appointments</a>
+            <a class="text-gray-400 hover:text-white transition-colors" href="{{ route('client.appointment') }}" data-discover="true">Appointments</a>
           </li>
         </ul>
       </div>

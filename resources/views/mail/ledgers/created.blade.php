@@ -12,6 +12,7 @@ Your purchase account has been created successfully.
 - Payment Scheme: {{ Str::headline($account->payment_scheme) }}
 - Total Contract Price: ₱{{ number_format($account->total_contract_price, 2) }}
 - Remaining Balance: ₱{{ number_format($account->remaining_balance, 2) }}
+- Performed By: {{ $performedBy }}
 
 You may now review your billing schedule through the client portal.
 

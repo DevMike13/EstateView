@@ -95,12 +95,20 @@ class Appointments extends Component
     {
         $appointment = ClientAppointment::with('user')->findOrFail($id);
 
+        $performedBy = auth()->user()->role === 'staff'
+            ? auth()->user()->name
+            : 'Admin';
+
         $appointment->update([
             'status' => 'approved'
         ]);
 
         Mail::to($appointment->user->email)
-            ->send(new AppointmentApprovedMail($appointment));
+            ->send(new AppointmentApprovedMail(
+                    $appointment,
+                    $performedBy
+                )
+            );
 
         $this->reloadWeb();
     }
@@ -120,12 +128,21 @@ class Appointments extends Component
     {
         $appointment = ClientAppointment::with('user')->findOrFail($id);
 
+        $performedBy = auth()->user()->role === 'staff'
+            ? auth()->user()->name
+            : 'Admin';
+
         $appointment->update([
             'status' => 'declined'
         ]);
 
         Mail::to($appointment->user->email)
-            ->send(new AppointmentDeclinedMail($appointment));
+            ->send(
+                new AppointmentDeclinedMail(
+                    $appointment,
+                    $performedBy
+                )
+            );
 
         $this->reloadWeb();
     }
@@ -145,12 +162,20 @@ class Appointments extends Component
     {
         $appointment = ClientAppointment::with('user')->findOrFail($id);
 
+        $performedBy = auth()->user()->role === 'staff'
+            ? auth()->user()->name
+            : 'Admin';
+
         $appointment->update([
             'status' => 'completed'
         ]);
 
         Mail::to($appointment->user->email)
-            ->send(new AppointmentCompletedMail($appointment));
+            ->send(new AppointmentCompletedMail(
+                    $appointment,
+                    $performedBy
+                )
+            );
 
         $this->reloadWeb();
     }
@@ -161,7 +186,7 @@ class Appointments extends Component
             'title' => 'Restore Appointment?',
             'description' => 'This will move it back to pending.',
             'acceptLabel' => 'Yes',
-            'method' => 'restore',
+            'method' => 'reopen',
             'params' => $id,
             'icon' => 'warning',
         ]);

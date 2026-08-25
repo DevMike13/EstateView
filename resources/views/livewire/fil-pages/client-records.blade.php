@@ -1,10 +1,10 @@
 <main class="flex-1 min-w-0">
     <div class="w-full mx-auto space-y-6">
         <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
                 Client Records
             </h1>
-            <p class="text-sm text-gray-600">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
                 View client information, reservations, documents, payments, and account balances.
             </p>
         </div>
@@ -14,10 +14,14 @@
                 type="text"
                 wire:model.live.debounce.400ms="search"
                 placeholder="Search clients by name, email, phone, or lot..."
-                class="w-full rounded-lg border-gray-300"
+                class="w-full rounded-lg border-gray-300 bg-white text-gray-900
+                    placeholder:text-gray-400
+                    dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100
+                    dark:placeholder:text-gray-500"
             >
 
-            <select wire:model.live="status" class="rounded-lg border-gray-300">
+            <select wire:model.live="status" class="rounded-lg border-gray-300 bg-white text-gray-900
+                dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
                 <option value="">All Status</option>
                 <option value="active">Active</option>
                 <option value="downpayment_pending">Downpayment Pending</option>
@@ -30,7 +34,7 @@
         <div class="grid sm:grid-cols-3 gap-6">
 
             {{-- Total Clients --}}
-            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div class="flex items-center gap-3 mb-2">
                     <div class="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -46,18 +50,18 @@
                         </svg>
                     </div>
 
-                    <div class="text-2xl font-bold text-gray-900">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                         {{ $totalClients }}
                     </div>
                 </div>
 
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-gray-600 dark:text-gray-400">
                     Total Clients
                 </div>
             </div>
 
             {{-- Active Clients --}}
-            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div class="flex items-center gap-3 mb-2">
                     <div class="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -73,18 +77,18 @@
                         </svg>
                     </div>
 
-                    <div class="text-2xl font-bold text-gray-900">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                         {{ $activeClients }}
                     </div>
                 </div>
 
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-gray-600 dark:text-gray-400">
                     Active Clients
                 </div>
             </div>
 
             {{-- Pending Clients --}}
-            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div class="flex items-center gap-3 mb-2">
                     <div class="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -100,22 +104,22 @@
                         </svg>
                     </div>
 
-                    <div class="text-2xl font-bold text-gray-900">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                         {{ $pendingClients }}
                     </div>
                 </div>
 
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-gray-600 dark:text-gray-400">
                     Pending Clients
                 </div>
             </div>
 
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full">
-                    <thead class="bg-gray-50 border-b">
+                    <thead class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                         <tr>
                             <th class="px-6 py-4 text-left text-sm font-semibold">Client</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold">Property</th>
@@ -127,7 +131,7 @@
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y">
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse($clients as $client)
                             @php
                                 $account = $client->purchaseAccounts->first();
@@ -154,17 +158,17 @@
                                 };
                             @endphp
 
-                            <tr class="hover:bg-gray-50 align-top">
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 align-top">
                                 <td class="px-6 py-4">
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $displayName }}
                                     </div>
 
-                                    <div class="text-sm text-gray-600">
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
                                         {{ $client->email }}
                                     </div>
 
-                                    <div class="text-sm text-gray-600">
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
                                         {{ $client->info?->phone ?? 'No phone' }}
                                     </div>
 
@@ -179,7 +183,7 @@
 
                                 <td class="px-6 py-4">
                                     @if($account || $reservation || $lot || $houseModel)
-                                        <div class="font-medium text-gray-900">
+                                        <div class="font-medium text-gray-900 dark:text-gray-100">
                                             {{ $houseModel?->model_name ?? 'Lot Only' }}
 
                                             @if($lot)
@@ -187,7 +191,7 @@
                                             @endif
                                         </div>
 
-                                        <div class="text-sm text-gray-600">
+                                        <div class="text-sm text-gray-600 dark:text-gray-400">
                                             {{ $reservation?->type ?? 'No reservation type' }}
                                         </div>
 
@@ -319,63 +323,63 @@
 
                     {{-- Personal Information --}}
                     <div>
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                             Personal Information
                         </h4>
 
                         <div class="grid sm:grid-cols-2 gap-4 text-sm">
                             <div class="rounded-lg border border-gray-200 p-3">
                                 <div class="text-xs text-gray-500">Full Name</div>
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 dark:text-gray-100">
                                     {{ $selectedClient->name }}
                                 </div>
                             </div>
 
                             <div class="rounded-lg border border-gray-200 p-3">
                                 <div class="text-xs text-gray-500">Email</div>
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 dark:text-gray-100">
                                     {{ $selectedClient->email ?? 'N/A' }}
                                 </div>
                             </div>
 
                             <div class="rounded-lg border border-gray-200 p-3">
                                 <div class="text-xs text-gray-500">Phone</div>
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 dark:text-gray-100">
                                     {{ $selectedClient->info?->phone ?? 'N/A' }}
                                 </div>
                             </div>
 
                             <div class="rounded-lg border border-gray-200 p-3">
                                 <div class="text-xs text-gray-500">State</div>
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 dark:text-gray-100">
                                     {{ $selectedClient->info?->state ?? 'Philippines' }}
                                 </div>
                             </div>
 
                             <div class="rounded-lg border border-gray-200 p-3">
                                 <div class="text-xs text-gray-500">Region</div>
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 dark:text-gray-100">
                                     {{ $selectedClient->info?->region ?? 'N/A' }}
                                 </div>
                             </div>
 
                             <div class="rounded-lg border border-gray-200 p-3">
                                 <div class="text-xs text-gray-500">Province</div>
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 dark:text-gray-100">
                                     {{ $selectedClient->info?->province ?? 'N/A' }}
                                 </div>
                             </div>
 
                             <div class="rounded-lg border border-gray-200 p-3">
                                 <div class="text-xs text-gray-500">Municipality</div>
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 dark:text-gray-100">
                                     {{ $selectedClient->info?->municipality ?? 'N/A' }}
                                 </div>
                             </div>
 
                             <div class="rounded-lg border border-gray-200 p-3">
                                 <div class="text-xs text-gray-500">Barangay</div>
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 dark:text-gray-100">
                                     {{ $selectedClient->info?->barangay ?? 'N/A' }}
                                 </div>
                             </div>
@@ -384,7 +388,7 @@
 
                     {{-- Property Information --}}
                     <div>
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                             Property Information
                         </h4>
 
@@ -392,7 +396,7 @@
                             <div class="grid sm:grid-cols-2 gap-4 text-sm">
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Property</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $houseModel?->model_name ?? 'Lot Only' }}
                                         @if($lot)
                                             - {{ $lot->name }}
@@ -402,21 +406,21 @@
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Lot Number</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $lot?->name ?? 'N/A' }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">House Model</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $houseModel?->model_name ?? 'None (Lot Only)' }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Reservation Type</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $reservation?->type ?? 'N/A' }}
                                     </div>
                                 </div>
@@ -437,14 +441,14 @@
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Lot Status</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $lot?->status ? ucfirst(str_replace('_', ' ', $lot->status)) : 'N/A' }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Reserved At</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $reservation?->reserved_at ? \Carbon\Carbon::parse($reservation->reserved_at)->format('M d, Y') : 'N/A' }}
                                     </div>
                                 </div>
@@ -463,7 +467,7 @@
 
                     {{-- Payment Information --}}
                     <div>
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                             Payment Information
                         </h4>
 
@@ -471,49 +475,49 @@
                             <div class="grid sm:grid-cols-2 gap-4 text-sm">
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Payment Scheme</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $account->payment_scheme ? ucfirst(str_replace('_', ' ', $account->payment_scheme)) : 'N/A' }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Payment Plan</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         {{ $account->loan_term_years ? 'Monthly - ' . $account->loan_term_years . ' years' : 'N/A' }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Lot Price</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         ₱{{ number_format($account->lot_price ?? 0, 2) }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">House Price</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         ₱{{ number_format($account->house_price ?? 0, 2) }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Total Contract Price</div>
-                                    <div class="font-semibold text-gray-900">
+                                    <div class="font-semibold text-gray-900 dark:text-gray-100">
                                         ₱{{ number_format($account->total_contract_price ?? 0, 2) }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Net Contract Price</div>
-                                    <div class="font-semibold text-gray-900">
+                                    <div class="font-semibold text-gray-900 dark:text-gray-100">
                                         ₱{{ number_format($account->net_contract_price ?? 0, 2) }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Downpayment Amount</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         ₱{{ number_format($account->downpayment_amount ?? 0, 2) }}
                                     </div>
                                 </div>
@@ -527,14 +531,14 @@
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Loanable Amount</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         ₱{{ number_format($account->loanable_amount ?? 0, 2) }}
                                     </div>
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3">
                                     <div class="text-xs text-gray-500">Monthly Amortization</div>
-                                    <div class="font-medium text-gray-900">
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">
                                         ₱{{ number_format($account->monthly_amortization ?? 0, 2) }}
                                     </div>
                                 </div>
@@ -567,14 +571,14 @@
 
                     {{-- Documents / Payments / Ledger Summary --}}
                     <div>
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                             Records Summary
                         </h4>
 
                         @if($reservation || $account)
                             <div class="grid sm:grid-cols-4 gap-4 text-sm">
                                 <div class="rounded-lg border border-gray-200 p-3 text-center">
-                                    <div class="text-2xl font-bold text-gray-900">
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                         {{ $reservation?->requiredDocuments?->count() ?? 0 }}
                                     </div>
                                     <div class="text-xs text-gray-500">
@@ -583,7 +587,7 @@
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3 text-center">
-                                    <div class="text-2xl font-bold text-gray-900">
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                         {{ $reservation?->reservationPayments?->count() ?? 0 }}
                                     </div>
                                     <div class="text-xs text-gray-500">
@@ -592,7 +596,7 @@
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3 text-center">
-                                    <div class="text-2xl font-bold text-gray-900">
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                         {{ $account?->billings?->count() ?? 0 }}
                                     </div>
                                     <div class="text-xs text-gray-500">
@@ -601,7 +605,7 @@
                                 </div>
 
                                 <div class="rounded-lg border border-gray-200 p-3 text-center">
-                                    <div class="text-2xl font-bold text-gray-900">
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                         {{ $account?->ledgers?->count() ?? 0 }}
                                     </div>
                                     <div class="text-xs text-gray-500">
@@ -639,7 +643,7 @@
                                     class="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-gray-50"
                                 >
                                     <div>
-                                        <h4 class="text-lg font-semibold text-gray-900">
+                                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                             Billing Payment Receipts
                                         </h4>
 
@@ -722,7 +726,7 @@
 
                                                             <div class="min-w-0">
                                                                 <div class="flex flex-wrap items-center gap-2">
-                                                                    <p class="truncate font-semibold text-gray-900">
+                                                                    <p class="truncate font-semibold text-gray-900 dark:text-gray-100">
                                                                         {{ $payment->billing?->title ?? 'Billing Payment' }}
                                                                     </p>
 
@@ -768,7 +772,7 @@
                                                                     Amount
                                                                 </div>
 
-                                                                <div class="text-sm font-semibold text-gray-900">
+                                                                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">
                                                                     ₱{{ number_format(
                                                                         $payment->amount ?? 0,
                                                                         2
@@ -796,7 +800,7 @@
                                                                 Amount
                                                             </div>
 
-                                                            <div class="font-semibold text-gray-900">
+                                                            <div class="font-semibold text-gray-900 dark:text-gray-100">
                                                                 ₱{{ number_format(
                                                                     $payment->amount ?? 0,
                                                                     2
@@ -810,7 +814,7 @@
                                                                     Payment Method
                                                                 </div>
 
-                                                                <div class="mt-1 font-medium text-gray-900">
+                                                                <div class="mt-1 font-medium text-gray-900 dark:text-gray-100">
                                                                     {{ $payment->payment_method
                                                                         ? Str::headline($payment->payment_method)
                                                                         : 'N/A'
@@ -823,7 +827,7 @@
                                                                     Source
                                                                 </div>
 
-                                                                <div class="mt-1 font-medium text-gray-900">
+                                                                <div class="mt-1 font-medium text-gray-900 dark:text-gray-100">
                                                                     {{ $sourceLabel }}
                                                                 </div>
                                                             </div>
@@ -833,7 +837,7 @@
                                                                     Reference Number
                                                                 </div>
 
-                                                                <div class="mt-1 break-all font-medium text-gray-900">
+                                                                <div class="mt-1 break-all font-medium text-gray-900 dark:text-gray-100">
                                                                     {{ $payment->reference_no ?? 'N/A' }}
                                                                 </div>
                                                             </div>
@@ -843,7 +847,7 @@
                                                                     Paid At
                                                                 </div>
 
-                                                                <div class="mt-1 font-medium text-gray-900">
+                                                                <div class="mt-1 font-medium text-gray-900 dark:text-gray-100">
                                                                     {{ $payment->paid_at
                                                                         ? $payment->paid_at->format(
                                                                             'M d, Y h:i A'
@@ -858,7 +862,7 @@
                                                                     Verified At
                                                                 </div>
 
-                                                                <div class="mt-1 font-medium text-gray-900">
+                                                                <div class="mt-1 font-medium text-gray-900 dark:text-gray-100">
                                                                     {{ $payment->verified_at
                                                                         ? $payment->verified_at->format(
                                                                             'M d, Y h:i A'
@@ -962,7 +966,7 @@
                                     class="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-gray-50"
                                 >
                                     <div>
-                                        <h4 class="text-lg font-semibold text-gray-900">
+                                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                             Required Documents
                                         </h4>
 
@@ -1004,7 +1008,7 @@
                                                         </div>
 
                                                         <div class="min-w-0">
-                                                            <p class="truncate text-sm font-semibold text-gray-900">
+                                                            <p class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
                                                                 {{ Str::headline($document->document_type) }}
                                                             </p>
 
@@ -1068,7 +1072,7 @@
     <x-modal blur name="editClientModal" max-width="2xl">
         <x-card>
             <div class="flex items-center justify-between mb-4 md:mb-6">
-                <h3 class="text-xl md:text-2xl font-bold text-gray-900">
+                <h3 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                     Edit Client
                 </h3>
 
@@ -1083,7 +1087,7 @@
 
             <form wire:submit.prevent="confirmUpdateClient" class="space-y-6">
                 <div>
-                    <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                         Personal Information
                     </h4>
 
@@ -1171,7 +1175,7 @@
                 </div>
                 @if($selectedClient?->purchaseAccounts?->count())
                     <div>
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                             Property Information
                         </h4>
 
@@ -1224,7 +1228,7 @@
                     </div>
 
                     <div>
-                        <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                             Payment Information
                         </h4>
 

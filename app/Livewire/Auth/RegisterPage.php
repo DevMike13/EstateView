@@ -50,7 +50,7 @@ class RegisterPage extends Component
     public $provinceCode;
     public $municipalityCode;
 
-    public $agentId = null;
+    public $agentProfessionalId = null;
 
     public function mount(){
         $this->initialData();
@@ -63,11 +63,51 @@ class RegisterPage extends Component
         $this->isFinishedStepTwo = false;
     }
 
-    public function nextStep(){
-        if($this->currentStep < 2 && $this->firstName && $this->lastName && $this->middleName){
-            $this->currentStep = $this->currentStep + 1;
-            $this->isFinishedStepOne = true;
+    public function nextStep()
+    {
+        if ($this->currentStep != 1) {
+            return;
         }
+
+        // Validate required Step 1 fields
+        $this->validate([
+            'firstName' => 'required|max:255',
+            'middleName' => 'required|max:255',
+            'lastName' => 'required|max:255',
+            'suffix' => 'nullable|max:255',
+            'agentProfessionalId' => 'nullable|string|max:255',
+            'region' => 'required|max:255',
+            'province' => 'required|max:255',
+            'municipality' => 'required|max:255',
+            'barangay' => 'required|max:255',
+            'state' => 'required|max:255',
+        ]);
+
+        // Validate Professional Agent ID
+        if ($this->agentProfessionalId) {
+            $agentExists = User::query()
+                ->where('role', 'agent')
+                ->whereHas('info', function ($query) {
+                    $query->where(
+                        'professional_agent_id',
+                        trim($this->agentProfessionalId)
+                    );
+                })
+                ->exists();
+
+            if (! $agentExists) {
+                $this->addError(
+                    'agentProfessionalId',
+                    'The Agent ID does not match any existing agent. Please verify that you have entered the correct Agent ID.'
+                );
+
+                return;
+            }
+        }
+
+        // Everything is valid
+        $this->currentStep = 2;
+        $this->isFinishedStepOne = true;
     }
 
     public function backStep(){
@@ -84,7 +124,11 @@ class RegisterPage extends Component
             'lastName' => 'required|max:255',
             'middleName' => 'required|max:255',
             'suffix' => 'nullable|max:255',
-            'agentId' => 'nullable|exists:users,id',
+            'agentProfessionalId' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|unique:users,email|max:255',
             'region' => 'required|max:255',
@@ -95,6 +139,32 @@ class RegisterPage extends Component
             'password' => 'required|min:8|max:255',
             'confirmPassword' => 'required|same:password|min:8|max:255',
         ]);
+
+        $agentId = null;
+
+        if ($this->agentProfessionalId) {
+
+            $agent = User::query()
+                ->where('role', 'agent')
+                ->whereHas('info', function ($query) {
+                    $query->where(
+                        'professional_agent_id',
+                        trim($this->agentProfessionalId)
+                    );
+                })
+                ->first();
+
+            if (! $agent) {
+                $this->addError(
+                    'agentProfessionalId',
+                    'The Professional Agent ID does not match any existing agent.'
+                );
+
+                return;
+            }
+
+            $agentId = $agent->id;
+        }
 
         try {
             $otp = mt_rand(100000, 999999);  // Generate a 6-digit OTP
@@ -123,7 +193,7 @@ class RegisterPage extends Component
                 'middle_name' => $this->middleName,
                 'last_name' => $this->lastName,
                 'suffix' => $this->suffix,
-                'agent_id' => $this->agentId,
+                'agent_id' => $agentId,
                 'phone' => '+63' . $this->phone,
                 'region' => $this->region,
                 'province' => $this->province,
@@ -175,24 +245,54 @@ class RegisterPage extends Component
         }
     }
 
-    public function getAgentsProperty()
-    {
-        return User::query()
-            ->with('info')
-            ->where('role', 'agent')
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'profile_picture'])
-            ->map(function ($agent) {
-                return [
-                    'id' => $agent->id,
-                    'name' => $agent->name,
-                    'email' => $agent->email,
-                    'profile_picture' => $agent->profile_picture,
+    // public function getAgentsProperty()
+    // {
+    //     return User::query()
+    //         ->with('info')
+    //         ->where('role', 'agent')
+    //         ->orderBy('name')
+    //         ->get(['id', 'name', 'email', 'profile_picture'])
+    //         ->map(function ($agent) {
+    //             return [
+    //                 'id' => $agent->id,
+    //                 'name' => $agent->name,
+    //                 'email' => $agent->email,
+    //                 'profile_picture' => $agent->profile_picture,
 
-                    'professional_agent_id' => $agent->info?->professional_agent_id,
-                ];
-            })
-            ->toArray();
+    //                 'professional_agent_id' => $agent->info?->professional_agent_id,
+    //             ];
+    //         })
+    //         ->toArray();
+    // }
+
+    public function getCanProceedStepOneProperty()
+    {
+        if (
+            ! $this->firstName ||
+            ! $this->middleName ||
+            ! $this->lastName ||
+            ! $this->region ||
+            ! $this->province ||
+            ! $this->municipality ||
+            ! $this->barangay ||
+            ! $this->state
+        ) {
+            return false;
+        }
+
+        if ($this->agentProfessionalId) {
+            return User::query()
+                ->where('role', 'agent')
+                ->whereHas('info', function ($query) {
+                    $query->where(
+                        'professional_agent_id',
+                        trim($this->agentProfessionalId)
+                    );
+                })
+                ->exists();
+        }
+
+        return true;
     }
 
     public function render()

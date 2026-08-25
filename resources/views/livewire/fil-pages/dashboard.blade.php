@@ -163,7 +163,7 @@
             <div class="text-3xl font-light text-gray-900 mb-2">{{ $pendingReservations }}</div>
             <div class="text-sm text-gray-700 uppercase tracking-wide">Pending Reservations</div>
           </a>
-          <a class="bg-white p-6 border border-yellow-200 hover:shadow-md transition-all" href="{{ route('filament.ev-admin.pages.reservations') }}" data-discover="true">
+          <a class="bg-white p-6 border border-yellow-200 hover:shadow-md transition-all" href="{{ route('filament.ev-admin.pages.appointments') }}" data-discover="true">
             <div class="text-3xl font-light text-gray-900 mb-2">{{ $pendingAppointments }}</div>
             <div class="text-sm text-gray-700 uppercase tracking-wide">Pending Appointments</div>
           </a>
@@ -174,51 +174,55 @@
         </div>
       </div>
       <div class="grid lg:grid-cols-2 gap-8">
-        <div>
-          <h2 class="text-xl md:text-2xl font-light text-gray-900 mb-4 md:mb-6">Recent Activity</h2>
-          <div class="bg-white shadow-sm divide-y divide-gray-100">
-            @forelse($recentActivities as $activity)
-                <div class="p-6 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-start gap-4">
-                            <div class="h-2 w-2 rounded-full mt-2 bg-orange-600"></div>
+        @if(auth()->user()?->role !== 'staff')
+          <div>
+            <h2 class="text-xl md:text-2xl font-light text-gray-900 mb-4 md:mb-6">Recent Activity</h2>
+            <div class="bg-white shadow-sm divide-y divide-gray-100">
+              @forelse($recentActivities as $activity)
+                  <div class="p-6 hover:bg-gray-50 transition-colors">
+                      <div class="flex items-start justify-between">
+                          <div class="flex items-start gap-4">
+                              <div class="h-2 w-2 rounded-full mt-2 bg-orange-600"></div>
 
-                            <div>
-                                <div class="text-gray-900 mb-1">
-                                    {{ $activity->title }}
-                                </div>
+                              <div>
+                                  <div class="text-gray-900 mb-1">
+                                      {{ $activity->title }}
+                                  </div>
 
-                                <div class="text-sm text-gray-600">
-                                    {{ $activity->message }}
-                                </div>
-                            </div>
-                        </div>
+                                  <div class="text-sm text-gray-600">
+                                      {{ $activity->message }}
+                                  </div>
+                              </div>
+                          </div>
 
-                        <div class="text-sm text-gray-500">
-                            {{ $activity->created_at->diffForHumans() }}
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="p-6 text-sm text-gray-400">
-                    No recent activity yet.
-                </div>
-            @endforelse
+                          <div class="text-sm text-gray-500">
+                              {{ $activity->created_at->diffForHumans() }}
+                          </div>
+                      </div>
+                  </div>
+              @empty
+                  <div class="p-6 text-sm text-gray-400">
+                      No recent activity yet.
+                  </div>
+              @endforelse
+            </div>
           </div>
-        </div>
+        @endif
         <div>
           <h2 class="text-xl md:text-2xl font-light text-gray-900 mb-4 md:mb-6">Quick Actions</h2>
           <div class="space-y-4">
-            <a class="block bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.staff-management') }}" data-discover="true">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users h-10 w-10 text-gray-400 mb-4 group-hover:text-gray-900 transition-colors">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <h3 class="text-lg text-gray-900 mb-2">Manage Staff</h3>
-              <p class="text-sm text-gray-600">Add, edit, or remove staff members</p>
-            </a>
+            @if(auth()->user()?->role !== 'staff')
+              <a class="block bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.staff-management') }}" data-discover="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users h-10 w-10 text-gray-400 mb-4 group-hover:text-gray-900 transition-colors">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <h3 class="text-lg text-gray-900 mb-2">Manage Staff</h3>
+                <p class="text-sm text-gray-600">Add, edit, or remove staff members</p>
+              </a>
+            @endif
             <a class="block bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.property-management') }}" data-discover="true">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building h-10 w-10 text-gray-400 mb-4 group-hover:text-gray-900 transition-colors">
                 <rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect>
@@ -236,16 +240,18 @@
               <h3 class="text-lg text-gray-900 mb-2">Property Management</h3>
               <p class="text-sm text-gray-600">Update lot availability and pricing</p>
             </a>
-            <a class="block bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.reports') }}" data-discover="true">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-column h-10 w-10 text-gray-400 mb-4 group-hover:text-gray-900 transition-colors">
-                <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
-                <path d="M18 17V9"></path>
-                <path d="M13 17V5"></path>
-                <path d="M8 17v-3"></path>
-              </svg>
-              <h3 class="text-lg text-gray-900 mb-2">View Reports</h3>
-              <p class="text-sm text-gray-600">Analytics and performance insights</p>
-            </a>
+            @if(auth()->user()?->role !== 'staff')
+              <a class="block bg-white p-8 shadow-sm hover:shadow-md transition-all group" href="{{ route('filament.ev-admin.pages.reports') }}" data-discover="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-column h-10 w-10 text-gray-400 mb-4 group-hover:text-gray-900 transition-colors">
+                  <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
+                  <path d="M18 17V9"></path>
+                  <path d="M13 17V5"></path>
+                  <path d="M8 17v-3"></path>
+                </svg>
+                <h3 class="text-lg text-gray-900 mb-2">View Reports</h3>
+                <p class="text-sm text-gray-600">Analytics and performance insights</p>
+              </a>
+            @endif
           </div>
         </div>
       </div>

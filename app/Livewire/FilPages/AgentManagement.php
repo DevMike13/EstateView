@@ -1099,7 +1099,7 @@ class AgentManagement extends Component
     public function reloadWeb(){
 
         $this->dispatch('reload');
-        return redirect()->back();
+        // return redirect()->back();
 
     }
 

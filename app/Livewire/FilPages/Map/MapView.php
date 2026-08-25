@@ -138,6 +138,15 @@ class MapView extends Component
 
     public function createLotArea()
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Clean price before validation
+        |--------------------------------------------------------------------------
+        */
+        if ($this->lotPrice !== null && $this->lotPrice !== '') {
+            $this->lotPrice = str_replace(',', '', $this->lotPrice);
+        }
+
         $this->validate([
             'lotName' => ['required', 'string', 'max:255'],
             'lotType' => ['required', 'string'],
@@ -146,8 +155,19 @@ class MapView extends Component
 
             'lotStatus' => ['required', 'in:available,sold,reserved'],
 
-            'lotPrice' => ['nullable', 'numeric'],
-            'lotArea' => ['nullable', 'numeric', 'min:0'],
+            'lotPrice' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:99999999.99',
+            ],
+
+            'lotArea' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:99999999.99',
+            ],
 
             'userId' => ['nullable', 'exists:users,id'],
 
@@ -156,10 +176,19 @@ class MapView extends Component
             'houseModelId' => [
                 'nullable',
                 'required_if:lotType,Model House',
-                'exists:house_models,id'
+                'required_if:lotType,House & Lot',
+                'exists:house_models,id',
             ],
 
             'lotImage' => ['nullable', 'image', 'max:20480'],
+        ], [
+            'lotPrice.numeric' => 'The lot price must be a valid number.',
+            'lotPrice.min' => 'The lot price cannot be less than 0.',
+            'lotPrice.max' => 'The lot price is out of range. The maximum allowed value is ₱99,999,999.99.',
+
+            'lotArea.numeric' => 'The lot area must be a valid number.',
+            'lotArea.min' => 'The lot area cannot be less than 0.',
+            'lotArea.max' => 'The lot area is out of range. The maximum allowed value is 99,999,999.99.',
         ]);
 
         $imagePath = null;
@@ -190,7 +219,10 @@ class MapView extends Component
             'lot_area' => $this->lotArea,
             'user_id' => $this->userId,
             'is_under_construction' => $this->isUnderConstruction ?? false,
-            'house_model_id' => $this->lotType === 'Model House'
+            'house_model_id' => in_array(
+                $this->lotType,
+                ['Model House', 'House & Lot']
+            )
                 ? $this->houseModelId
                 : null,
         ]);
@@ -208,6 +240,7 @@ class MapView extends Component
     {
         $this->activeLotId = $id;
     }
+
     public function loadEditLot()
     {
         // $lot = Lot::findOrFail($this->activeLotId);
@@ -216,7 +249,7 @@ class MapView extends Component
         $this->editLotId = $lot->id;
         $this->editLotName = $lot->name;
         $this->editLotType = $lot->type;
-        $this->editLotImage =null;
+        $this->editLotImage = null;
         $this->editLotImagePreview = $lot->image;
         $this->editLotCoordinates = $lot->coords;
         $this->editLotPrice = $lot->price;
@@ -244,6 +277,15 @@ class MapView extends Component
     ==========================*/
     public function updateLot()
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Clean price before validation
+        |--------------------------------------------------------------------------
+        */
+        if ($this->editLotPrice !== null && $this->editLotPrice !== '') {
+            $this->editLotPrice = str_replace(',', '', $this->editLotPrice);
+        }
+
         $this->validate([
             'editLotName' => ['required', 'string', 'max:255'],
             'editLotType' => ['required', 'string'],
@@ -252,14 +294,25 @@ class MapView extends Component
 
             'editLotStatus' => ['required', 'in:available,sold,reserved'],
 
-            'editLotPrice' => ['nullable', 'numeric'],
-            'editLotArea' => ['nullable', 'numeric', 'min:0'],
+            'editLotPrice' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:99999999.99',
+            ],
+
+            'editLotArea' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:99999999.99',
+            ],
 
             'editUserId' => ['nullable', 'exists:users,id'],
 
             'editHouseModelId' => [
                 'nullable',
-                 'required_if:editLotType,Model House',
+                'required_if:editLotType,Model House',
                 'required_if:editLotType,House & Lot',
                 'exists:house_models,id'
             ],
@@ -267,6 +320,14 @@ class MapView extends Component
             'editIsUnderConstruction' => ['nullable', 'boolean'],
 
             'editLotImage' => ['nullable', 'image', 'max:20480'],
+        ], [
+            'editLotPrice.numeric' => 'The lot price must be a valid number.',
+            'editLotPrice.min' => 'The lot price cannot be less than 0.',
+            'editLotPrice.max' => 'The lot price is out of range. The maximum allowed value is ₱99,999,999.99.',
+
+            'editLotArea.numeric' => 'The lot area must be a valid number.',
+            'editLotArea.min' => 'The lot area cannot be less than 0.',
+            'editLotArea.max' => 'The lot area is out of range. The maximum allowed value is 99,999,999.99.',
         ]);
 
         $cleanPrice = $this->editLotPrice 
@@ -369,11 +430,10 @@ class MapView extends Component
         $this->editPoints = [];
     }
 
-    public function reloadWeb(){
-
+    public function reloadWeb()
+    {
         $this->dispatch('reload');
         return redirect()->back();
-
     }
 
     public function render()

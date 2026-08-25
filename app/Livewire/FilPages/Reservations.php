@@ -2,6 +2,7 @@
 
 namespace App\Livewire\FilPages;
 
+use App\Mail\ReservationDocumentsRejectedMail;
 use App\Models\LotReservation;
 use App\Models\ReservationPayment;
 use Filament\Notifications\Notification;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use WireUi\Traits\Actions;
+use App\Mail\ReservationFeeRejectedMail;
+use Illuminate\Support\Facades\Mail;
 
 class Reservations extends Component
 {
@@ -223,21 +226,162 @@ class Reservations extends Component
     {
         DB::transaction(function () use ($paymentId) {
 
-            $payment = ReservationPayment::with('reservation')
-                ->findOrFail($paymentId);
+            $payment = ReservationPayment::with([
+                'reservation.user',
+                'reservation.lot',
+                'reservation.houseModel',
+                'reservation.preferredPayment',
+            ])->findOrFail($paymentId);
 
             $payment->update([
                 'status' => 'rejected',
             ]);
 
-            $payment->reservation->update([
+            /*
+            |--------------------------------------------------------------------------
+            | Keep reservation waiting for another fee submission
+            |--------------------------------------------------------------------------
+            |
+            | updateQuietly prevents LotReservationObserver from sending the
+            | "Documents Approved" email again.
+            |
+            */
+
+            $payment->reservation->updateQuietly([
                 'status' => 'awaiting_reservation_fee',
             ]);
+
+            $reservation = $payment->reservation;
+
+            $performedBy = auth()->check()
+                ? (
+                    auth()->user()->role === 'staff'
+                        ? auth()->user()->name
+                        : 'Admin'
+                )
+                : 'System';
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | EMAIL
+            |--------------------------------------------------------------------------
+            */
+
+            Mail::to($reservation->user->email)
+                ->send(
+                    new ReservationDocumentsRejectedMail(
+                        $reservation,
+                        $performedBy
+                    )
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | CLIENT IN-APP NOTIFICATION
+            |--------------------------------------------------------------------------
+            */
+
+            $notification = \App\Models\Notification::create([
+                'title' => 'Reservation Fee Rejected',
+
+                'message' =>
+                    "Your submitted reservation fee for "
+                    . ($reservation->lot?->name ?? 'your reservation')
+                    . " was rejected. Updated by: {$performedBy}. ",
+
+                'type' => 'reservation_fee_rejected',
+
+                /*
+                * Admin/staff destination if they happen to access
+                * this notification record.
+                */
+                'url' => route(
+                    'filament.ev-admin.pages.reservations',
+                    [
+                        'activeTab' => 'awaiting_reservation_fee',
+                        'highlight' => $reservation->id,
+                    ]
+                ),
+
+                'data' => [
+                    'reservation_id' => $reservation->id,
+
+                    'reservation_payment_id' => $payment->id,
+
+                    'client_name' => $reservation->user?->name,
+
+                    'lot_name' => $reservation->lot?->name,
+
+                    'status' => 'awaiting_reservation_fee',
+
+                    'performed_by' => $performedBy,
+
+                    /*
+                    * Client opens their reservation directly.
+                    */
+                    'client_url' => route(
+                        'client.reservation',
+                        [
+                            'activeTab' => 'awaiting_reservation_fee',
+                            'highlight' => $reservation->id,
+                        ]
+                    ),
+                ],
+
+                'created_by' => auth()->id(),
+            ]);
+
+
+            /*
+            * Send this notification ONLY to the client or admin/staff who did not perform the action.
+            */
+            $staffAdmins = \App\Models\User::whereIn(
+                'role',
+                ['admin', 'staff']
+            )
+            ->when(
+                auth()->check(),
+                fn ($query) =>
+                    $query->where(
+                        'id',
+                        '!=',
+                        auth()->id()
+                    )
+            )
+            ->pluck('id');
+
+            $users = $staffAdmins;
+
+            if ($reservation->user_id) {
+                $users = $users->merge([
+                    $reservation->user_id,
+                ]);
+            }
+
+            $notification
+                ->users()
+                ->attach(
+                    $users
+                        ->filter()
+                        ->unique()
+                        ->toArray()
+                );
         });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / STAFF TOAST
+        |--------------------------------------------------------------------------
+        */
 
         Notification::make()
             ->title('Reservation Fee Rejected')
-            ->body('The client needs to upload a valid payment proof again.')
+            ->body(
+                'The submitted reservation fee has been rejected.'
+            )
             ->danger()
             ->send();
 

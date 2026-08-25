@@ -98,27 +98,18 @@
                                     
                                 </div>
                                 <div class="w-full mt-4">
-                                    <x-select
+                                    <x-input
                                         label="Agent"
-                                        placeholder="Select an agent (optional)"
-                                        wire:model.defer="agentId"
-                                        :options="$this->agents"
-                                        :template="[
-                                            'name' => 'user-option',
-                                            'config' => ['src' => 'profile_picture']
-                                        ]"
-                                        option-label="name"
-                                        option-value="id"
-                                        option-description="professional_agent_id"
-                                        searchable
-                                        clearable
+                                        placeholder="Enter Professional Agent ID (optional)"
+                                        class="py-3"
+                                        wire:model.blur="agentProfessionalId"
                                     />
 
-                                    @error('agentId')
+                                    {{-- @error('agentProfessionalId')
                                         <span class="text-xs text-red-500">
                                             {{ $message }}
                                         </span>
-                                    @enderror
+                                    @enderror --}}
                                 </div>
                                 <div class="w-full flex flex-col md:flex-row gap-5 mt-5">
                                     <x-select

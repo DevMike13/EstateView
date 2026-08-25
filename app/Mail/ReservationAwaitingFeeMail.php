@@ -14,13 +14,17 @@ class ReservationAwaitingFeeMail extends Mailable
     use Queueable, SerializesModels;
 
     public LotReservation $reservation;
+    public string $performedBy;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(LotReservation $reservation)
-    {
+    public function __construct(
+        LotReservation $reservation,
+        string $performedBy
+    ) {
         $this->reservation = $reservation;
+        $this->performedBy = $performedBy;
     }
 
     /**

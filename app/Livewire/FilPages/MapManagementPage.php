@@ -44,8 +44,8 @@ class MapManagementPage extends Component
         'modelName' => 'required|string|max:255',
         'bedroomsCount' => 'required|integer|min:0',
         'bathroomsCount' => 'required|integer|min:0',
-        'floorArea' => 'required|numeric|min:0',
-        'price' => 'required|numeric|min:0',
+        'floorArea' => 'required|numeric|min:0|max:999999.99',
+        'price' => 'required|numeric|min:0|max:9999999999.99',
     ];
 
     public $houseModels = [];
@@ -67,10 +67,23 @@ class MapManagementPage extends Component
         'editModelName' => 'required|string|max:255',
         'editBedroomsCount' => 'required|integer|min:0',
         'editBathroomsCount' => 'required|integer|min:0',
-        'editFloorArea' => 'required|numeric|min:0',
-        'editPrice' => 'required|numeric|min:0',
+        'editFloorArea' => 'required|numeric|min:0|max:999999.99',
+        'editPrice' => 'required|numeric|min:0|max:9999999999.99',
     ];
     // MODEL HOUSE END
+
+    protected $messages = [
+        // Create
+        'floorArea.max' =>
+            'The floor area cannot exceed 999,999.99 sqm.',
+        'price.max' =>
+            'The price cannot exceed ₱9,999,999,999.99.',
+        // Edit
+        'editFloorArea.max' =>
+            'The floor area cannot exceed 999,999.99 sqm.',
+        'editPrice.max' =>
+            'The price cannot exceed ₱9,999,999,999.99.',
+    ];
 
     // VIRTUAL TOUR CREATION
     public $editingSceneIndex = null;
@@ -139,16 +152,21 @@ class MapManagementPage extends Component
 
     public function createModelHouse()
     {
+        // Remove currency formatting before validation
+        if ($this->price !== null && $this->price !== '') {
+            $this->price = str_replace(',', '', $this->price);
+        }
+
         $this->validate();
 
         $imagePath = null;
 
         if ($this->modelHouseImage) {
 
-            $fileName = Str::slug($this->modelName) 
-                . '-' 
-                . Str::uuid() 
-                . '.' 
+            $fileName = Str::slug($this->modelName)
+                . '-'
+                . Str::uuid()
+                . '.'
                 . $this->modelHouseImage->getClientOriginalExtension();
 
             $imagePath = $this->modelHouseImage->storeAs(
@@ -158,10 +176,6 @@ class MapManagementPage extends Component
             );
         }
 
-        $cleanPrice = $this->price 
-            ? str_replace(',', '', $this->price) 
-            : null;
-
         HouseModel::create([
             'image' => $imagePath,
             'virtual_tour_url' => $this->virtualTourUrl,
@@ -169,7 +183,7 @@ class MapManagementPage extends Component
             'bedrooms' => $this->bedroomsCount,
             'bathrooms' => $this->bathroomsCount,
             'floor_area' => $this->floorArea,
-            'price' => $cleanPrice,
+            'price' => $this->price,
         ]);
 
         $this->reset([

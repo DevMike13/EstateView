@@ -876,7 +876,7 @@
                         {{-- x-on:click="close" --}}
                         x-on:click="
                             $wire.closeAgentCommissionModal();
-                            close;
+                            close();
                         "
                         {{-- wire:click="closeAgentCommissionModal" --}}
                     />
@@ -890,6 +890,7 @@
         name="commissionPaymentModal"
         align="center"
         max-width="2xl"
+        x-on:commission-paid.window="close()"
     >
         <x-card title="Pay Agent Commission">
 
@@ -1109,7 +1110,7 @@
                         {{-- x-on:click="close" --}}
                         x-on:click="
                             $wire.closeCommissionPaymentModal();
-                            close;
+                            close();
                         "
                         {{-- wire:click="closeCommissionPaymentModal" --}}
                     />

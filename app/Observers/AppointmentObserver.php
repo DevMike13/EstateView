@@ -20,7 +20,8 @@ class AppointmentObserver
             $appointment,
             'New Appointment Request',
             $this->buildMessage($appointment),
-            'appointment_created'
+            'appointment_created',
+            false
         );
     }
 
@@ -30,22 +31,45 @@ class AppointmentObserver
     public function updated(ClientAppointment $appointment): void
     {
         if ($appointment->wasChanged('status')) {
+
+            $performedBy = 'System';
+
+            if (auth()->check()) {
+                $performedBy = match (auth()->user()->role) {
+                    'staff' => auth()->user()->name,
+                    'user'  => auth()->user()->name,
+                    'agent' => auth()->user()->name,
+                    'admin' => 'Admin',
+                    default => auth()->user()->name ?? 'System',
+                };
+            }
+
+            // Don't send the in-app notification back to the client
+            // when the client cancelled their own appointment.
+            $includeClient = !(
+                $appointment->status === 'cancelled'
+                && auth()->check()
+                && auth()->user()->role === 'user'
+            );
+
             $this->notify(
                 $appointment,
                 'Appointment Status Updated',
-                $this->buildMessage($appointment),
-                'appointment_updated'
-            );
+                $this->buildMessage($appointment)
+                    . " Updated by: {$performedBy}.",
+                'appointment_updated',
+                $includeClient
+);
 
             match ($appointment->status) {
                 'approved' => Mail::to($appointment->user->email)
-                    ->send(new AppointmentApprovedMail($appointment)),
+                    ->send(new AppointmentApprovedMail($appointment, $performedBy)),
 
                 'completed' => Mail::to($appointment->user->email)
-                    ->send(new AppointmentCompletedMail($appointment)),
+                    ->send(new AppointmentCompletedMail($appointment, $performedBy)),
 
                 'declined' => Mail::to($appointment->user->email)
-                    ->send(new AppointmentDeclinedMail($appointment)),
+                    ->send(new AppointmentDeclinedMail($appointment, $performedBy)),
 
                 default => null,
             };
@@ -108,10 +132,11 @@ class AppointmentObserver
      * Save notification
      */
     private function notify(
-        ClientAppointment $appointment,
+    ClientAppointment $appointment,
         string $title,
         string $message,
-        string $type
+        string $type,
+        bool $includeClient = true
     ): void {
 
         $notification = Notification::create([
@@ -143,11 +168,34 @@ class AppointmentObserver
             'created_by' => auth()->id(),
         ]);
 
-        $staffAdmins = \App\Models\User::whereIn('role', ['admin', 'staff'])->pluck('id');
-        $client = $appointment->user_id;
+        $staffAdmins = \App\Models\User::whereIn(
+            'role',
+            ['admin', 'staff']
+        )
+        ->when(
+            auth()->check(),
+            fn ($query) =>
+                $query->where(
+                    'id',
+                    '!=',
+                    auth()->id()
+                )
+        )
+        ->pluck('id');
+
+        $users = $staffAdmins;
+
+        if ($includeClient && $appointment->user_id) {
+            $users = $users->merge([
+                $appointment->user_id,
+            ]);
+        }
 
         $notification->users()->attach(
-            $staffAdmins->merge([$client])->unique()->toArray()
+            $users
+                ->filter()
+                ->unique()
+                ->toArray()
         );
     }
 }

@@ -58,6 +58,20 @@
                         </span>
                     </button>
 
+                    {{-- Declined --}}
+                    <button wire:click="setTab('declined')"
+                        class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2
+                        {{ $activeTab === 'declined'
+                            ? 'border-[#129c45] text-[#129c45]'
+                            : 'border-transparent text-gray-500' }}">
+
+                        <span>Declined</span>
+
+                        <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
+                            {{ $this->declinedCount }}
+                        </span>
+                    </button>
+
                     {{-- Cancelled --}}
                     <button wire:click="setTab('cancelled')"
                         class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2

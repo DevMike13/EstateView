@@ -20,6 +20,7 @@ Your reservation is now ready for the next step.
 - **Preferred Payment:** {{ Str::headline($reservation->preferredPayment->payment_type) }}
 @endif
 - **Status:** Awaiting Reservation Fee
+- **Performed By:** {{ $performedBy }}
 
 ### Reservation Fee
 

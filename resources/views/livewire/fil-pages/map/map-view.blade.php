@@ -6,7 +6,19 @@
                 <p class="text-sm text-gray-500">Click on any lot to view details or assign to a client</p>
             </div>
             <div class="flex justify-end">
-                <x-button label="New Lot Area" x-on:click="$openModal('newLot')" primary />
+                <x-button
+                    label="New Lot Area"
+                    x-on:click="
+                        $openModal('newLot');
+
+                        setTimeout(() => {
+                            window.dispatchEvent(
+                                new CustomEvent('redraw-create-lot-map')
+                            );
+                        }, 300);
+                    "
+                    primary
+                />
             </div>
         </div>
        
@@ -217,7 +229,20 @@
         </div>
 
         <x-modal blur name="newLot" persistent align="center" max-width="6xl">
-            <form wire:submit.prevent="createLotArea" class="w-full" x-data="lotDrawer()" x-init="init()">
+            <form
+                wire:submit.prevent="createLotArea"
+                class="w-full"
+                x-data="lotDrawer(
+                    @js(
+                        collect($lots)->map(fn ($lot) => [
+                            'coords' => $lot->coords,
+                            'type' => $lot->type,
+                            'status' => $lot->status,
+                        ])->values()->toArray()
+                    )
+                )"
+                x-init="init()"
+            >
                 <x-card title="Create New Lot Area">
                     <div class="mt-3 relative">
                         @if($map)
@@ -226,6 +251,7 @@
                                 src="{{ asset($map->image_path) }}"
                                 class="w-full cursor-crosshair"
                                 @click="addPoint($event)"
+                                @load="onImageLoad()"
                                 x-ref="img"
                             />
                             <canvas 
@@ -272,66 +298,82 @@
                             <option value="Model House">Model House</option>
                             <option value="Lot Only">Lot Only</option>
                             <option value="House & Lot">House & Lot</option>
-                            <option value="Sold">Sold</option>
+                            {{-- <option value="Sold">Sold</option> --}}
                         </x-native-select>
                     </div>
 
-                    <div class="mt-3">
-                        <x-inputs.currency
-                            label="Price"
-                            placeholder="Enter price"
-                            icon="banknotes"
-                            currency="PHP"
-                            thousands=","
-                            decimal="."
-                            precision="2"
-                            wire:model.defer="lotPrice"
-                        />
-                    </div>
-
-                    <div class="mt-3">
-                        <h2 class="text-[#15233C] font-tertiary font-medium text-sm mb-1">
-                            Status
-                        </h2>
-
-                        <div class="grid w-full gap-2 grid-cols-3">
-                            @php
-                                $options = [
-                                    'available' => 'Available',
-                                    'sold' => 'Sold',
-                                    'reserved' => 'Reserved',
-                                ];
-                            @endphp
-
-                            @foreach($options as $value => $label)
-                                <div>
-                                    <input
-                                        wire:model.live="lotStatus"
-                                        type="radio"
-                                        id="lotStatus{{ $value }}"
-                                        name="lotStatus"
-                                        value="{{ $value }}"
-                                        class="hidden peer"
-                                    >
-
-                                    <label
-                                        for="lotStatus{{ $value }}"
-                                        class="inline-flex items-center justify-center w-full p-3 text-gray-500 bg-white border border-gray-200 rounded-lg cursor-pointer
-                                            peer-checked:border-2 peer-checked:border-blue-600 peer-checked:text-blue-600
-                                            hover:text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
-                                    >
-                                        {{ $label }}
-                                    </label>
-                                </div>
-                            @endforeach
+                    @if (
+                        $lotType &&
+                        !in_array($lotType, [
+                            'Model House',
+                            'Playground & Community Amenities'
+                        ])
+                    )
+                        <div class="mt-3">
+                            <x-inputs.currency
+                                label="Price"
+                                placeholder="Enter price"
+                                icon="banknotes"
+                                currency="PHP"
+                                thousands=","
+                                decimal="."
+                                precision="2"
+                                wire:model.defer="lotPrice"
+                            />
                         </div>
+                    @endif
 
-                        @error('lotStatus')
-                            <span class="text-red-500 text-[10px] italic">
-                                {{ $message }}
-                            </span>
-                        @enderror
-                    </div>
+                    @if (
+                        $lotType &&
+                        !in_array($lotType, [
+                            'Model House',
+                            'Playground & Community Amenities'
+                        ])
+                    )
+                        <div class="mt-3">
+                            <h2 class="text-[#15233C] font-tertiary font-medium text-sm mb-1">
+                                Status
+                            </h2>
+
+                            <div class="grid w-full gap-2 grid-cols-3">
+                                @php
+                                    $options = [
+                                        'available' => 'Available',
+                                        'sold' => 'Sold',
+                                        'reserved' => 'Reserved',
+                                    ];
+                                @endphp
+
+                                @foreach($options as $value => $label)
+                                    <div>
+                                        <input
+                                            wire:model.live="lotStatus"
+                                            type="radio"
+                                            id="lotStatus{{ $value }}"
+                                            name="lotStatus"
+                                            value="{{ $value }}"
+                                            class="hidden peer"
+                                        >
+
+                                        <label
+                                            for="lotStatus{{ $value }}"
+                                            class="inline-flex items-center justify-center w-full p-3 text-gray-500 bg-white border border-gray-200 rounded-lg cursor-pointer
+                                                peer-checked:border-2 peer-checked:border-blue-600 peer-checked:text-blue-600
+                                                hover:text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
+                                        >
+                                            {{ $label }}
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @error('lotStatus')
+                                <span class="text-red-500 text-[10px] italic">
+                                    {{ $message }}
+                                </span>
+                            @enderror
+                        </div>
+                    @endif
 
                     @if ($lotStatus && $lotStatus !== 'available')
                         <div class="mt-3">
@@ -418,9 +460,10 @@
             </form>
 
             <script>
-                function lotDrawer() {
+                function lotDrawer(existingLots = []) {
                     return {
                         points: [],
+                        existingLots: existingLots,
                         coordsString: '',
                         canvas: null,
                         ctx: null,
@@ -430,7 +473,21 @@
                             this.canvas = this.$refs.canvas;
                             this.img = this.$refs.img;
                             this.ctx = this.canvas.getContext('2d');
-                            window.addEventListener('resize', () => this.redraw());
+
+                            window.addEventListener(
+                                'resize',
+                                () => this.redraw()
+                            );
+
+                            window.addEventListener(
+                                'redraw-create-lot-map',
+                                () => {
+                                    this.$nextTick(() => {
+                                        this.redraw();
+                                    });
+                                }
+                            );
+
                         },
 
                         onImageLoad() {
@@ -467,43 +524,350 @@
                         },
 
                         redraw() {
-                            if (!this.canvas || !this.img) return;
 
-                            this.canvas.width = this.img.clientWidth;
-                            this.canvas.height = this.img.clientHeight;
+                            if (
+                                !this.canvas ||
+                                !this.img ||
+                                !this.img.naturalWidth ||
+                                !this.img.naturalHeight
+                            ) {
+                                return;
+                            }
+
+                            this.canvas.width =
+                                this.img.clientWidth;
+
+                            this.canvas.height =
+                                this.img.clientHeight;
+
                             const ctx = this.ctx;
 
-                            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                            ctx.clearRect(
+                                0,
+                                0,
+                                this.canvas.width,
+                                this.canvas.height
+                            );
 
-                            if (this.points.length === 0) return;
 
-                            // Draw polygon
-                            ctx.beginPath();
-                            this.points.forEach((p, i) => {
-                                const x = p.x * this.img.clientWidth / this.img.naturalWidth;
-                                const y = p.y * this.img.clientHeight / this.img.naturalHeight;
-                                if (i === 0) ctx.moveTo(x, y);
-                                else ctx.lineTo(x, y);
+                            /*
+                            |--------------------------------------------------------------------------
+                            | SCALE
+                            |--------------------------------------------------------------------------
+                            |
+                            | Database coordinates use the original / natural map dimensions.
+                            |
+                            */
+
+                            const scaleX =
+                                this.img.clientWidth /
+                                this.img.naturalWidth;
+
+                            const scaleY =
+                                this.img.clientHeight /
+                                this.img.naturalHeight;
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | EXISTING LOT COLORS
+                            |--------------------------------------------------------------------------
+                            */
+
+                            const colors = {
+                                "Playground & Community Amenities":
+                                    "#f2b879",
+
+                                "Model House":
+                                    "#c8c9c3",
+
+                                "Lot Only":
+                                    "#c4e0b7",
+
+                                "House & Lot":
+                                    "#f8e89c",
+
+                                "Sold":
+                                    "#e9b4ae",
+                            };
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | DRAW EXISTING MAPPED LOTS
+                            |--------------------------------------------------------------------------
+                            */
+
+                            this.existingLots.forEach(lot => {
+
+                                if (!lot.coords) {
+                                    return;
+                                }
+
+                                const originalCoords =
+                                    lot.coords
+                                        .split(',')
+                                        .map(Number);
+
+                                if (
+                                    originalCoords.length < 6 ||
+                                    originalCoords.some(Number.isNaN)
+                                ) {
+                                    return;
+                                }
+
+                                const coords = [];
+
+                                for (
+                                    let i = 0;
+                                    i < originalCoords.length;
+                                    i += 2
+                                ) {
+
+                                    coords.push(
+                                        originalCoords[i] * scaleX,
+                                        originalCoords[i + 1] * scaleY
+                                    );
+                                }
+
+
+                                const status =
+                                    (lot.status || '')
+                                        .toLowerCase()
+                                        .trim();
+
+                                const color =
+                                    status === 'sold'
+                                        ? colors["Sold"]
+                                        : (
+                                            colors[lot.type]
+                                            || "#0096ff"
+                                        );
+
+
+                                ctx.beginPath();
+
+                                for (
+                                    let i = 0;
+                                    i < coords.length;
+                                    i += 2
+                                ) {
+
+                                    if (i === 0) {
+
+                                        ctx.moveTo(
+                                            coords[i],
+                                            coords[i + 1]
+                                        );
+
+                                    } else {
+
+                                        ctx.lineTo(
+                                            coords[i],
+                                            coords[i + 1]
+                                        );
+                                    }
+                                }
+
+                                ctx.closePath();
+
+
+                                /*
+                                * Existing lot fill.
+                                */
+                                ctx.fillStyle =
+                                    hexToRGBA(
+                                        color,
+                                        0.35
+                                    );
+
+                                ctx.fill();
+
+
+                                /*
+                                * Existing lot border.
+                                */
+                                ctx.strokeStyle =
+                                    color;
+
+                                ctx.lineWidth =
+                                    2;
+
+                                ctx.stroke();
+
+
+                                /*
+                                * SOLD label.
+                                */
+                                if (status === 'sold') {
+
+                                    const xValues = [];
+                                    const yValues = [];
+
+                                    for (
+                                        let i = 0;
+                                        i < coords.length;
+                                        i += 2
+                                    ) {
+
+                                        xValues.push(
+                                            coords[i]
+                                        );
+
+                                        yValues.push(
+                                            coords[i + 1]
+                                        );
+                                    }
+
+                                    const centerX =
+                                        (
+                                            Math.min(...xValues) +
+                                            Math.max(...xValues)
+                                        ) / 2;
+
+                                    const centerY =
+                                        (
+                                            Math.min(...yValues) +
+                                            Math.max(...yValues)
+                                        ) / 2;
+
+                                    const fontSize =
+                                        Math.max(
+                                            5,
+                                            Math.min(
+                                                14,
+                                                14 * scaleX
+                                            )
+                                        );
+
+                                    ctx.save();
+
+                                    ctx.fillStyle =
+                                        "#000000";
+
+                                    ctx.globalAlpha =
+                                        0.8;
+
+                                    ctx.font =
+                                        `bold ${fontSize}px Arial`;
+
+                                    ctx.textAlign =
+                                        "center";
+
+                                    ctx.textBaseline =
+                                        "middle";
+
+                                    ctx.fillText(
+                                        "SOLD",
+                                        centerX,
+                                        centerY
+                                    );
+
+                                    ctx.restore();
+                                }
+
                             });
-                            ctx.closePath();
-                            ctx.fillStyle = "rgba(0,150,255,0.3)";
-                            ctx.fill();
-                            ctx.strokeStyle = "#0096ff";
-                            ctx.lineWidth = 2;
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | DRAW NEW LOT CURRENTLY BEING CREATED
+                            |--------------------------------------------------------------------------
+                            */
+
+                            if (this.points.length === 0) {
+                                return;
+                            }
+
+                            ctx.beginPath();
+
+                            this.points.forEach(
+                                (p, i) => {
+
+                                    const x =
+                                        p.x * scaleX;
+
+                                    const y =
+                                        p.y * scaleY;
+
+                                    if (i === 0) {
+
+                                        ctx.moveTo(
+                                            x,
+                                            y
+                                        );
+
+                                    } else {
+
+                                        ctx.lineTo(
+                                            x,
+                                            y
+                                        );
+                                    }
+                                }
+                            );
+
+                            /*
+                            * Don't close it visually until we have enough
+                            * points to form a polygon.
+                            */
+                            if (this.points.length >= 3) {
+                                ctx.closePath();
+
+                                ctx.fillStyle =
+                                    "rgba(0,150,255,0.30)";
+
+                                ctx.fill();
+                            }
+
+                            ctx.strokeStyle =
+                                "#0096ff";
+
+                            ctx.lineWidth =
+                                3;
+
                             ctx.stroke();
 
-                            // Draw black dots
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | NEW LOT POINTS
+                            |--------------------------------------------------------------------------
+                            */
+
                             this.points.forEach(p => {
-                                const x = p.x * this.img.clientWidth / this.img.naturalWidth;
-                                const y = p.y * this.img.clientHeight / this.img.naturalHeight;
+
+                                const x =
+                                    p.x * scaleX;
+
+                                const y =
+                                    p.y * scaleY;
+
                                 ctx.beginPath();
-                                ctx.arc(x, y, 5, 0, Math.PI * 2);
-                                ctx.fillStyle = "#000";
+
+                                ctx.arc(
+                                    x,
+                                    y,
+                                    5,
+                                    0,
+                                    Math.PI * 2
+                                );
+
+                                ctx.fillStyle =
+                                    "#000000";
+
                                 ctx.fill();
-                                ctx.strokeStyle = "#fff";
-                                ctx.lineWidth = 1;
+
+                                ctx.strokeStyle =
+                                    "#ffffff";
+
+                                ctx.lineWidth =
+                                    1;
+
                                 ctx.stroke();
+
                             });
+
                         },
 
                         closeModal() {
@@ -516,7 +880,16 @@
         </x-modal>
 
         <x-modal blur name="editLot" persistent align="center" max-width="6xl">
-            <form wire:submit.prevent="updateLot" class="w-full" x-data="editLotDrawer(@entangle('editLotCoordinates'))" x-init="init()">
+            <form
+                wire:submit.prevent="updateLot"
+                class="w-full"
+                x-data="editLotDrawer(
+                    @entangle('editLotCoordinates'),
+                    @entangle('editLotType'),
+                    @entangle('editLotStatus')
+                )"
+                x-init="init()"
+            >
                 <x-card title="Edit Lot Area">
                     <div class="mt-3 relative w-full">
                         @if($map)
@@ -575,62 +948,78 @@
                         </x-native-select>
                     </div>
 
-                    <div class="mt-3">
-                        <x-inputs.currency
-                            label="Price"
-                            placeholder="Enter price"
-                            icon="banknotes"
-                            currency="PHP"
-                            thousands=","
-                            decimal="."
-                            precision="2"
-                            wire:model.defer="editLotPrice"
-                        />
-                    </div>
-
-                    <div class="mt-3">
-                        <h2 class="text-[#15233C] font-tertiary font-medium text-sm mb-1">
-                            Status
-                        </h2>
-
-                        <div class="grid w-full gap-2 grid-cols-3">
-                            @php
-                                $options = [
-                                    'available' => 'Available',
-                                    'sold' => 'Sold',
-                                    'reserved' => 'Reserved',
-                                ];
-                            @endphp
-
-                            @foreach($options as $value => $label)
-                                <div>
-                                    <input
-                                        wire:model.live="editLotStatus"
-                                        type="radio"
-                                        id="editLotStatus{{ $value }}"
-                                        name="editLotStatus"
-                                        value="{{ $value }}"
-                                        class="hidden peer"
-                                    >
-
-                                    <label
-                                        for="editLotStatus{{ $value }}"
-                                        class="inline-flex items-center justify-center w-full p-3 text-gray-500 bg-white border border-gray-200 rounded-lg cursor-pointer
-                                            peer-checked:border-2 peer-checked:border-blue-600 peer-checked:text-blue-600
-                                            hover:text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
-                                    >
-                                        {{ $label }}
-                                    </label>
-                                </div>
-                            @endforeach
+                    @if (
+                        $editLotType &&
+                        !in_array($editLotType, [
+                            'Model House',
+                            'Playground & Community Amenities'
+                        ])
+                    )
+                        <div class="mt-3">
+                            <x-inputs.currency
+                                label="Price"
+                                placeholder="Enter price"
+                                icon="banknotes"
+                                currency="PHP"
+                                thousands=","
+                                decimal="."
+                                precision="2"
+                                wire:model.defer="editLotPrice"
+                            />
                         </div>
+                    @endif
 
-                        @error('editLotStatus')
-                            <span class="text-red-500 text-[10px] italic">
-                                {{ $message }}
-                            </span>
-                        @enderror
-                    </div>
+                    @if (
+                        $editLotType &&
+                        !in_array($editLotType, [
+                            'Model House',
+                            'Playground & Community Amenities'
+                        ])
+                    )
+                        <div class="mt-3">
+                            <h2 class="text-[#15233C] font-tertiary font-medium text-sm mb-1">
+                                Status
+                            </h2>
+
+                            <div class="grid w-full gap-2 grid-cols-3">
+                                @php
+                                    $options = [
+                                        'available' => 'Available',
+                                        'sold' => 'Sold',
+                                        'reserved' => 'Reserved',
+                                    ];
+                                @endphp
+
+                                @foreach($options as $value => $label)
+                                    <div>
+                                        <input
+                                            wire:model.live="editLotStatus"
+                                            type="radio"
+                                            id="editLotStatus{{ $value }}"
+                                            name="editLotStatus"
+                                            value="{{ $value }}"
+                                            class="hidden peer"
+                                        >
+
+                                        <label
+                                            for="editLotStatus{{ $value }}"
+                                            class="inline-flex items-center justify-center w-full p-3 text-gray-500 bg-white border border-gray-200 rounded-lg cursor-pointer
+                                                peer-checked:border-2 peer-checked:border-blue-600 peer-checked:text-blue-600
+                                                hover:text-gray-600 hover:bg-gray-100 transition text-sm font-medium"
+                                        >
+                                            {{ $label }}
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @error('editLotStatus')
+                                <span class="text-red-500 text-[10px] italic">
+                                    {{ $message }}
+                                </span>
+                            @enderror
+                        </div>
+                    @endif
 
                     @if ($editLotStatus && $editLotStatus !== 'available')
                         <div class="mt-3">
@@ -728,10 +1117,16 @@
             </form>
 
             <script>
-                function editLotDrawer(entangledCoords = '') {
+                function editLotDrawer(
+                    entangledCoords = '',
+                    entangledType = '',
+                    entangledStatus = ''
+                ) {
                     return {
                         points: [],
                         coordsString: entangledCoords,
+                        lotType: entangledType,
+                        lotStatus: entangledStatus,
                         canvas: null,
                         ctx: null,
                         img: null,
@@ -764,6 +1159,14 @@
                                     this.redraw();
                                 });
 
+                            });
+
+                            this.$watch('lotType', () => {
+                                this.redraw();
+                            });
+
+                            this.$watch('lotStatus', () => {
+                                this.redraw();
                             });
 
                             // initial draw if already loaded
@@ -855,10 +1258,26 @@
 
                             ctx.closePath();
 
-                            ctx.fillStyle = "rgba(0,150,255,0.3)";
+                            const colors = {
+                                "Playground & Community Amenities": "#f2b879",
+                                "Model House": "#c8c9c3",
+                                "Lot Only": "#c4e0b7",
+                                "House & Lot": "#f8e89c",
+                                "Sold": "#e9b4ae",
+                            };
+
+                            const status = (this.lotStatus || '')
+                                .toLowerCase()
+                                .trim();
+
+                            const color = status === 'sold'
+                                ? colors["Sold"]
+                                : (colors[this.lotType] || "#0096ff");
+
+                            ctx.fillStyle = hexToRGBA(color, 0.45);
                             ctx.fill();
 
-                            ctx.strokeStyle = "#0096ff";
+                            ctx.strokeStyle = color;
                             ctx.lineWidth = 2;
                             ctx.stroke();
 
@@ -1130,8 +1549,31 @@
                 tCoords.textContent = area.dataset.coords ?? '';
                 tID.textContent = area.dataset.id ?? '';
 
-                tPrice.textContent = '₱' + Number(area.dataset.price).toLocaleString() ?? '';
-                tStatus.textContent = area.dataset.status ?? '';
+                const propertyType = (area.dataset.type ?? '').trim();
+
+                const hidePriceAndStatus = [
+                    'Model House',
+                    'Playground & Community Amenities'
+                ].includes(propertyType);
+
+                if (hidePriceAndStatus) {
+                    // Hide price
+                    tPrice.style.display = 'none';
+                    tPrice.textContent = '';
+
+                    // Hide status
+                    tStatus.style.display = 'none';
+                    tStatus.textContent = '';
+                } else {
+                    // Show price
+                    tPrice.style.display = '';
+                    tPrice.textContent =
+                        '₱' + Number(area.dataset.price || 0).toLocaleString();
+
+                    // Show status
+                    tStatus.style.display = '';
+                    tStatus.textContent = area.dataset.status ?? '';
+                }
                 // tLotArea.textContent = area.dataset.area + ' sqm' ?? '';
                 tLotArea.innerHTML = `
                     <span style="display:flex; align-items:center; gap:6px;">

@@ -87,11 +87,19 @@ class BillingPaymentObserver
             'purchaseAccount.reservation.agent',
         ]);
 
+        $performedBy = auth()->check()
+            ? (
+                auth()->user()->role === 'staff'
+                    ? auth()->user()->name
+                    : 'Admin'
+            )
+            : 'System';
+
         if ($billingPayment->status === 'verified') {
             $this->notifyClientAndAdmins(
                 $billingPayment,
                 'Payment Approved',
-                "Payment for {$billingPayment->billing?->title} was approved.",
+                "Payment for {$billingPayment->billing?->title} was approved. Updated by: {$performedBy}.",
                 'billing_payment_approved'
             );
 
@@ -103,7 +111,7 @@ class BillingPaymentObserver
             $this->notifyClientAndAdmins(
                 $billingPayment,
                 'Payment Rejected',
-                "Payment for {$billingPayment->billing?->title} was rejected.",
+                "Payment for {$billingPayment->billing?->title} was rejected. Updated by: {$performedBy}.",
                 'billing_payment_rejected'
             );
 

@@ -32,11 +32,219 @@
         </div>
     </div>
 
-    <div class="w-full h-screen bg-white">
-        <div class="max-w-[97rem] w-full h-full px-10 mx-auto">
-            <div class="w-full h-full flex flex-col items-center py-20">
-                <h1 class="text-5xl font-light mb-4 text-center">Featured Properties</h1>
-                <p>Explore our collection of exceptional homes</p>
+    <div class="w-full h-auto bg-white">
+        <div class="max-w-[97rem] w-full px-10 mx-auto">
+            <div class="w-full flex flex-col items-center py-20">
+
+                {{-- HEADER --}}
+                <h1 class="text-5xl font-light mb-4 text-center">
+                    Featured Properties
+                </h1>
+
+                <p class="text-gray-600 text-center mb-14">
+                    Explore our collection of exceptional homes
+                </p>
+
+                {{-- HOUSE MODELS --}}
+                @if($houseModels->count())
+
+                    <div class="w-full grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                        @foreach($houseModels as $model)
+
+                            <div class="w-full bg-white border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all group">
+
+                                {{-- IMAGE --}}
+                                <div class="relative aspect-[4/3] overflow-hidden">
+
+                                    <img
+                                        src="{{ $model->image
+                                            ? asset('storage/' . $model->image)
+                                            : 'https://images.unsplash.com/photo-1680868543815-b8666dba60f7'
+                                        }}"
+                                        alt="{{ $model->model_name }}"
+                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                    >
+
+                                </div>
+
+                                {{-- CONTENT --}}
+                                <div class="p-8">
+
+                                    <div class="mb-6">
+                                        <h3 class="text-3xl font-light text-gray-900">
+                                            {{ $model->model_name }}
+                                        </h3>
+                                    </div>
+
+                                    {{-- DETAILS --}}
+                                    <div class="grid grid-cols-3 gap-6 mb-8 pb-8 border-b border-gray-100">
+
+                                        {{-- BEDROOMS --}}
+                                        <div class="text-center">
+
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="24"
+                                                height="24"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                class="h-6 w-6 text-gray-400 mb-2 mx-auto"
+                                            >
+                                                <path d="M2 4v16"></path>
+                                                <path d="M2 8h18a2 2 0 0 1 2 2v10"></path>
+                                                <path d="M2 17h20"></path>
+                                                <path d="M6 8v9"></path>
+                                            </svg>
+
+                                            <div class="text-2xl font-light text-gray-900 mb-1">
+                                                {{ $model->bedrooms }}
+                                            </div>
+
+                                            <div class="text-xs text-gray-600 uppercase tracking-wide">
+                                                Bedrooms
+                                            </div>
+
+                                        </div>
+
+                                        {{-- BATHROOMS --}}
+                                        <div class="text-center">
+
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="24"
+                                                height="24"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                class="h-6 w-6 text-gray-400 mb-2 mx-auto"
+                                            >
+                                                <path d="M10 4 8 6"></path>
+                                                <path d="M17 19v2"></path>
+                                                <path d="M2 12h20"></path>
+                                                <path d="M7 19v2"></path>
+                                                <path d="M9 5 7.621 3.621A2.121 2.121 0 0 0 4 5v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"></path>
+                                            </svg>
+
+                                            <div class="text-2xl font-light text-gray-900 mb-1">
+                                                {{ $model->bathrooms }}
+                                            </div>
+
+                                            <div class="text-xs text-gray-600 uppercase tracking-wide">
+                                                Bathrooms
+                                            </div>
+
+                                        </div>
+
+                                        {{-- FLOOR AREA --}}
+                                        <div class="text-center">
+
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="24"
+                                                height="24"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                class="h-6 w-6 text-gray-400 mb-2 mx-auto"
+                                            >
+                                                <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                                                <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                                                <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                                                <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                                            </svg>
+
+                                            <div class="text-2xl font-light text-gray-900 mb-1">
+                                                {{ $model->floor_area }} sqm
+                                            </div>
+
+                                            <div class="text-xs text-gray-600 uppercase tracking-wide">
+                                                Floor Area
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    {{-- VIEW PROPERTIES --}}
+                                    <a
+                                        href="{{ route('user.properties') }}"
+                                        class="w-full px-6 py-4 bg-gray-900 text-white hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 text-sm uppercase tracking-wide"
+                                    >
+                                        View Property
+
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke-width="1.5"
+                                            stroke="currentColor"
+                                            class="size-4"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                                            />
+                                        </svg>
+                                    </a>
+
+                                </div>
+                            </div>
+
+                        @endforeach
+
+                    </div>
+
+                @else
+
+                    <div class="w-full text-center py-16 text-gray-500 border-2 border-dashed border-gray-200">
+                        <p class="italic text-gray-400">
+                            No house models found.
+                        </p>
+                    </div>
+
+                @endif
+
+                {{-- VIEW ALL --}}
+                @if($houseModels->count())
+                    <div class="mt-12">
+
+                        <a
+                            href="{{ route('user.properties') }}"
+                            class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-colors"
+                        >
+                            VIEW ALL PROPERTIES
+
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="size-4"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                                />
+                            </svg>
+                        </a>
+
+                    </div>
+                @endif
+
             </div>
         </div>
     </div>
@@ -126,7 +334,7 @@
                     </div>
                 </div>
 
-                <a href="#" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-[#111727] text-white disabled:opacity-50 disabled:pointer-events-none">
+                <a href="{{ route("client.reservation") }}" class="py-4 px-10 inline-flex items-center gap-x-2 text-sm border border-transparent bg-[#111727] text-white disabled:opacity-50 disabled:pointer-events-none">
                     RESERVE NOW
                 </a>
             </div>

@@ -13,6 +13,7 @@ Lot: {{ $reservation->lot->name ?? 'N/A' }} - {{ $reservation->lot->lot_number ?
 House Model: {{ $reservation->houseModel->name ?? 'N/A' }}
 
 Status: Rejected  
+Performed By: {{ $performedBy }}<br>
 Reason: Please contact support for details
 </x-mail::panel>
 

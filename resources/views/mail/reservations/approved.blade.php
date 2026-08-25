@@ -9,10 +9,14 @@ Great news! Your lot reservation has been **approved**.
 Client: {{ $reservation->user->name }}  
 Email: {{ $reservation->user->email }}  
 
-Lot: {{ $reservation->lot->name ?? 'N/A' }} - {{ $reservation->lot->lot_number ?? '' }}  
-House Model: {{ $reservation->houseModel->name ?? 'N/A' }}
+Lot: {{ $reservation->lot->name ?? 'N/A' }} 
+{{-- - {{ $reservation->lot->lot_number ?? '' }}   --}}
+@if($reservation->houseModel)
+House Model: {{ $reservation->houseModel->name }}
+@endif
 
 Status: Approved  
+Performed By: {{ $performedBy }}<br>
 Reserved At: {{ \Carbon\Carbon::parse($reservation->reserved_at)->format('F d, Y h:i A') }}
 </x-mail::panel>
 

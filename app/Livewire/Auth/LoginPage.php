@@ -7,7 +7,6 @@ use Livewire\Component;
 use WireUi\Traits\Actions;
 
 #[Title('Login')]
-
 class LoginPage extends Component
 {
     use Actions;
@@ -15,52 +14,86 @@ class LoginPage extends Component
     public $email;
     public $password;
 
-    public function login(){
+    public function login()
+    {
         $this->validate([
             'email' => 'required|email|max:255',
             'password' => 'required|min:8|max:255'
         ]);
 
-        if(!auth()->attempt(['email' => $this->email, 'password' => $this->password])){
+        if (!auth()->attempt([
+            'email' => $this->email,
+            'password' => $this->password
+        ])) {
             $this->notification()->error(
                 $title = 'Error!',
                 $description = 'Invalid credentials'
             );
+
             return;
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK IF ACCOUNT IS VERIFIED
+        |--------------------------------------------------------------------------
+        */
         if (auth()->user()->is_verified == 0) {
-            auth()->logout(); 
-            $this->notification()->error(
-                $title = 'Error!',
-                $description = 'Your account is not verified. Please verify your account to log in.'
-            );
-            return;
-        }
-
-        if (
-            auth()->user()->role === 'staff' &&
-            auth()->user()->is_active == false
-        ) {
-
             auth()->logout();
 
             $this->notification()->error(
                 $title = 'Error!',
-                $description = 'Your staff account is inactive. Please contact the administrator.'
+                $description = 'Your account is not verified. Please verify your account to log in.'
             );
 
             return;
         }
 
-        if (auth()->user()->role === 'admin') { 
-            return redirect()->route('filament.ev-admin.pages.dashboard');
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK IF ACCOUNT IS ACTIVE
+        |--------------------------------------------------------------------------
+        | Applies to ALL user roles:
+        | admin, staff, agent, client, etc.
+        */
+        if (!auth()->user()->is_active) {
+            auth()->logout();
+
+            $this->notification()->error(
+                $title = 'Account Inactive',
+                $description = 'Your account is inactive. Please contact the administrator.'
+            );
+
+            return;
         }
 
-        if (auth()->user()->role === 'staff') { 
-            return redirect()->route('filament.ev-admin.pages.dashboard');
+        /*
+        |--------------------------------------------------------------------------
+        | REDIRECT ADMIN
+        |--------------------------------------------------------------------------
+        */
+        if (auth()->user()->role === 'admin') {
+            return redirect()->route(
+                'filament.ev-admin.pages.dashboard'
+            );
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | REDIRECT STAFF
+        |--------------------------------------------------------------------------
+        */
+        if (auth()->user()->role === 'staff') {
+            return redirect()->route(
+                'filament.ev-admin.pages.dashboard'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | OTHER ROLES
+        |--------------------------------------------------------------------------
+        */
         return redirect()->intended();
     }
 

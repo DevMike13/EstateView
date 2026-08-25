@@ -466,9 +466,9 @@
                 // -------------------------
                 // UNDER CONSTRUCTION ICON
                 // -------------------------
-                // if ((area.dataset.underConstruction ?? '').toString() === '1') {
-                //     drawLotIcon(ctx, cx, cy, 'construction');
-                // }
+                if ((area.dataset.underConstruction ?? '').toString() === '1') {
+                    drawLotIcon(ctx, cx, cy, 'construction');
+                }
             });
         }
 
@@ -596,8 +596,35 @@
                 tCoords.textContent = area.dataset.coords ?? '';
                 tID.textContent = area.dataset.id ?? '';
 
-                tPrice.textContent = '₱' + Number(area.dataset.price).toLocaleString() ?? '';
-                tStatus.textContent = area.dataset.status ?? '';
+                const propertyType = (area.dataset.type ?? '').trim();
+
+                const isNonReservable = [
+                    'Model House',
+                    'Playground & Community Amenities'
+                ].includes(propertyType);
+
+                if (isNonReservable) {
+
+                    // HIDE PRICE
+                    tPrice.style.display = 'none';
+                    tPrice.textContent = '';
+
+                    // HIDE STATUS
+                    tStatus.style.display = 'none';
+                    tStatus.textContent = '';
+
+                } else {
+
+                    // SHOW PRICE
+                    tPrice.style.display = '';
+                    tPrice.textContent =
+                        '₱' + Number(area.dataset.price || 0).toLocaleString();
+
+                    // SHOW STATUS
+                    tStatus.style.display = '';
+                    tStatus.textContent =
+                        area.dataset.status ?? '';
+                }
                 // tLotArea.textContent = area.dataset.area + ' sqm' ?? '';
                 tLotArea.innerHTML = `
                     <span style="display:flex; align-items:center; gap:6px;">
@@ -697,7 +724,11 @@
 
                 const isClientUser = @json(auth()->check() && auth()->user()->role === 'user');
 
-                if (status === 'available' && isClientUser) {
+                if (
+                    status === 'available' &&
+                    isClientUser &&
+                    !isNonReservable
+                ) {
                     reserveBtn.classList.remove('hidden');
                 } else {
                     reserveBtn.classList.add('hidden');

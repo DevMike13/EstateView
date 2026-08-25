@@ -2,6 +2,7 @@
 
 namespace App\Livewire\FilPages;
 
+use App\Mail\PropertyCreditedToAgentMail;
 use App\Models\AccountLedger;
 use App\Models\Billing;
 use App\Models\BillingPayment;
@@ -10,6 +11,7 @@ use App\Models\LotReservation;
 use App\Models\PurchaseAccount;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Spatie\LivewireFilepond\WithFilePond;
@@ -24,7 +26,7 @@ class ClientLedgers extends Component
     public $search = '';
 
     #[Url]
-    public $statusFilter = '';
+    public $statusFilter = 'active';
 
     #[Url]
     public $paymentSchemeFilter = '';
@@ -87,11 +89,14 @@ class ClientLedgers extends Component
         ]);
 
         DB::transaction(function () {
+
             $reservation = LotReservation::with([
                     'lot',
                     'houseModel',
                     'preferredPayment',
                     'latestReservationPayment',
+                    'agent',
+                    'user',
                 ])
                 ->where('status', 'approved')
                 ->whereDoesntHave('purchaseAccount')
@@ -108,7 +113,13 @@ class ClientLedgers extends Component
                 : 0;
 
             $tcp = $lotPrice + $housePrice;
-            $reservationFee = (float) ($reservation->latestReservationPayment?->amount ?? 0);
+
+            $reservationFee = (float) (
+                $reservation
+                    ->latestReservationPayment
+                    ?->amount
+                ?? 0
+            );
 
             $cashDiscount = 0;
             $netContractPrice = $tcp;
@@ -119,149 +130,540 @@ class ClientLedgers extends Component
             $remainingBalance = 0;
             $status = 'active';
 
-            if ($paymentScheme === 'cash') {
-                $cashDiscount = $tcp * 0.10;
-                $netContractPrice = $tcp - $cashDiscount;
-                $remainingBalance = max($netContractPrice - $reservationFee, 0);
+            /*
+            |--------------------------------------------------------------------------
+            | CASH
+            |--------------------------------------------------------------------------
+            */
 
-                $status = $remainingBalance <= 0 ? 'fully_paid' : 'active';
+            if ($paymentScheme === 'cash') {
+
+                $cashDiscount = $tcp * 0.10;
+
+                $netContractPrice =
+                    $tcp - $cashDiscount;
+
+                $remainingBalance = max(
+                    $netContractPrice
+                    - $reservationFee,
+                    0
+                );
+
+                $status =
+                    $remainingBalance <= 0
+                        ? 'fully_paid'
+                        : 'active';
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | BANK LOAN
+            |--------------------------------------------------------------------------
+            */
 
             if ($paymentScheme === 'bank_loan') {
-                $downpaymentPercentage = (float) ($reservation->downpayment_percentage ?? 20);
-                $downpaymentRate = $downpaymentPercentage / 100;
 
-                $downpayment = $tcp * $downpaymentRate;
-                $loanableAmount = $tcp - $downpayment;
+                $downpaymentPercentage =
+                    (float) (
+                        $reservation
+                            ->downpayment_percentage
+                        ?? 20
+                    );
 
-                $remainingDownpayment = max($downpayment - $reservationFee, 0);
+                $downpaymentRate =
+                    $downpaymentPercentage / 100;
 
-                $dpTermMonths = (int) ($reservation->downpayment_term_months ?? 12);
+                $downpayment =
+                    $tcp * $downpaymentRate;
 
-                $monthlyAmortization = $remainingDownpayment > 0
-                    ? $remainingDownpayment / $dpTermMonths
-                    : 0;
+                $loanableAmount =
+                    $tcp - $downpayment;
 
-                $remainingBalance = $remainingDownpayment;
+                $remainingDownpayment = max(
+                    $downpayment
+                    - $reservationFee,
+                    0
+                );
 
-                $status = $remainingDownpayment <= 0
-                    ? 'bank_processing'
-                    : 'downpayment_pending';
+                $dpTermMonths =
+                    (int) (
+                        $reservation
+                            ->downpayment_term_months
+                        ?? 12
+                    );
+
+                $monthlyAmortization =
+                    $remainingDownpayment > 0
+                        ? $remainingDownpayment
+                            / $dpTermMonths
+                        : 0;
+
+                $remainingBalance =
+                    $remainingDownpayment;
+
+                $status =
+                    $remainingDownpayment <= 0
+                        ? 'bank_processing'
+                        : 'downpayment_pending';
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | DEFERRED PAYMENT
+            |--------------------------------------------------------------------------
+            */
 
             if ($paymentScheme === 'deferred_payment') {
-                $netContractPrice = $tcp;
-                $remainingBalance = max($netContractPrice - $reservationFee, 0);
-                $monthlyAmortization = $remainingBalance / 36;
 
-                $status = $remainingBalance <= 0 ? 'fully_paid' : 'active';
+                $netContractPrice = $tcp;
+
+                $remainingBalance = max(
+                    $netContractPrice
+                    - $reservationFee,
+                    0
+                );
+
+                $monthlyAmortization =
+                    $remainingBalance / 36;
+
+                $status =
+                    $remainingBalance <= 0
+                        ? 'fully_paid'
+                        : 'active';
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | PURCHASE ACCOUNT
+            |--------------------------------------------------------------------------
+            */
+
             $account = PurchaseAccount::create([
-                'lot_reservation_id' => $reservation->id,
-                'user_id' => $reservation->user_id,
-                'lot_id' => $reservation->lot_id,
-                'house_model_id' => $reservation->house_model_id,
+                'lot_reservation_id' =>
+                    $reservation->id,
 
-                'payment_scheme' => $paymentScheme,
+                'user_id' =>
+                    $reservation->user_id,
 
-                'lot_price' => $lotPrice,
-                'house_price' => $housePrice,
-                'total_contract_price' => $tcp,
+                'lot_id' =>
+                    $reservation->lot_id,
 
-                'cash_discount' => $cashDiscount,
-                'net_contract_price' => $netContractPrice,
+                'house_model_id' =>
+                    $reservation->house_model_id,
 
-                'downpayment_amount' => $downpayment,
-                'reservation_fee_credit' => $reservationFee,
-                'remaining_downpayment' => $remainingDownpayment,
+                'payment_scheme' =>
+                    $paymentScheme,
 
-                'loanable_amount' => $loanableAmount,
-                'loan_term_years' => match ($paymentScheme) {
-                    'bank_loan' => $this->loanTermYears,
-                    'deferred_payment' => 3,
-                    default => null,
-                },
-                'monthly_amortization' => $monthlyAmortization,
+                'lot_price' =>
+                    $lotPrice,
 
-                'total_paid' => $reservationFee,
-                'remaining_balance' => $remainingBalance,
+                'house_price' =>
+                    $housePrice,
 
-                'status' => $status,
+                'total_contract_price' =>
+                    $tcp,
+
+                'cash_discount' =>
+                    $cashDiscount,
+
+                'net_contract_price' =>
+                    $netContractPrice,
+
+                'downpayment_amount' =>
+                    $downpayment,
+
+                'reservation_fee_credit' =>
+                    $reservationFee,
+
+                'remaining_downpayment' =>
+                    $remainingDownpayment,
+
+                'loanable_amount' =>
+                    $loanableAmount,
+
+                'loan_term_years' =>
+                    match ($paymentScheme) {
+                        'bank_loan' =>
+                            $this->loanTermYears,
+
+                        'deferred_payment' =>
+                            3,
+
+                        default =>
+                            null,
+                    },
+
+                'monthly_amortization' =>
+                    $monthlyAmortization,
+
+                'total_paid' =>
+                    $reservationFee,
+
+                'remaining_balance' =>
+                    $remainingBalance,
+
+                'status' =>
+                    $status,
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | AGENT IN-APP NOTIFICATION
+            |--------------------------------------------------------------------------
+            */
+
+            $performedBy = auth()->check()
+                ? (
+                    auth()->user()->role === 'staff'
+                        ? auth()->user()->name
+                        : 'Admin'
+                )
+                : 'System';
+
+            if ($reservation->agent_id) {
+
+                $agentNotification =
+                    \App\Models\Notification::create([
+                        'title' =>
+                            'Property Credited to You',
+
+                        'message' =>
+                            'The property '
+                            . (
+                                $reservation
+                                    ->lot
+                                    ?->name
+                                ?? 'N/A'
+                            )
+                            . ' for client '
+                            . (
+                                $reservation
+                                    ->user
+                                    ?->name
+                                ?? 'N/A'
+                            )
+                            . ' has been credited to you. '
+                            . "Updated by: {$performedBy}.",
+
+                        'type' =>
+                            'property_credited_to_agent',
+
+                        'url' => route('agent.commission', [
+                            'highlight' => $account->id,
+                        ]),
+
+                        'data' => [
+                            'reservation_id' =>
+                                $reservation->id,
+
+                            'purchase_account_id' =>
+                                $account->id,
+
+                            'client_id' =>
+                                $reservation->user_id,
+
+                            'client_name' =>
+                                $reservation
+                                    ->user
+                                    ?->name,
+
+                            'agent_id' =>
+                                $reservation->agent_id,
+
+                            'agent_name' =>
+                                $reservation
+                                    ->agent
+                                    ?->name,
+
+                            'lot_id' =>
+                                $reservation->lot_id,
+
+                            'lot_name' =>
+                                $reservation
+                                    ->lot
+                                    ?->name,
+
+                            'performed_by' =>
+                                $performedBy,
+
+                            /*
+                            * Keep this if your notification
+                            * UI reads client_url for Open.
+                            */
+                            'client_url' => route('agent.commission', [
+                                'highlight' => $account->id,
+                            ]),
+                        ],
+
+                        'created_by' =>
+                            auth()->id(),
+                    ]);
+
+                /*
+                * Send ONLY to the assigned agent
+                */
+                $agentNotification
+                    ->users()
+                    ->attach([
+                        $reservation->agent_id,
+                    ]);
+                
+                    /*
+                    |--------------------------------------------------------------------------
+                    | AGENT EMAIL NOTIFICATION
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if ($reservation->agent?->email) {
+                        Mail::to($reservation->agent->email)
+                            ->send(
+                                new PropertyCreditedToAgentMail(
+                                    $reservation,
+                                    $account,
+                                    $performedBy
+                                )
+                            );
+                    }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | ACCOUNT LEDGER - TCP
+            |--------------------------------------------------------------------------
+            */
 
             AccountLedger::create([
-                'purchase_account_id' => $account->id,
-                'type' => 'debit',
-                'description' => 'Total Contract Price',
-                'amount' => $netContractPrice,
-                'balance_after' => $netContractPrice,
+                'purchase_account_id' =>
+                    $account->id,
+
+                'type' =>
+                    'debit',
+
+                'description' =>
+                    'Total Contract Price',
+
+                'amount' =>
+                    $netContractPrice,
+
+                'balance_after' =>
+                    $netContractPrice,
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | ACCOUNT LEDGER - RESERVATION FEE
+            |--------------------------------------------------------------------------
+            */
 
             AccountLedger::create([
-                'purchase_account_id' => $account->id,
-                'type' => 'credit',
-                'description' => 'Reservation Fee Credit',
-                'amount' => $reservationFee,
-                'balance_after' => max($netContractPrice - $reservationFee, 0),
+                'purchase_account_id' =>
+                    $account->id,
+
+                'type' =>
+                    'credit',
+
+                'description' =>
+                    'Reservation Fee Credit',
+
+                'amount' =>
+                    $reservationFee,
+
+                'balance_after' =>
+                    max(
+                        $netContractPrice
+                        - $reservationFee,
+                        0
+                    ),
             ]);
 
-            if ($paymentScheme === 'cash' && $remainingBalance > 0) {
+            /*
+            |--------------------------------------------------------------------------
+            | CASH BILLING
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $paymentScheme === 'cash'
+                && $remainingBalance > 0
+            ) {
+
                 Billing::create([
-                    'purchase_account_id' => $account->id,
-                    'billing_no' => 'CASH-' . now()->format('YmdHis') . '-' . $account->id,
-                    'title' => 'Cash Balance',
-                    'due_date' => $this->dueDate,
-                    'amount_due' => $remainingBalance,
-                    'amount_paid' => 0,
-                    'status' => 'unpaid',
+                    'purchase_account_id' =>
+                        $account->id,
+
+                    'billing_no' =>
+                        'CASH-'
+                        . now()->format('YmdHis')
+                        . '-'
+                        . $account->id,
+
+                    'title' =>
+                        'Cash Balance',
+
+                    'due_date' =>
+                        $this->dueDate,
+
+                    'amount_due' =>
+                        $remainingBalance,
+
+                    'amount_paid' =>
+                        0,
+
+                    'status' =>
+                        'unpaid',
                 ]);
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | BANK LOAN DOWNPAYMENT BILLINGS
+            |--------------------------------------------------------------------------
+            */
+
             if ($paymentScheme === 'bank_loan') {
-                $dpTermMonths = (int) ($reservation->downpayment_term_months ?? 12);
 
-                $monthlyDownpayment = $remainingDownpayment > 0
-                    ? $remainingDownpayment / $dpTermMonths
-                    : 0;
+                $dpTermMonths =
+                    (int) (
+                        $reservation
+                            ->downpayment_term_months
+                        ?? 12
+                    );
 
-                $startDate = \Carbon\Carbon::parse($this->dueDate);
+                $monthlyDownpayment =
+                    $remainingDownpayment > 0
+                        ? $remainingDownpayment
+                            / $dpTermMonths
+                        : 0;
 
-                for ($month = 1; $month <= $dpTermMonths; $month++) {
+                $startDate =
+                    \Carbon\Carbon::parse(
+                        $this->dueDate
+                    );
+
+                for (
+                    $month = 1;
+                    $month <= $dpTermMonths;
+                    $month++
+                ) {
+
                     Billing::create([
-                        'purchase_account_id' => $account->id,
-                        'billing_no' => 'DP-' . $account->id . '-' . str_pad($month, 3, '0', STR_PAD_LEFT),
-                        'title' => 'Downpayment #' . $month,
-                        'due_date' => $startDate->copy()->addMonths($month - 1),
-                        'amount_due' => $monthlyDownpayment,
-                        'amount_paid' => 0,
-                        'status' => 'unpaid',
+                        'purchase_account_id' =>
+                            $account->id,
+
+                        'billing_no' =>
+                            'DP-'
+                            . $account->id
+                            . '-'
+                            . str_pad(
+                                $month,
+                                3,
+                                '0',
+                                STR_PAD_LEFT
+                            ),
+
+                        'title' =>
+                            'Downpayment #'
+                            . $month,
+
+                        'due_date' =>
+                            $startDate
+                                ->copy()
+                                ->addMonths(
+                                    $month - 1
+                                ),
+
+                        'amount_due' =>
+                            $monthlyDownpayment,
+
+                        'amount_paid' =>
+                            0,
+
+                        'status' =>
+                            'unpaid',
                     ]);
                 }
             }
 
-            if ($paymentScheme === 'deferred_payment') {
-                $startDate = \Carbon\Carbon::parse($this->dueDate);
+            /*
+            |--------------------------------------------------------------------------
+            | DEFERRED PAYMENT BILLINGS
+            |--------------------------------------------------------------------------
+            */
 
-                for ($month = 1; $month <= 36; $month++) {
+            if (
+                $paymentScheme ===
+                'deferred_payment'
+            ) {
+
+                $startDate =
+                    \Carbon\Carbon::parse(
+                        $this->dueDate
+                    );
+
+                for (
+                    $month = 1;
+                    $month <= 36;
+                    $month++
+                ) {
+
                     Billing::create([
-                        'purchase_account_id' => $account->id,
-                        'billing_no' => 'DEF-' . $account->id . '-' . str_pad($month, 3, '0', STR_PAD_LEFT),
-                        'title' => 'Deferred Payment #' . $month,
-                        'due_date' => $startDate->copy()->addMonths($month - 1),
-                        'amount_due' => $monthlyAmortization,
-                        'amount_paid' => 0,
-                        'status' => 'unpaid',
+                        'purchase_account_id' =>
+                            $account->id,
+
+                        'billing_no' =>
+                            'DEF-'
+                            . $account->id
+                            . '-'
+                            . str_pad(
+                                $month,
+                                3,
+                                '0',
+                                STR_PAD_LEFT
+                            ),
+
+                        'title' =>
+                            'Deferred Payment #'
+                            . $month,
+
+                        'due_date' =>
+                            $startDate
+                                ->copy()
+                                ->addMonths(
+                                    $month - 1
+                                ),
+
+                        'amount_due' =>
+                            $monthlyAmortization,
+
+                        'amount_paid' =>
+                            0,
+
+                        'status' =>
+                            'unpaid',
                     ]);
                 }
             }
         });
 
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / STAFF SUCCESS TOAST
+        |--------------------------------------------------------------------------
+        */
+
         Notification::make()
             ->title('Client Ledger Created')
-            ->body('Purchase account, ledger, and billing schedule were created successfully.')
+            ->body(
+                'Purchase account, ledger, and billing schedule were created successfully.'
+            )
             ->success()
             ->send();
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESET
+        |--------------------------------------------------------------------------
+        */
 
         $this->reset([
             'reservationId',
@@ -269,9 +671,16 @@ class ClientLedgers extends Component
         ]);
 
         $this->loanTermYears = 15;
-        $this->dueDate = now()->addMonth()->format('Y-m-d');
 
-        $this->dispatch('close-modal', name: 'createLedger');
+        $this->dueDate =
+            now()
+                ->addMonth()
+                ->format('Y-m-d');
+
+        $this->dispatch(
+            'close-modal',
+            name: 'createLedger'
+        );
     }
 
     public function recordOfficePayment()

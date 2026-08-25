@@ -52,6 +52,7 @@ class AppointmentPage extends Component
             'approved',
             'completed',
             'cancelled',
+            'declined',
         ];
 
         $requestedTab = request()
@@ -127,6 +128,7 @@ class AppointmentPage extends Component
             'approved',
             'completed',
             'cancelled',
+            'declined',
         ];
 
         if (! in_array(
@@ -936,6 +938,20 @@ class AppointmentPage extends Component
             ->where(
                 'status',
                 'cancelled'
+            )
+            ->count();
+    }
+
+    public function getDeclinedCountProperty()
+    {
+        return ClientAppointment::query()
+            ->where(
+                'user_id',
+                auth()->id()
+            )
+            ->where(
+                'status',
+                'declined'
             )
             ->count();
     }

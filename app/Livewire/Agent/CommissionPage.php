@@ -15,6 +15,7 @@ use WireUi\Traits\Actions;
 use App\Models\AgentQrCode;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
+use Livewire\Attributes\Url;
 
 #[Title('My Commissions')]
 class CommissionPage extends Component
@@ -43,9 +44,22 @@ class CommissionPage extends Component
 
     public bool $showCreateQrModal = false;
     public bool $showEditQrModal = false;
+    #[Url]
+    public ?int $highlight = null;
 
     public function mount(): void
     {
+        if ($this->highlight) {
+            $exists = $this->baseAccountsQuery()
+                ->whereKey($this->highlight)
+                ->exists();
+
+            if ($exists) {
+                $this->selectedAccountId = $this->highlight;
+                return;
+            }
+        }
+
         $this->selectedAccountId = $this
             ->baseAccountsQuery()
             ->value('id');
@@ -271,6 +285,24 @@ class CommissionPage extends Component
                 totalPeriods: $totalPeriods
             );
 
+        $commissionStatus = $this
+            ->determineCommissionStatus($periods);
+
+        $account->setAttribute(
+            'commission_status',
+            $commissionStatus['status']
+        );
+
+        $account->setAttribute(
+            'commission_status_label',
+            $commissionStatus['label']
+        );
+
+        $account->setAttribute(
+            'agent_commission_percentage',
+            $commissionPercentage
+        );
+
         $account->setAttribute(
             'agent_commission_percentage',
             $commissionPercentage
@@ -438,6 +470,69 @@ class CommissionPage extends Component
                 (float) $billing->amount_paid
                 >= (float) $billing->amount_due
             );
+    }
+
+    private function determineCommissionStatus(array $periods): array
+    {
+        if (empty($periods)) {
+            return [
+                'status' => 'unpaid',
+                'label' => 'Awaiting Payment',
+            ];
+        }
+
+        /*
+        * Periods are already in order (1, 2, 3...).
+        * Walk through them and stop at the first period
+        * that isn't fully paid yet — that's the client's
+        * current real-world status.
+        */
+        foreach ($periods as $period) {
+            $request = $period['request'];
+
+            if (! $request) {
+                if ($period['eligible']) {
+                    return [
+                        'status' => 'ready',
+                        'label' => 'Ready for Request',
+                    ];
+                }
+
+                return [
+                    'status' => 'unpaid',
+                    'label' => 'To Be Paid by Client',
+                ];
+            }
+
+            if ($request->status === 'pending') {
+                return [
+                    'status' => 'pending',
+                    'label' => 'Pending',
+                ];
+            }
+
+            // if ($request->status === 'approved') {
+            //     return [
+            //         'status' => 'approved',
+            //         'label' => 'Approved',
+            //     ];
+            // }
+
+            // if ($request->status === 'rejected') {
+            //     return [
+            //         'status' => 'rejected',
+            //         'label' => 'Rejected',
+            //     ];
+            // }
+
+            // status === 'paid' -> keep checking the next period
+        }
+
+        // Every period has a paid request.
+        return [
+            'status' => 'paid',
+            'label' => 'Paid',
+        ];
     }
 
     private function isCurrentMonthPaid(

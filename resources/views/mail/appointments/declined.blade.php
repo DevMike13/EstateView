@@ -6,8 +6,9 @@ Hi {{ $appointment->name ?? $user->name }},
 Unfortunately, your appointment was declined.
 
 <x-mail::panel>
-Date: {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('F d, Y') }}
-Time: {{ \Carbon\Carbon::parse($appointment->appointment_time)->format('h:i A') }}
+Date: {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('F d, Y') }}<br>
+Time: {{ \Carbon\Carbon::parse($appointment->appointment_time)->format('h:i A') }}<br>
+Performed By: {{ $performedBy }}
 </x-mail::panel>
 
 Please contact support for more info.

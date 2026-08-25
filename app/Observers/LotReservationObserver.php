@@ -21,7 +21,8 @@ class LotReservationObserver
             $lotReservation,
             'New Lot Reservation',
             $this->buildMessage($lotReservation),
-            'lot_reservation_created'
+            'lot_reservation_created',
+            false
         );
     }
 
@@ -31,6 +32,19 @@ class LotReservationObserver
     public function updated(LotReservation $lotReservation): void
     {
         if ($lotReservation->wasChanged('status')) {
+
+            $performedBy = 'System';
+
+            if (auth()->check()) {
+                $performedBy = match (auth()->user()->role) {
+                    'staff' => auth()->user()->name,
+                    'user'  => auth()->user()->name,
+                    'agent' => auth()->user()->name,
+                    'admin' => 'Admin',
+                    default => auth()->user()->name ?? 'System',
+                };
+            }
+
             $title = match ($lotReservation->status) {
                 'awaiting_reservation_fee' => 'Reservation Submitted Documents Approved',
                 'reservation_fee_submitted' => 'Reservation Fee Submitted',
@@ -39,28 +53,32 @@ class LotReservationObserver
                 default => 'Reservation Status Updated',
             };
 
+            $includeClient = $lotReservation->status !== 'reservation_fee_submitted';
+
             $this->notify(
                 $lotReservation,
                 $title,
-                $this->buildMessage($lotReservation),
-                'lot_reservation_updated'
+                $this->buildMessage($lotReservation)
+                    . " Updated by: {$performedBy}.",
+                'lot_reservation_updated',
+                $includeClient
             );
 
             $lotReservation->load('user', 'lot', 'houseModel');
 
             if ($lotReservation->status === 'awaiting_reservation_fee') {
                 Mail::to($lotReservation->user->email)
-                    ->send(new ReservationAwaitingFeeMail($lotReservation));
+                    ->send(new ReservationAwaitingFeeMail($lotReservation, $performedBy));
             }
 
             if ($lotReservation->status === 'approved') {
                 Mail::to($lotReservation->user->email)
-                    ->send(new ReservationApprovedMail($lotReservation));
+                    ->send(new ReservationApprovedMail($lotReservation, $performedBy));
             }
 
             if ($lotReservation->status === 'rejected') {
                 Mail::to($lotReservation->user->email)
-                    ->send(new ReservationRejectedMail($lotReservation));
+                    ->send(new ReservationRejectedMail($lotReservation, $performedBy));
             }
         }
     }
@@ -214,7 +232,8 @@ class LotReservationObserver
         LotReservation $lotReservation,
         string $title,
         string $message,
-        string $type
+        string $type,
+        bool $includeClient = true
     ): void {
 
         $lotReservation->loadMissing([
@@ -253,14 +272,28 @@ class LotReservationObserver
             'created_by' => auth()->id(),
         ]);
 
-        $staffAdmins = \App\Models\User::whereIn('role', ['admin', 'staff'])
+        $staffAdmins = User::whereIn('role', ['admin', 'staff'])
+            ->when(
+                auth()->check(),
+                fn ($query) =>
+                    $query->where(
+                        'id',
+                        '!=',
+                        auth()->id()
+                    )
+            )
             ->pluck('id');
 
-        $client = $lotReservation->user_id;
+        $users = $staffAdmins;
+
+        if ($includeClient && $lotReservation->user_id) {
+            $users = $users->merge([
+                $lotReservation->user_id,
+            ]);
+        }
 
         $notification->users()->attach(
-            $staffAdmins
-                ->merge([$client])
+            $users
                 ->filter()
                 ->unique()
                 ->toArray()

@@ -2,61 +2,51 @@
 
 namespace App\Mail;
 
+use App\Models\LotReservation;
 use App\Models\PurchaseAccount;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class LedgerCreatedMail extends Mailable
+class PropertyCreditedToAgentMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $account;
+    public LotReservation $reservation;
+    public PurchaseAccount $account;
     public string $performedBy;
 
-    /**
-     * Create a new message instance.
-     */
     public function __construct(
+        LotReservation $reservation,
         PurchaseAccount $account,
         string $performedBy
     ) {
+        $this->reservation = $reservation;
         $this->account = $account;
         $this->performedBy = $performedBy;
     }
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Purchase Account Has Been Created',
+            subject: 'Property Credited to You',
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.ledgers.created',
+            markdown: 'mail.agent.property-credited',
             with: [
+                'reservation' => $this->reservation,
                 'account' => $this->account,
-                'user' => $this->account->user,
-            ]
+                'performedBy' => $this->performedBy,
+            ],
         );
     }
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
     public function attachments(): array
     {
         return [];

@@ -365,6 +365,18 @@ class ReservationPage extends Component
             ->count();
     }
 
+    public function getCancelledCountProperty()
+    {
+        return LotReservation::where(
+                'user_id',
+                auth()->id()
+            )
+            ->where(
+                'status',
+                'cancelled'
+            )
+            ->count();
+    }
 
     public function updatedReservationType($value)
     {
@@ -952,6 +964,54 @@ class ReservationPage extends Component
             'reservation_fee_submitted';
     }
 
+    public function confirmCancelReservation($reservationId)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Cancel Reservation?',
+            'description' => 'Are you sure you want to cancel this reservation?',
+            'acceptLabel' => 'Yes, Cancel',
+            'rejectLabel' => 'No',
+            'method' => 'cancelReservation',
+            'params' => $reservationId,
+            'icon' => 'warning',
+        ]);
+    }
+
+
+    public function cancelReservation($reservationId)
+    {
+        $reservation = LotReservation::query()
+            ->where('user_id', auth()->id())
+            ->findOrFail($reservationId);
+
+        if (! in_array(
+            $reservation->status,
+            [
+                'pending',
+                'awaiting_reservation_fee',
+                'reservation_fee_submitted',
+            ],
+            true
+        )) {
+            $this->notification()->error(
+                'Cannot Cancel Reservation',
+                'This reservation can no longer be cancelled.'
+            );
+
+            return;
+        }
+
+        $reservation->update([
+            'status' => 'cancelled',
+        ]);
+
+        $this->activeTab = 'cancelled';
+
+        $this->notification()->success(
+            'Reservation Cancelled',
+            'Your reservation has been successfully cancelled.'
+        );
+    }
 
     public function render()
     {

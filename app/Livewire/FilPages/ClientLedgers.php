@@ -22,11 +22,23 @@ class ClientLedgers extends Component
 {
     use WithFilePond, Actions, WithFileUploads;
     
-    #[Url]
+     #[Url]
     public $search = '';
 
+    // #[Url(except: '')]
+    public $statusFilter = '';
+
+    #[Url(except: 'active')]
+    public $statusTab = 'active';
+
     #[Url]
-    public $statusFilter = 'active';
+    public $highlight = null;
+
+    #[Url]
+    public $billingTab = null;
+
+    #[Url]
+    public $billingHighlight = null;
 
     #[Url]
     public $paymentSchemeFilter = '';
@@ -49,11 +61,42 @@ class ClientLedgers extends Component
     public $officeReferenceNo;
     public $officeProofOfPayment;
     public $approvalReceipts = [];
+    protected $syncingTab = false;
 
     public function mount()
     {
         $this->dueDate = now()->addMonth()->format('Y-m-d');
+
+        if ($this->statusTab === '' || $this->statusTab === null) {
+            $this->statusTab = 'active';
+        }
     }
+
+    public function setStatusTab(string $tab): void
+    {
+        $this->syncingTab = true;
+
+        $this->statusTab = $tab;
+        $this->statusFilter = '';
+
+        $this->syncingTab = false;
+    }
+
+    public function updatedStatusFilter($value): void
+{
+    if ($value) {
+        $this->statusTab = $value;
+    }
+}
+
+    // public function updatedStatusFilter($value): void
+    // {
+    //     if ($this->syncingTab) {
+    //         return; // this clear came from setStatusTab(), ignore it
+    //     }
+
+    //     $this->statusTab = $value ?: 'active';
+    // }
 
     public function getApprovedReservationsProperty()
     {
@@ -1614,6 +1657,7 @@ public function rejectBillingPaymentConfirmation($paymentId)
     {
         $this->search = '';
         $this->statusFilter = '';
+        $this->statusTab = 'active';
         $this->paymentSchemeFilter = '';
         $this->paymentReviewFilter = '';
     }
@@ -1647,9 +1691,16 @@ public function rejectBillingPaymentConfirmation($paymentId)
                 });
             })
 
-            ->when($this->statusFilter, function ($query) {
-                $query->where('status', $this->statusFilter);
-            })
+            ->when(
+                $this->statusFilter,
+                function ($query) {
+                    $query->where('status', $this->statusFilter);
+                },
+                function ($query) {
+                    // no explicit dropdown filter chosen, use the quick tab instead
+                    $query->where('status', $this->statusTab);
+                }
+            )
 
             ->when($this->paymentSchemeFilter, function ($query) {
                 $query->where('payment_scheme', $this->paymentSchemeFilter);

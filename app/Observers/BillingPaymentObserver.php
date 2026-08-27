@@ -126,8 +126,9 @@ class BillingPaymentObserver
         string $message,
         string $type
     ): void {
-        
+
         $payment->loadMissing([
+            'billing',
             'purchaseAccount.user',
             'purchaseAccount.reservation.agent',
         ]);
@@ -136,18 +137,53 @@ class BillingPaymentObserver
             'title' => $title,
             'message' => $message,
             'type' => $type,
-            'url' => route('filament.ev-admin.pages.client-ledgers'),
+
+            'url' => route('filament.ev-admin.pages.client-ledgers')
+                . '?'
+                . http_build_query([
+                    'statusTab' =>
+                        $payment->purchaseAccount?->status ?? 'active',
+
+                    'highlight' =>
+                        $payment->purchase_account_id,
+
+                    // Client submitted payment is still pending
+                    'billingTab' =>
+                        'unpaid',
+
+                    'billingHighlight' =>
+                        $payment->billing_id,
+                ]),
+
             'data' => [
-                'billing_payment_id' => $payment->id,
-                'billing_id' => $payment->billing_id,
-                'purchase_account_id' => $payment->purchase_account_id,
-                'client_name' => $payment->purchaseAccount?->user?->name,
-                'amount' => $payment->amount,
-                'status' => $payment->status,
-                'source' => $payment->source,
-                'agent_id' => $payment->purchaseAccount?->reservation?->agent_id,
-                'agent_name' => $payment->purchaseAccount?->reservation?->agent?->name,
+                'billing_payment_id' =>
+                    $payment->id,
+
+                'billing_id' =>
+                    $payment->billing_id,
+
+                'purchase_account_id' =>
+                    $payment->purchase_account_id,
+
+                'client_name' =>
+                    $payment->purchaseAccount?->user?->name,
+
+                'amount' =>
+                    $payment->amount,
+
+                'status' =>
+                    $payment->status,
+
+                'source' =>
+                    $payment->source,
+
+                'agent_id' =>
+                    $payment->purchaseAccount?->reservation?->agent_id,
+
+                'agent_name' =>
+                    $payment->purchaseAccount?->reservation?->agent?->name,
             ],
+
             'created_by' => auth()->id(),
         ]);
 
@@ -191,10 +227,14 @@ class BillingPaymentObserver
             'message' => $message,
             'type' => $type,
 
-            'url' => route(
-                'filament.ev-admin.pages.client-ledgers'
-            ),
-
+            'url' => route('filament.ev-admin.pages.client-ledgers')
+            . '?'
+            . http_build_query([
+                'statusTab' => $payment->purchaseAccount?->status ?? 'active',
+                'highlight' => $payment->purchase_account_id,
+                'billingTab' => $billingTab,
+                'billingHighlight' => $payment->billing_id,
+            ]),
             'data' => [
                 'billing_payment_id' =>
                     $payment->id,
@@ -248,11 +288,19 @@ class BillingPaymentObserver
             'created_by' => auth()->id(),
         ]);
 
-        $users = User::whereIn(
-            'role',
-            ['admin', 'staff']
-        )
-            ->pluck('id')
+        $staffAdmins = User::whereIn('role', ['admin', 'staff'])
+            ->when(
+                auth()->check(),
+                fn ($query) =>
+                    $query->where(
+                        'id',
+                        '!=',
+                        auth()->id()
+                    )
+            )
+            ->pluck('id');
+
+        $users = $staffAdmins
             ->merge([
                 $payment
                     ->purchaseAccount

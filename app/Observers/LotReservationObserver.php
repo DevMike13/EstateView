@@ -50,16 +50,42 @@ class LotReservationObserver
                 'reservation_fee_submitted' => 'Reservation Fee Submitted',
                 'approved' => 'Reservation Approved',
                 'rejected' => 'Reservation Rejected',
+                'cancelled' => 'Reservation Cancelled',
                 default => 'Reservation Status Updated',
             };
 
-            $includeClient = $lotReservation->status !== 'reservation_fee_submitted';
+            $includeClient = ! in_array(
+                $lotReservation->status,
+                [
+                    'reservation_fee_submitted',
+                    'cancelled',
+                ],
+                true
+            );
+
+            if ($lotReservation->status === 'cancelled') {
+
+                $lotReservation->loadMissing([
+                    'user',
+                    'lot',
+                ]);
+
+                $message =
+                    "Client {$lotReservation->user?->name} cancelled their reservation for Lot "
+                    . ($lotReservation->lot?->name ?? 'Unknown Lot')
+                    . ".";
+
+            } else {
+
+                $message =
+                    $this->buildMessage($lotReservation)
+                    . " Updated by: {$performedBy}.";
+            }
 
             $this->notify(
                 $lotReservation,
                 $title,
-                $this->buildMessage($lotReservation)
-                    . " Updated by: {$performedBy}.",
+                $message,
                 'lot_reservation_updated',
                 $includeClient
             );

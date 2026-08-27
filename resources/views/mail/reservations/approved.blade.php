@@ -12,7 +12,7 @@ Email: {{ $reservation->user->email }}
 Lot: {{ $reservation->lot->name ?? 'N/A' }} 
 {{-- - {{ $reservation->lot->lot_number ?? '' }}   --}}
 @if($reservation->houseModel)
-House Model: {{ $reservation->houseModel->name }}
+House Model: {{ $reservation->houseModel->model_name }}
 @endif
 
 Status: Approved  

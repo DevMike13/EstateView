@@ -20,6 +20,8 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Illuminate\Support\Facades\Storage;
 use Laravolt\Avatar\Facade as Avatar;
+use App\Mail\ClientCreditedToAgentMail;
+use App\Models\Notification;
 
 #[Title('Register')]
 class RegisterPage extends Component
@@ -201,6 +203,74 @@ class RegisterPage extends Component
                 'barangay' => $this->barangay,
                 'state' => $this->state,
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | NOTIFY ASSOCIATED AGENT
+            |--------------------------------------------------------------------------
+            */
+
+            if ($agentId && isset($agent)) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | IN-APP NOTIFICATION
+                |--------------------------------------------------------------------------
+                */
+
+                $notification = Notification::create([
+                    'title' => 'New Client Credited to You',
+
+                    'message' =>
+                        "Client {$user->name} registered using your Professional Agent ID "
+                        . "and has been credited to you.",
+
+                    'type' => 'client_credited_to_agent',
+                    'url' => route('client.account'),
+
+                    'data' => [
+                        'client_id' => $user->id,
+                        'client_name' => $user->name,
+                        'client_email' => $user->email,
+
+                        'agent_id' => $agent->id,
+                        'agent_name' => $agent->name,
+
+                        'professional_agent_id' =>
+                            trim($this->agentProfessionalId),
+
+                        'client_url' => route('client.account'),
+                    ],
+
+                    'created_by' => $user->id,
+                ]);
+
+                /*
+                * ONLY associated agent receives this notification.
+                */
+                $notification
+                    ->users()
+                    ->attach([
+                        $agent->id,
+                    ]);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | EMAIL TO ASSOCIATED AGENT
+                |--------------------------------------------------------------------------
+                */
+
+                if ($agent->email) {
+                    Mail::to($agent->email)
+                        ->send(
+                            new ClientCreditedToAgentMail(
+                                $agent,
+                                $user
+                            )
+                        );
+                }
+            }
 
             // Send OTP email
             Mail::to($user->email)->send(new SendOtp($user->otp));

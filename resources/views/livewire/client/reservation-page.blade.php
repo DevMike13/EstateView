@@ -84,6 +84,20 @@
                     </span>
                 </button>
 
+                <button
+                    wire:click="setTab('cancelled')"
+                    class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2
+                    {{ $activeTab === 'cancelled'
+                        ? 'border-[#129c45] text-[#129c45]'
+                        : 'border-transparent text-gray-500' }}"
+                >
+                    <span>Cancelled</span>
+
+                    <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
+                        {{ $this->cancelledCount }}
+                    </span>
+                </button>
+
             </nav>
         </div>
 
@@ -153,8 +167,12 @@
                                 @elseif($reservation->status === 'approved')
                                     bg-green-100 text-green-700
 
-                                @else
+                                @elseif($reservation->status === 'rejected')
                                     bg-red-100 text-red-700
+                                @elseif($reservation->status === 'cancelled')
+                                    bg-gray-200 text-gray-700
+                                @else
+                                    bg-gray-100 text-gray-600
                                 @endif
                             ">
                                 {{ ucfirst(str_replace('_', ' ', $reservation->status)) }}
@@ -196,8 +214,12 @@
                                     @elseif($reservation->status === 'approved')
                                         bg-green-100 text-green-700
 
-                                    @else
+                                    @elseif($reservation->status === 'rejected')
                                         bg-red-100 text-red-700
+                                    @elseif($reservation->status === 'cancelled')
+                                        bg-gray-200 text-gray-700
+                                    @else
+                                        bg-gray-100 text-gray-600
                                     @endif
                                 ">
                                     {{ ucfirst($reservation->status) }}
@@ -491,6 +513,22 @@
                         </div>
 
                     </div>
+
+                    @if(in_array($reservation->status, [
+                        'pending',
+                        'awaiting_reservation_fee',
+                        // 'reservation_fee_submitted',
+                    ]))
+                        <div class="mt-4 flex justify-end">
+                            <x-button
+                                label="Cancel Reservation"
+                                icon="x-mark"
+                                negative
+                                x-on:click.stop
+                                wire:click="confirmCancelReservation({{ $reservation->id }})"
+                            />
+                        </div>
+                    @endif
 
                     </div>
                     {{-- END EXPANDED DETAILS --}}

@@ -43,7 +43,8 @@ class Reservations extends Component
             'awaiting_reservation_fee',
             'reservation_fee_submitted',
             'approved',
-            'rejected'
+            'rejected',
+            'cancelled',
         ])) {
             $this->activeTab = 'pending';
         }
@@ -97,6 +98,72 @@ class Reservations extends Component
             'reservation_fee_submitted'
         )->count();
     }
+
+    public function getCancelledCountProperty()
+    {
+        return LotReservation::where(
+            'status',
+            'cancelled'
+        )->count();
+    }
+
+    // public function confirmCancel($reservationId)
+    // {
+    //     $this->dialog()->confirm([
+    //         'title' => 'Cancel Reservation?',
+    //         'description' => 'This reservation will be marked as cancelled.',
+    //         'acceptLabel' => 'Yes, cancel',
+    //         'rejectLabel' => 'No',
+    //         'method' => 'cancelReservation',
+    //         'params' => $reservationId,
+    //         'icon' => 'warning',
+    //     ]);
+    // }
+
+    // public function cancelReservation($reservationId)
+    // {
+    //     $reservation = LotReservation::findOrFail(
+    //         $reservationId
+    //     );
+
+    //     if (! in_array(
+    //         $reservation->status,
+    //         [
+    //             'pending',
+    //             'awaiting_reservation_fee',
+    //             'reservation_fee_submitted',
+    //         ],
+    //         true
+    //     )) {
+    //         Notification::make()
+    //             ->title('Cannot Cancel Reservation')
+    //             ->body(
+    //                 'This reservation can no longer be cancelled.'
+    //             )
+    //             ->danger()
+    //             ->send();
+
+    //         return;
+    //     }
+
+    //     $reservation->update([
+    //         'status' => 'cancelled',
+    //     ]);
+
+    //     Notification::make()
+    //         ->title('Reservation Cancelled')
+    //         ->body(
+    //             'The reservation has been cancelled successfully.'
+    //         )
+    //         ->warning()
+    //         ->send();
+
+    //     $this->activeTab = 'cancelled';
+
+    //     $this->dispatch('reload');
+
+    //     return redirect()->back();
+    // }
 
     public function confirmApprove($reservationId)
     {
@@ -287,9 +354,11 @@ class Reservations extends Component
                 'title' => 'Reservation Fee Rejected',
 
                 'message' =>
-                    "Your submitted reservation fee for "
-                    . ($reservation->lot?->name ?? 'your reservation')
-                    . " was rejected. Updated by: {$performedBy}. ",
+                    "Client "
+                    . ($reservation->user?->name ?? 'Unknown Client')
+                    . ". Reservation fee for "
+                    . ($reservation->lot?->name ?? 'the reservation')
+                    . " was rejected. Updated by: {$performedBy}.",
 
                 'type' => 'reservation_fee_rejected',
 

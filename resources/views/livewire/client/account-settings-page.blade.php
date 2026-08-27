@@ -668,7 +668,7 @@
                             <p
                                 class="mt-1 text-xs text-gray-400"
                             >
-                                Your properties will appear here once your account is created.
+                                Your properties will appear here once you have an approved reservation.
                             </p>
 
                         </div>
@@ -1439,9 +1439,12 @@
 
                                         <input
                                             id="phone"
-                                            type="tel"
+                                            type="text"
+                                            inputmode="numeric"
+                                            maxlength="10"
                                             placeholder="9123456789"
                                             wire:model.blur="phone"
+                                            x-on:input="$event.target.value = $event.target.value.replace(/[^0-9]/g, '').slice(0, 10)"
                                             class="w-full pl-14 pr-4 py-3 border
                                                 @error('phone')
                                                     border-red-500 focus:ring-red-500

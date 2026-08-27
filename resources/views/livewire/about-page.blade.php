@@ -188,9 +188,24 @@
       <h2 class="text-4xl font-light mb-6">Ready to Begin?</h2>
       <p class="text-xl text-white/80 leading-relaxed mb-10">Start exploring properties and take the first step toward your dream home</p>
       <div class="flex flex-wrap gap-4 justify-center">
-        <button class="px-10 py-4 bg-white text-gray-900 hover:bg-gray-100 transition-all duration-300 text-sm tracking-wide uppercase font-medium">View Properties</button>
-        <button class="px-10 py-4 bg-transparent text-white border border-white/50 hover:bg-white/10 transition-all duration-300 text-sm tracking-wide uppercase font-medium backdrop-blur-sm">Schedule Visit</button>
-      </div>
+
+            {{-- VIEW PROPERTIES --}}
+            <a
+                href="{{ route('user.properties') }}"
+                class="px-10 py-4 bg-white text-gray-900 hover:bg-gray-100 transition-all duration-300 text-sm tracking-wide uppercase font-medium"
+            >
+                View Properties
+            </a>
+
+            {{-- SCHEDULE VISIT --}}
+            <a
+                href="{{ route('client.appointment') }}"
+                class="px-10 py-4 bg-transparent text-white border border-white/50 hover:bg-white/10 transition-all duration-300 text-sm tracking-wide uppercase font-medium backdrop-blur-sm"
+            >
+                Schedule Visit
+            </a>
+
+        </div>
     </div>
   </section>
 </div>

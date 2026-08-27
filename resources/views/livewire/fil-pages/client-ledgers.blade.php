@@ -29,13 +29,14 @@
                 <x-select
                     placeholder="Account Status"
                     wire:model.live="statusFilter"
+                    wire:key="status-filter-{{ $statusFilter ?: 'empty' }}"
                     :options="[
                         
                         ['id' => 'active', 'name' => 'Active'],
                         ['id' => 'downpayment_pending', 'name' => 'Downpayment Pending'],
                         ['id' => 'bank_processing', 'name' => 'Bank Processing'],
                         ['id' => 'fully_paid', 'name' => 'Fully Paid'],
-                        ['id' => 'cancelled', 'name' => 'Cancelled'],
+                        // ['id' => 'cancelled', 'name' => 'Cancelled'],
                     ]"
                     option-label="name"
                     option-value="id"
@@ -101,13 +102,17 @@
 
         </div>
 
-        {{-- ACCOUNT STATUS TABS --}}
-        <div class="mb-5 flex items-center gap-2 rounded-xl border bg-white p-1.5 shadow-sm">
+        @php
+            $highlightStatus = $statusFilter ?: ($statusTab ?: 'active');
+        @endphp
+
+        <div class="mb-5 flex flex-wrap items-center gap-2 rounded-xl border bg-white p-1.5 shadow-sm">
+
             <button
                 type="button"
-                wire:click="$set('statusFilter', 'active')"
+                wire:click="setStatusTab('active')"
                 class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
-                    {{ $statusFilter === 'active'
+                    {{ $highlightStatus === 'active'
                         ? 'bg-[#101727] text-white'
                         : 'text-gray-500 hover:bg-gray-100'
                     }}"
@@ -117,22 +122,69 @@
 
             <button
                 type="button"
-                wire:click="$set('statusFilter', 'fully_paid')"
+                wire:click="setStatusTab('downpayment_pending')"
                 class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
-                    {{ $statusFilter === 'fully_paid'
+                    {{ $highlightStatus === 'downpayment_pending'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }}"
+            >
+                Downpayment Pending
+            </button>
+
+            <button
+                type="button"
+                wire:click="setStatusTab('bank_processing')"
+                class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
+                    {{ $highlightStatus === 'bank_processing'
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }}"
+            >
+                Bank Processing
+            </button>
+
+            <button
+                type="button"
+                wire:click="setStatusTab('fully_paid')"
+                class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
+                    {{ $highlightStatus === 'fully_paid'
                         ? 'bg-green-600 text-white'
                         : 'text-gray-500 hover:bg-gray-100'
                     }}"
             >
                 Fully Paid
             </button>
+
+            {{-- <button
+                type="button"
+                wire:click="setStatusTab('cancelled')"
+                class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
+                    {{ $highlightStatus === 'cancelled'
+                        ? 'bg-red-600 text-white'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }}"
+            >
+                Cancelled
+            </button> --}}
+
         </div>
         
         <div class="grid gap-4">
 
             @forelse($accounts as $account)
 
-                <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
+                <div
+                    id="account-{{ $account->id }}"
+                    class="
+                        bg-white dark:bg-gray-900
+                        border rounded-xl shadow-sm p-5
+                        {{ (string) $highlight === (string) $account->id
+                            ? 'border-blue-500 ring-2 ring-blue-200'
+                            : 'border-gray-200 dark:border-gray-700'
+                        }}
+                    "
+                >
 
                     <div class="flex justify-between gap-4 mb-4">
                         <div>
@@ -237,8 +289,11 @@
                     {{-- PAYMENT SCHEDULE --}}
                     <div
                         x-data="{
-                            open: false,
-                            billingTab: 'unpaid'
+                            open: {{ (string) $highlight === (string) $account->id ? 'true' : 'false' }},
+                            billingTab: '{{ (string) $highlight === (string) $account->id
+                                ? ($billingTab ?: 'unpaid')
+                                : 'unpaid'
+                            }}'
                         }"
                         class="mt-5 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white dark:bg-gray-900"
                     >
@@ -437,9 +492,9 @@
                                                         ? 'bg-orange-100 text-orange-700'
                                                         : '' }}
 
-                                                    {{ $billing->status === 'cancelled'
+                                                    {{-- {{ $billing->status === 'cancelled'
                                                         ? 'bg-red-100 text-red-700'
-                                                        : '' }}
+                                                        : '' }} --}}
                                                 "
                                             >
                                                 {{ Str::headline($billing->status) }}
@@ -840,7 +895,13 @@
 
 
                                     <div
-                                        x-data="{ historyOpen: false }"
+                                        id="billing-{{ $billing->id }}"
+                                        x-data="{
+                                            historyOpen: {{ (string) $billingHighlight === (string) $billing->id
+                                                ? 'true'
+                                                : 'false'
+                                            }}
+                                        }"
                                         class="overflow-hidden rounded-xl border border-green-100 bg-white"
                                     >
 
@@ -1520,4 +1581,28 @@
         </x-card>
 
     </x-modal>
+ @if($highlight)
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            setTimeout(() => {
+                const billing = document.getElementById(
+                    'billing-{{ $billingHighlight }}'
+                );
+
+                const account = document.getElementById(
+                    'account-{{ $highlight }}'
+                );
+
+                const target = billing || account;
+
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            }, 500);
+        });
+    </script>
+@endif
 </div>

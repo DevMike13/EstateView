@@ -734,12 +734,25 @@
                     reserveBtn.classList.add('hidden');
                 }
 
-                if (area.dataset.type === 'Model House' || area.dataset.type === 'House & Lot'){
+                const hasModel =
+                    area.dataset.modelName &&
+                    area.dataset.modelName.trim() !== '';
+
+                const supportsModel =
+                    area.dataset.type === 'Model House' ||
+                    area.dataset.type === 'House & Lot';
+
+                if (supportsModel && hasModel) {
                     extraSectionModel.style.display = 'block';
-                    tModelPicture.src = area.dataset.modelImage || '/default-model.png';
-                    tModelName.textContent = area.dataset.modelName || 'No Model';
+
+                    tModelPicture.src =
+                        area.dataset.modelImage || '/default-model.png';
+
+                    tModelName.textContent =
+                        area.dataset.modelName;
                 } else {
                     extraSectionModel.style.display = 'none';
+
                     tModelPicture.src = '';
                     tModelName.textContent = '';
                 }

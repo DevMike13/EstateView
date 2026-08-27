@@ -394,7 +394,7 @@
                     @endif
                    
                     
-                    @if ($lotType && ($lotType == 'Model House' || $lotType == 'House & Lot'))
+                    @if ($lotType === 'Model House')
                         <div class="mt-3">
                             <x-select
                                 label="House Model"
@@ -1454,6 +1454,21 @@
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.stroke();
+
+                const xValues = [];
+                const yValues = [];
+
+                for (let i = 0; i < coords.length; i += 2) {
+                    xValues.push(coords[i]);
+                    yValues.push(coords[i + 1]);
+                }
+
+                const cx =
+                    (Math.min(...xValues) + Math.max(...xValues)) / 2;
+
+                const cy =
+                    (Math.min(...yValues) + Math.max(...yValues)) / 2;
+
                 if (status === 'sold') {
                     const xValues = [];
                     const yValues = [];
@@ -1489,8 +1504,82 @@
                     ctx.restore();
                 }
 
+                // -------------------------
+                // UNDER CONSTRUCTION ICON
+                // -------------------------
+                if ((area.dataset.underConstruction ?? '').toString() === '1') {
+                    drawLotIcon(ctx, cx, cy, 'construction');
+                }
+
             });
 
+        }
+
+        function drawLotIcon(ctx, cx, cy, type) {
+            ctx.save();
+
+            const radius = 11;
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+
+            ctx.fillStyle = type === 'construction'
+                ? "rgba(245, 158, 11, 0.9)"
+                : "rgba(17, 24, 39, 0.85)";
+
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255,255,255,0.2)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            let svg;
+
+            if (type === 'reserved') {
+                svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="5" y="11" width="14" height="9" rx="2"/>
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                    </svg>
+                `;
+            } else {
+                svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="white">
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"/>
+                    </svg>
+                `;
+            }
+
+            const icon = new Image();
+
+            icon.src = "data:image/svg+xml;charset=utf-8,"
+                + encodeURIComponent(svg);
+
+            const size = 12;
+
+            icon.onload = () => {
+                ctx.drawImage(
+                    icon,
+                    cx - size / 2,
+                    cy - size / 2,
+                    size,
+                    size
+                );
+            };
+
+            ctx.restore();
         }
 
         window.addEventListener("load", drawLots);
@@ -1606,12 +1695,25 @@
 
                 }
 
-                if (area.dataset.type === 'Model House' || area.dataset.type === 'House & Lot'){
+                const hasModel =
+                    area.dataset.modelName &&
+                    area.dataset.modelName.trim() !== '';
+
+                const supportsModel =
+                    area.dataset.type === 'Model House' ||
+                    area.dataset.type === 'House & Lot';
+
+                if (supportsModel && hasModel) {
                     extraSectionModel.style.display = 'block';
-                    tModelPicture.src = area.dataset.modelImage || '/default-model.png';
-                    tModelName.textContent = area.dataset.modelName || 'No Model';
+
+                    tModelPicture.src =
+                        area.dataset.modelImage || '/default-model.png';
+
+                    tModelName.textContent =
+                        area.dataset.modelName;
                 } else {
                     extraSectionModel.style.display = 'none';
+
                     tModelPicture.src = '';
                     tModelName.textContent = '';
                 }

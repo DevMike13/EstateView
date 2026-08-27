@@ -84,7 +84,8 @@
                             ->where(
                                 'status',
                                 'paid'
-                            );
+                            )
+                            ->sortByDesc('due_date');
 
                     $currentBills =
                         $firstPayableBilling

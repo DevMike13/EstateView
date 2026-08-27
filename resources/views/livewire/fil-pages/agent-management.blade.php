@@ -244,6 +244,10 @@
                             label="Real Estate License Number"
                             placeholder="Enter license number"
                             wire:model.defer="realEstateLicenseNumber"
+                            type="text"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                         />
                     </div>
 
@@ -551,24 +555,109 @@
 
                         {{-- Clients --}}
                         <div>
-                            <p class="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                <x-icon
-                                    name="users"
-                                    class="h-3.5 w-3.5"
-                                />
+                            <div class="mb-4">
 
-                                Clients ({{ $this->commissionClients->count() }})
-                            </p>
+                                <p class="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <x-icon
+                                        name="users"
+                                        class="h-3.5 w-3.5"
+                                    />
+
+                                    Clients
+                                </p>
+
+                                <div class="flex rounded-xl border border-gray-200 bg-gray-50 p-1">
+                                    {{-- NOT REQUESTED --}}
+                                    <button
+                                        type="button"
+                                        wire:click="setCommissionClientTab('not_requested')"
+                                        class="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition
+                                            {{ $commissionClientTab === 'not_requested'
+                                                ? 'bg-gray-600 text-white shadow-sm'
+                                                : 'text-gray-500 hover:bg-white hover:text-gray-900' }}"
+                                    >
+                                        <x-icon
+                                            name="minus-circle"
+                                            class="h-4 w-4"
+                                        />
+
+                                        Not Requested
+
+                                        <span
+                                            class="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold
+                                            {{ $commissionClientTab === 'not_requested'
+                                                ? 'bg-white/20 text-white'
+                                                : 'bg-gray-200 text-gray-700' }}"
+                                        >
+                                            {{ $this->commissionNotRequestedCount }}
+                                        </span>
+                                    </button>
+                                    {{-- TO PAY --}}
+                                    <button
+                                        type="button"
+                                        wire:click="setCommissionClientTab('to_pay')"
+                                        class="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition
+                                            {{ $commissionClientTab === 'to_pay'
+                                                ? 'bg-gray-900 text-white shadow-sm'
+                                                : 'text-gray-500 hover:bg-white hover:text-gray-900' }}"
+                                    >
+                                        <x-icon
+                                            name="clock"
+                                            class="h-4 w-4"
+                                        />
+
+                                        To Pay
+
+                                        <span
+                                            class="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold
+                                            {{ $commissionClientTab === 'to_pay'
+                                                ? 'bg-white/20 text-white'
+                                                : 'bg-yellow-100 text-yellow-700' }}"
+                                        >
+                                            {{ $this->commissionToPayCount }}
+                                        </span>
+                                    </button>
+
+
+                                    {{-- PAID --}}
+                                    <button
+                                        type="button"
+                                        wire:click="setCommissionClientTab('paid')"
+                                        class="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition
+                                            {{ $commissionClientTab === 'paid'
+                                                ? 'bg-green-600 text-white shadow-sm'
+                                                : 'text-gray-500 hover:bg-white hover:text-gray-900' }}"
+                                    >
+                                        <x-icon
+                                            name="check-circle"
+                                            class="h-4 w-4"
+                                        />
+
+                                        Paid
+
+                                        <span
+                                            class="flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold
+                                            {{ $commissionClientTab === 'paid'
+                                                ? 'bg-white/20 text-white'
+                                                : 'bg-green-100 text-green-700' }}"
+                                        >
+                                            {{ $this->commissionPaidCount }}
+                                        </span>
+                                    </button>
+
+                                </div>
+
+                            </div>
 
                             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                @forelse($this->commissionClients as $account)
+                                @forelse($this->filteredCommissionClients as $account)
                                     <button
                                         type="button"
                                         wire:click="selectCommissionClient({{ $account->id }})"
                                         class="flex items-center justify-between gap-3 rounded-xl border bg-white p-5 text-left transition-all hover:shadow-md
-                                            {{ $account->has_pending_commission_request
+                                            {{ $commissionClientTab === 'to_pay'
                                                 ? 'border-yellow-300 hover:border-yellow-400'
-                                                : 'border-gray-100 hover:border-orange-200' }}"
+                                                : 'border-green-200 hover:border-green-300' }}"
                                     >
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
@@ -576,15 +665,26 @@
                                                     {{ $account->user?->name }}
                                                 </p>
 
-                                                @if($account->has_pending_commission_request)
+                                                @if($commissionClientTab === 'to_pay')
+
                                                     <span class="flex shrink-0 items-center gap-1 rounded-full bg-yellow-100 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700">
                                                         <x-icon
                                                             name="clock"
                                                             class="h-3 w-3"
                                                         />
-
                                                         To Pay
                                                     </span>
+
+                                                @else
+
+                                                    <span class="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                                                        <x-icon
+                                                            name="check-circle"
+                                                            class="h-3 w-3"
+                                                        />
+                                                        Paid
+                                                    </span>
+
                                                 @endif
                                             </div>
 
@@ -599,11 +699,56 @@
                                                 ) }}
                                             </p>
 
-                                            @if($account->pending_commission_request_count > 0)
+                                            @if($commissionClientTab === 'to_pay')
+
+                                                <span class="flex shrink-0 items-center gap-1 rounded-full bg-yellow-100 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700">
+                                                    <x-icon name="clock" class="h-3 w-3" />
+                                                    To Pay
+                                                </span>
+
+                                            @elseif($commissionClientTab === 'paid')
+
+                                                <span class="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                                                    <x-icon name="check-circle" class="h-3 w-3" />
+                                                    Paid
+                                                </span>
+
+                                            @else
+
+                                                <span class="flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
+                                                    <x-icon name="minus-circle" class="h-3 w-3" />
+                                                    Not Requested
+                                                </span>
+
+                                            @endif
+
+                                            @if($commissionClientTab === 'to_pay')
+
                                                 <p class="mt-1 text-[10px] text-yellow-600">
                                                     {{ $account->pending_commission_request_count }}
-                                                    pending commission request{{ $account->pending_commission_request_count !== 1 ? 's' : '' }}
+                                                    pending commission
+                                                    request{{ $account->pending_commission_request_count !== 1 ? 's' : '' }}
                                                 </p>
+
+                                            @elseif($commissionClientTab === 'paid')
+
+                                                <p class="mt-1 text-[10px] text-green-600">
+                                                    {{ $account->paid_period_count }}
+                                                    commission
+                                                    payment{{ $account->paid_period_count !== 1 ? 's' : '' }}
+                                                    paid
+                                                </p>
+
+                                                <p class="mt-0.5 text-[10px] text-gray-400">
+                                                    ₱{{ number_format($account->paid_commission, 2) }} released
+                                                </p>
+
+                                            @else
+
+                                                <p class="mt-1 text-[10px] text-gray-400">
+                                                    No commission request yet
+                                                </p>
+
                                             @endif
                                         </div>
 
@@ -614,7 +759,13 @@
                                     </button>
                                 @empty
                                     <div class="col-span-full rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
-                                        No assigned client ledgers found.
+
+                                        @if($commissionClientTab === 'to_pay')
+                                            No clients currently have pending commission requests.
+                                        @else
+                                            No commission payments have been completed yet.
+                                        @endif
+
                                     </div>
                                 @endforelse
                             </div>
@@ -1065,6 +1216,10 @@
                         label="Payment Reference"
                         placeholder="Example: GCash reference number"
                         wire:model.defer="commissionPaymentReference"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                     />
 
                     {{-- Notes --}}

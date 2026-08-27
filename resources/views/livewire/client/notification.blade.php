@@ -118,16 +118,19 @@
                                 @endif
 
                                 @if(
-                                    (
-                                        $notification->title !== 'Client Ledger Updated' &&
-                                        !in_array(auth()->user()->role, ['agent'])
-                                    )
-                                    ||
-                                    (
-                                        auth()->user()->role === 'agent' &&
-                                        $notification->type === 'property_credited_to_agent'
-                                    )
+                                (
+                                    $notification->title !== 'Client Ledger Updated' &&
+                                    auth()->user()->role !== 'agent'
                                 )
+                                ||
+                                (
+                                    auth()->user()->role === 'agent' &&
+                                    in_array($notification->type, [
+                                        'property_credited_to_agent',
+                                        'client_credited_to_agent',
+                                    ])
+                                )
+                            )
                                     <button
                                         wire:click.stop="openNotification({{ $notification->id }})"
                                         class="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1"

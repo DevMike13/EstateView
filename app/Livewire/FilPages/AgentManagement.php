@@ -46,6 +46,7 @@ class AgentManagement extends Component
     public bool $showCommissionPaymentModal = false;
     public bool $showCommissionAgentModal = false;
     public bool $showCommissionClientDetails = false;
+    public string $commissionClientTab = 'to_pay';
 
     public ?int $payingCommissionRequestId = null;
     public $commissionReceipt;
@@ -72,6 +73,99 @@ class AgentManagement extends Component
     //         ->latest()
     //         ->get();
     // }
+
+    public function setCommissionClientTab(string $tab): void
+    {
+        if (! in_array($tab, [
+            'not_requested',
+            'to_pay',
+            'paid',
+        ], true)) {
+            return;
+        }
+
+        $this->commissionClientTab = $tab;
+    }
+
+
+    public function getFilteredCommissionClientsProperty()
+    {
+        $clients = $this->commissionClients;
+
+        return match ($this->commissionClientTab) {
+
+            'to_pay' => $clients
+                ->filter(
+                    fn ($account) =>
+                        ($account->pending_commission_request_count ?? 0) > 0
+                )
+                ->values(),
+
+            'paid' => $clients
+                ->filter(function ($account) {
+                    $paidPeriods =
+                        (int) ($account->paid_period_count ?? 0);
+
+                    $totalPeriods =
+                        (int) ($account->total_commission_periods ?? 0);
+
+                    return $totalPeriods > 0
+                        && $paidPeriods >= $totalPeriods;
+                })
+                ->values(),
+
+            'not_requested' => $clients
+                ->filter(
+                    fn ($account) =>
+                        ($account->pending_commission_request_count ?? 0) === 0
+                        &&
+                        ($account->paid_period_count ?? 0) === 0
+                )
+                ->values(),
+
+            default => collect(),
+        };
+    }
+
+    public function getCommissionNotRequestedCountProperty(): int
+    {
+        return $this->commissionClients
+            ->filter(
+                fn ($account) =>
+                    ($account->pending_commission_request_count ?? 0) === 0
+                    &&
+                    ($account->paid_period_count ?? 0) === 0
+            )
+            ->count();
+    }
+
+
+    public function getCommissionToPayCountProperty(): int
+    {
+        return $this->commissionClients
+            ->filter(
+                fn ($account) =>
+                    ($account->pending_commission_request_count ?? 0) > 0
+            )
+            ->count();
+    }
+
+
+    public function getCommissionPaidCountProperty(): int
+    {
+        return $this->commissionClients
+            ->filter(function ($account) {
+                $paidPeriods =
+                    (int) ($account->paid_period_count ?? 0);
+
+                $totalPeriods =
+                    (int) ($account->total_commission_periods ?? 0);
+
+                return $totalPeriods > 0
+                    && $paidPeriods >= $totalPeriods;
+            })
+            ->count();
+    }
 
     public function getAgentsProperty()
     {
@@ -187,6 +281,7 @@ class AgentManagement extends Component
 
         $this->showCommissionClientDetails = false;
         $this->showCommissionAgentModal = true;
+        $this->commissionClientTab = 'to_pay';
 
         $this->resetCommissionPaymentForm();
     }
@@ -708,7 +803,14 @@ class AgentManagement extends Component
             ->success()
             ->send();
 
-        $this->reloadWeb();
+        // $this->reloadWeb();
+        /*
+        |--------------------------------------------------------------------------
+        | Close small payment modal only
+        |--------------------------------------------------------------------------
+        */
+
+        $this->dispatch('commission-paid');
     }
 
     private function notifyAgentCommissionPaid(

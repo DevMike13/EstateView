@@ -176,7 +176,7 @@ class MapView extends Component
             'houseModelId' => [
                 'nullable',
                 'required_if:lotType,Model House',
-                'required_if:lotType,House & Lot',
+                // 'required_if:lotType,House & Lot',
                 'exists:house_models,id',
             ],
 
@@ -190,6 +190,19 @@ class MapView extends Component
             'lotArea.min' => 'The lot area cannot be less than 0.',
             'lotArea.max' => 'The lot area is out of range. The maximum allowed value is 99,999,999.99.',
         ]);
+
+         // block overlapping lot areas
+        foreach ($this->lots as $lot) {
+            if ($this->polygonsOverlap($this->lotCoordinates, $lot->coords)) {
+                Notification::make()
+                    ->title('Lot Area Already Mapped')
+                    ->body("This area overlaps with an existing lot: \"{$lot->name}\". Please adjust your points and try again.")
+                    ->danger()
+                    ->send();
+
+                return; 
+            }
+        }
 
         $imagePath = null;
 
@@ -219,10 +232,7 @@ class MapView extends Component
             'lot_area' => $this->lotArea,
             'user_id' => $this->userId,
             'is_under_construction' => $this->isUnderConstruction ?? false,
-            'house_model_id' => in_array(
-                $this->lotType,
-                ['Model House', 'House & Lot']
-            )
+            'house_model_id' => $this->lotType === 'Model House'
                 ? $this->houseModelId
                 : null,
         ]);
@@ -330,6 +340,23 @@ class MapView extends Component
             'editLotArea.max' => 'The lot area is out of range. The maximum allowed value is 99,999,999.99.',
         ]);
 
+        // block overlapping lot areas (excluding the lot being edited)
+        foreach ($this->lots as $lot) {
+            if ($lot->id == $this->editLotId) {
+                continue;
+            }
+
+            if ($this->polygonsOverlap($this->editLotCoordinates, $lot->coords)) {
+                Notification::make()
+                    ->title('Lot Area Already Mapped')
+                    ->body("This area overlaps with an existing lot: \"{$lot->name}\". Please adjust your points and try again.")
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
         $cleanPrice = $this->editLotPrice 
             ? str_replace(',', '', $this->editLotPrice) 
             : null;
@@ -434,6 +461,142 @@ class MapView extends Component
     {
         $this->dispatch('reload');
         return redirect()->back();
+    }
+
+    /* =========================
+        POLYGON OVERLAP DETECTION
+    ==========================*/
+
+    private function parseCoords(string $coords): array
+    {
+        $flat = array_map('floatval', explode(',', $coords));
+
+        $points = [];
+
+        for ($i = 0; $i < count($flat) - 1; $i += 2) {
+            $points[] = [$flat[$i], $flat[$i + 1]];
+        }
+
+        return $points;
+    }
+
+    private function crossProduct(array $a, array $b, array $c): float
+    {
+        return ($b[0] - $a[0]) * ($c[1] - $a[1])
+            - ($b[1] - $a[1]) * ($c[0] - $a[0]);
+    }
+
+    private function onSegment(array $a, array $b, array $p): bool
+    {
+        return min($a[0], $b[0]) <= $p[0] && $p[0] <= max($a[0], $b[0])
+            && min($a[1], $b[1]) <= $p[1] && $p[1] <= max($a[1], $b[1]);
+    }
+
+    private function segmentsIntersect(array $p1, array $p2, array $p3, array $p4): bool
+    {
+        $d1 = $this->crossProduct($p3, $p4, $p1);
+        $d2 = $this->crossProduct($p3, $p4, $p2);
+        $d3 = $this->crossProduct($p1, $p2, $p3);
+        $d4 = $this->crossProduct($p1, $p2, $p4);
+
+        if (
+            (($d1 > 0 && $d2 < 0) || ($d1 < 0 && $d2 > 0)) &&
+            (($d3 > 0 && $d4 < 0) || ($d3 < 0 && $d4 > 0))
+        ) {
+            return true;
+        }
+
+        if ($d1 == 0 && $this->onSegment($p3, $p4, $p1)) return true;
+        if ($d2 == 0 && $this->onSegment($p3, $p4, $p2)) return true;
+        if ($d3 == 0 && $this->onSegment($p1, $p2, $p3)) return true;
+        if ($d4 == 0 && $this->onSegment($p1, $p2, $p4)) return true;
+
+        return false;
+    }
+
+    private function pointInPolygon(array $point, array $polygon): bool
+    {
+        [$x, $y] = $point;
+
+        $inside = false;
+
+        $n = count($polygon);
+
+        for ($i = 0, $j = $n - 1; $i < $n; $j = $i++) {
+            [$xi, $yi] = $polygon[$i];
+            [$xj, $yj] = $polygon[$j];
+
+            $intersect = (($yi > $y) != ($yj > $y))
+                && ($x < ($xj - $xi) * ($y - $yi) / ($yj - $yi + PHP_FLOAT_EPSILON) + $xi);
+
+            if ($intersect) {
+                $inside = !$inside;
+            }
+        }
+
+        return $inside;
+    }
+
+    private function boundingBoxesOverlap(array $polyA, array $polyB): bool
+    {
+        $ax = array_column($polyA, 0);
+        $ay = array_column($polyA, 1);
+        $bx = array_column($polyB, 0);
+        $by = array_column($polyB, 1);
+
+        return !(
+            max($ax) < min($bx) ||
+            max($bx) < min($ax) ||
+            max($ay) < min($by) ||
+            max($by) < min($ay)
+        );
+    }
+
+    /**
+     * Returns true if two lot polygons (raw "x1,y1,x2,y2,..." strings)
+     * overlap each other in any way — edges crossing, or one fully
+     * inside the other.
+     */
+    private function polygonsOverlap(string $coordsA, string $coordsB): bool
+    {
+        $polyA = $this->parseCoords($coordsA);
+        $polyB = $this->parseCoords($coordsB);
+
+        if (count($polyA) < 3 || count($polyB) < 3) {
+            return false;
+        }
+
+        if (!$this->boundingBoxesOverlap($polyA, $polyB)) {
+            return false; // quick reject — cheap check before the expensive one
+        }
+
+        $countA = count($polyA);
+        $countB = count($polyB);
+
+        for ($i = 0; $i < $countA; $i++) {
+            $a1 = $polyA[$i];
+            $a2 = $polyA[($i + 1) % $countA];
+
+            for ($j = 0; $j < $countB; $j++) {
+                $b1 = $polyB[$j];
+                $b2 = $polyB[($j + 1) % $countB];
+
+                if ($this->segmentsIntersect($a1, $a2, $b1, $b2)) {
+                    return true;
+                }
+            }
+        }
+
+        // Edges never crossed — check if one polygon is entirely inside the other.
+        if ($this->pointInPolygon($polyA[0], $polyB)) {
+            return true;
+        }
+
+        if ($this->pointInPolygon($polyB[0], $polyA)) {
+            return true;
+        }
+
+        return false;
     }
 
     public function render()

@@ -103,6 +103,7 @@
     </x-modal>
 
     <livewire:map.client-map-view-page />
+    <livewire:map.client-leaflet-map-view-page />
 
     {{-- VIEW TOUR SCRIPT  --}}
     <script>

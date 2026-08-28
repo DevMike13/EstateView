@@ -14,6 +14,7 @@ class Lot extends Model
         'map_id',
         'name',
         'coords',
+        'geo_coords',
         'status',
         'type',
         'price',
@@ -22,6 +23,10 @@ class Lot extends Model
         'user_id',
         'house_model_id',
         'image',
+    ];
+
+    protected $casts = [
+        'geo_coords' => 'array',
     ];
 
     public function map()

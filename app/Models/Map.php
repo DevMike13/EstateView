@@ -11,11 +11,21 @@ class Map extends Model
 
     protected $fillable = [
         'name',
-        'image_path'
+        'image_path',
+        'boundary_geo_coords',
     ];
 
     public function lots()
     {
         return $this->hasMany(Lot::class);
+    }
+
+    protected $casts = [
+        'boundary_geo_coords' => 'array',
+    ];
+
+    public function blocks()
+    {
+        return $this->hasMany(Block::class);
     }
 }

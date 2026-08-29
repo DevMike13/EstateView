@@ -12,7 +12,9 @@ class Lot extends Model
 
     protected $fillable = [
         'map_id',
+        'block_id',
         'name',
+        'lot_number',
         'coords',
         'geo_coords',
         'status',
@@ -47,5 +49,10 @@ class Lot extends Model
     public function reservations()
     {
         return $this->hasMany(LotReservation::class);
+    }
+
+    public function block()
+    {
+        return $this->belongsTo(Block::class);
     }
 }

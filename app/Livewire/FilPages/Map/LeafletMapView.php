@@ -2,8 +2,10 @@
 
 namespace App\Livewire\FilPages\Map;
 
+use App\Models\Block;
 use App\Models\Lot;
 use App\Models\Map;
+use Illuminate\Validation\Rule;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -23,6 +25,31 @@ class LeafletMapView extends Component
 
     public $map;
     public $lots;
+    public $blocks;
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUBDIVISION BOUNDARY
+    |--------------------------------------------------------------------------
+    */
+
+    public array $newBoundaryGeoCoords = [];
+    public array $editBoundaryGeoCoords = [];
+    public bool $isEditingBoundary = false;
+
+    /*
+    |--------------------------------------------------------------------------
+    | BLOCK
+    |--------------------------------------------------------------------------
+    */
+
+    public $blockName;
+    public array $newBlockGeoCoords = [];
+
+    public ?int $editBlockId = null;
+    public $editBlockName;
+    public array $editBlockGeoCoords = [];
+    public bool $isEditingBlock = false;
 
     /*
     |--------------------------------------------------------------------------
@@ -30,7 +57,7 @@ class LeafletMapView extends Component
     |--------------------------------------------------------------------------
     */
 
-    public $lotName;
+    public $lotNumber;
     public $lotType;
     public $lotImage;
     public $lotPrice;
@@ -62,7 +89,7 @@ class LeafletMapView extends Component
 
     public ?int $editLotId = null;
 
-    public $editLotName;
+    public $editLotNumber;
     public $editLotType;
 
     public $editLotImagePreview;
@@ -93,6 +120,7 @@ class LeafletMapView extends Component
         'Model House' => '#c8c9c3',
         'Lot Only' => '#c4e0b7',
         'House & Lot' => '#f8e89c',
+        'Internal Road' => '#9ca3af',
         'Sold' => '#e9b4ae',
     ];
 
@@ -117,6 +145,8 @@ class LeafletMapView extends Component
     {
         $this->map = Map::query()
             ->with([
+                'blocks',
+                'lots.block',
                 'lots.user',
                 'lots.houseModel',
             ])
@@ -124,6 +154,470 @@ class LeafletMapView extends Component
 
         $this->lots =
             $this->map?->lots ?? collect();
+
+        $this->blocks =
+            $this->map?->blocks ?? collect();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUBDIVISION BOUNDARY
+    |--------------------------------------------------------------------------
+    */
+
+    public function createBoundary(): void
+    {
+        if (!$this->map) {
+            Notification::make()
+                ->title('Subdivision Map Not Found')
+                ->body('No subdivision map record is available.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        if (count($this->subdivisionBoundary()) >= 3) {
+            Notification::make()
+                ->title('Boundary Already Exists')
+                ->body('Edit the existing subdivision boundary instead.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $this->validate([
+            'newBoundaryGeoCoords' => ['required', 'array', 'min:3'],
+            'newBoundaryGeoCoords.*' => ['required', 'array', 'size:2'],
+            'newBoundaryGeoCoords.*.0' => ['required', 'numeric', 'between:-90,90'],
+            'newBoundaryGeoCoords.*.1' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $this->map->boundary_geo_coords = $this->newBoundaryGeoCoords;
+        $this->map->save();
+        $this->map->refresh();
+
+        $this->newBoundaryGeoCoords = [];
+
+        session()->flash(
+            'gis_success',
+            'Subdivision boundary was successfully created.'
+        );
+
+        $this->dispatch('gis-boundary-create-success');
+    }
+
+    public function startEditBoundary(): void
+    {
+        $boundary = $this->subdivisionBoundary();
+
+        if (count($boundary) < 3) {
+            Notification::make()
+                ->title('Boundary Not Found')
+                ->body('Create the subdivision boundary first.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $this->editBoundaryGeoCoords = $boundary;
+        $this->isEditingBoundary = true;
+
+        $this->dispatch(
+            'gis-edit-boundary',
+            coords: $boundary
+        );
+    }
+
+    public function updateBoundary(): void
+    {
+        $this->validate([
+            'editBoundaryGeoCoords' => ['required', 'array', 'min:3'],
+            'editBoundaryGeoCoords.*' => ['required', 'array', 'size:2'],
+            'editBoundaryGeoCoords.*.0' => ['required', 'numeric', 'between:-90,90'],
+            'editBoundaryGeoCoords.*.1' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        foreach ($this->blocks as $block) {
+            if (
+                is_array($block->geo_coords) &&
+                count($block->geo_coords) >= 3 &&
+                !$this->polygonInsidePolygon(
+                    $block->geo_coords,
+                    $this->editBoundaryGeoCoords
+                )
+            ) {
+                Notification::make()
+                    ->title('Invalid Subdivision Boundary')
+                    ->body("\"{$block->name}\" would be outside the edited subdivision boundary.")
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        foreach ($this->lots as $lot) {
+            if (
+                is_array($lot->geo_coords) &&
+                count($lot->geo_coords) >= 3 &&
+                !$this->polygonInsidePolygon(
+                    $lot->geo_coords,
+                    $this->editBoundaryGeoCoords
+                )
+            ) {
+                Notification::make()
+                    ->title('Invalid Subdivision Boundary')
+                    ->body("\"{$lot->name}\" would be outside the edited subdivision boundary.")
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        $this->map->update([
+            'boundary_geo_coords' => $this->editBoundaryGeoCoords,
+        ]);
+
+        $this->editBoundaryGeoCoords = [];
+        $this->isEditingBoundary = false;
+
+        session()->flash(
+            'gis_success',
+            'Subdivision boundary was successfully updated.'
+        );
+
+        $this->dispatch('gis-boundary-edit-success');
+    }
+
+    public function deleteBoundaryConfirmation(): void
+    {
+        $this->dialog()->confirm([
+            'title' => 'Delete Subdivision Boundary?',
+            'description' =>
+                'This will remove the subdivision boundary. Existing blocks and lots will remain in the database.',
+            'icon' => 'error',
+            'acceptLabel' => 'Yes, delete it',
+            'rejectLabel' => 'Cancel',
+            'method' => 'deleteBoundary',
+        ]);
+    }
+
+    public function deleteBoundary(): void
+    {
+        if (!$this->map) {
+            return;
+        }
+
+        if ($this->blocks->isNotEmpty()) {
+            Notification::make()
+                ->title('Boundary Cannot Be Deleted')
+                ->body('Delete all blocks first before removing the subdivision boundary.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $gisLots = $this->lots->filter(
+            fn ($lot) =>
+                is_array($lot->geo_coords) &&
+                count($lot->geo_coords) >= 3
+        );
+
+        if ($gisLots->isNotEmpty()) {
+            Notification::make()
+                ->title('Boundary Cannot Be Deleted')
+                ->body('There are still mapped lots. Delete them before removing the subdivision boundary.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $this->map->boundary_geo_coords = null;
+        $this->map->save();
+        $this->map->refresh();
+
+        $this->resetMappingState();
+        $this->loadMap();
+
+        Notification::make()
+            ->title('Subdivision Boundary Deleted')
+            ->body('The subdivision boundary was successfully removed.')
+            ->success()
+            ->send();
+
+        $this->dispatch('gis-boundary-deleted');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BLOCK
+    |--------------------------------------------------------------------------
+    */
+
+    public function createBlock(): void
+    {
+        if (!$this->map || count($this->subdivisionBoundary()) < 3) {
+            Notification::make()
+                ->title('Subdivision Boundary Required')
+                ->body('Create the subdivision boundary before creating blocks.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $this->validate([
+            'blockName' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('blocks', 'name')->where(
+                    fn ($query) => $query->where('map_id', $this->map->id)
+                ),
+            ],
+            'newBlockGeoCoords' => ['required', 'array', 'min:3'],
+            'newBlockGeoCoords.*' => ['required', 'array', 'size:2'],
+            'newBlockGeoCoords.*.0' => ['required', 'numeric', 'between:-90,90'],
+            'newBlockGeoCoords.*.1' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        if (!$this->polygonInsideSubdivisionBoundary($this->newBlockGeoCoords)) {
+            Notification::make()
+                ->title('Outside Subdivision Boundary')
+                ->body('The block must be completely inside the subdivision boundary.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        foreach ($this->blocks as $block) {
+            if (
+                is_array($block->geo_coords) &&
+                count($block->geo_coords) >= 3 &&
+                $this->geoPolygonsOverlap(
+                    $this->newBlockGeoCoords,
+                    $block->geo_coords
+                )
+            ) {
+                Notification::make()
+                    ->title('Block Area Already Mapped')
+                    ->body("This block overlaps with \"{$block->name}\".")
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        $block = Block::create([
+            'map_id' => $this->map->id,
+            'name' => $this->blockName,
+            'geo_coords' => $this->newBlockGeoCoords,
+        ]);
+
+        $this->blockName = null;
+        $this->newBlockGeoCoords = [];
+
+        session()->flash(
+            'gis_success',
+            "\"{$block->name}\" was successfully added."
+        );
+
+        $this->dispatch('gis-block-create-success');
+    }
+
+    public function startEditBlock(int $blockId): void
+    {
+        $block = Block::query()
+            ->where('map_id', $this->map?->id)
+            ->findOrFail($blockId);
+
+        $this->editBlockId = $block->id;
+        $this->editBlockName = $block->name;
+        $this->editBlockGeoCoords = $block->geo_coords;
+        $this->isEditingBlock = true;
+
+        $this->dispatch(
+            'gis-edit-block',
+            blockId: $block->id,
+            coords: $block->geo_coords
+        );
+    }
+
+    public function updateBlock(): void
+    {
+        $this->validate([
+            'editBlockId' => ['required', 'exists:blocks,id'],
+            'editBlockName' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('blocks', 'name')
+                    ->where(
+                        fn ($query) => $query->where('map_id', $this->map->id)
+                    )
+                    ->ignore($this->editBlockId),
+            ],
+            'editBlockGeoCoords' => ['required', 'array', 'min:3'],
+            'editBlockGeoCoords.*' => ['required', 'array', 'size:2'],
+            'editBlockGeoCoords.*.0' => ['required', 'numeric', 'between:-90,90'],
+            'editBlockGeoCoords.*.1' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $block = Block::query()
+            ->with('lots')
+            ->where('map_id', $this->map->id)
+            ->findOrFail($this->editBlockId);
+
+        if (!$this->polygonInsideSubdivisionBoundary($this->editBlockGeoCoords)) {
+            Notification::make()
+                ->title('Outside Subdivision Boundary')
+                ->body('The edited block must remain completely inside the subdivision boundary.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        foreach ($this->blocks as $existingBlock) {
+            if ($existingBlock->id == $block->id) {
+                continue;
+            }
+
+            if (
+                is_array($existingBlock->geo_coords) &&
+                count($existingBlock->geo_coords) >= 3 &&
+                $this->geoPolygonsOverlap(
+                    $this->editBlockGeoCoords,
+                    $existingBlock->geo_coords
+                )
+            ) {
+                Notification::make()
+                    ->title('Block Area Already Mapped')
+                    ->body("The edited block overlaps with \"{$existingBlock->name}\".")
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        foreach ($block->lots as $lot) {
+            if (
+                is_array($lot->geo_coords) &&
+                count($lot->geo_coords) >= 3 &&
+                !$this->polygonInsidePolygon(
+                    $lot->geo_coords,
+                    $this->editBlockGeoCoords
+                )
+            ) {
+                Notification::make()
+                    ->title('Invalid Block Boundary')
+                    ->body("\"{$lot->name}\" would be outside the edited block.")
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        $block->update([
+            'name' => $this->editBlockName,
+            'geo_coords' => $this->editBlockGeoCoords,
+        ]);
+
+        foreach ($block->lots as $lot) {
+            if ($lot->lot_number !== null) {
+                $lot->update([
+                    'name' =>
+                        $block->name .
+                        ', Lot ' .
+                        $lot->lot_number,
+                ]);
+            }
+        }
+
+        $blockName = $block->name;
+
+        $this->editBlockId = null;
+        $this->editBlockName = null;
+        $this->editBlockGeoCoords = [];
+        $this->isEditingBlock = false;
+
+        session()->flash(
+            'gis_success',
+            "\"{$blockName}\" was successfully updated."
+        );
+
+        $this->dispatch('gis-block-edit-success');
+    }
+
+    public function deleteBlockConfirmation(
+        int $id,
+        string $blockName
+    ): void {
+        $this->dialog()->confirm([
+            'title' => 'Delete Block?',
+            'description' =>
+                'Do you want to permanently delete this block: ' .
+                html_entity_decode(
+                    '<span class="text-red-600 underline">' .
+                    e($blockName) .
+                    '</span>'
+                ) .
+                '?',
+            'icon' => 'error',
+            'acceptLabel' => 'Yes, delete it',
+            'rejectLabel' => 'Cancel',
+            'method' => 'deleteBlock',
+            'params' => $id,
+        ]);
+    }
+
+    public function deleteBlock(int $id): void
+    {
+        $block = Block::query()
+            ->withCount('lots')
+            ->where('map_id', $this->map?->id)
+            ->find($id);
+
+        if (!$block) {
+            return;
+        }
+
+        if ($block->lots_count > 0) {
+            Notification::make()
+                ->title('Block Cannot Be Deleted')
+                ->body(
+                    "\"{$block->name}\" still contains {$block->lots_count} lot(s). Move or delete those lots first."
+                )
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $blockName = $block->name;
+
+        $block->delete();
+
+        $this->resetMappingState();
+        $this->loadMap();
+
+        Notification::make()
+            ->title('Block Deleted')
+            ->body("\"{$blockName}\" was successfully deleted.")
+            ->success()
+            ->send();
+
+        $this->dispatch('gis-block-deleted');
     }
 
     /*
@@ -178,10 +672,12 @@ class LeafletMapView extends Component
         */
 
         $this->validate([
-            'lotName' => [
+            'lotNumber' => [
+                'exclude_if:lotType,Internal Road',
                 'required',
-                'string',
-                'max:255',
+                'integer',
+                'min:1',
+                'max:999999',
             ],
 
             'lotType' => [
@@ -221,6 +717,7 @@ class LeafletMapView extends Component
             'lotPrice' => [
                 'exclude_if:lotType,Model House',
                 'exclude_if:lotType,Playground & Community Amenities',
+                'exclude_if:lotType,Internal Road',
                 'required',
                 'numeric',
                 'gt:0',
@@ -228,6 +725,7 @@ class LeafletMapView extends Component
             ],
 
             'lotArea' => [
+                'exclude_if:lotType,Internal Road',
                 'required',
                 'numeric',
                 'gt:0',
@@ -365,6 +863,97 @@ class LeafletMapView extends Component
 
         /*
         |--------------------------------------------------------------------------
+        | INTERNAL ROAD MUST NOT BE INSIDE / OVERLAP ANY BLOCK
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $this->lotType === 'Internal Road'
+        ) {
+            foreach (
+                $this->blocks as $existingBlock
+            ) {
+                if (
+                    !is_array(
+                        $existingBlock->geo_coords
+                    )
+                    ||
+                    count(
+                        $existingBlock->geo_coords
+                    ) < 3
+                ) {
+                    continue;
+                }
+
+                if (
+                    $this->geoPolygonsOverlap(
+                        $this->newGeoCoords,
+                        $existingBlock->geo_coords
+                    )
+                ) {
+                    Notification::make()
+                        ->title(
+                            'Invalid Internal Road Location'
+                        )
+                        ->body(
+                            "Internal Road cannot be inside, cross, or overlap \"{$existingBlock->name}\"."
+                        )
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | FIND BLOCK FOR NORMAL LOT TYPES
+        |--------------------------------------------------------------------------
+        */
+
+        $block =
+            $this->lotType === 'Internal Road'
+                ? null
+                : $this->findContainingBlock(
+                    $this->newGeoCoords
+                );
+        
+            if ($block) {
+                $duplicateLotNumber = Lot::query()
+                    ->where('map_id', $this->map->id)
+                    ->where('block_id', $block->id)
+                    ->where('lot_number', $this->lotNumber)
+                    ->exists();
+
+                if ($duplicateLotNumber) {
+                    Notification::make()
+                        ->title('Lot Number Already Exists')
+                        ->body(
+                            "\"{$block->name}, Lot {$this->lotNumber}\" already exists."
+                        )
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+            }
+
+        if (
+            $this->lotType !== 'Internal Road' &&
+            !$block
+        ) {
+            Notification::make()
+                ->title('Block Required')
+                ->body('The property must be completely inside one block.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | Upload image
         |--------------------------------------------------------------------------
         */
@@ -394,6 +983,7 @@ class LeafletMapView extends Component
             [
                 'Model House',
                 'Playground & Community Amenities',
+                'Internal Road',
             ]
         );
 
@@ -415,8 +1005,24 @@ class LeafletMapView extends Component
             'map_id' =>
                 $this->map->id,
 
+            'block_id' =>
+                $this->lotType === 'Internal Road'
+                    ? null
+                    : $block?->id,
+
+            'lot_number' =>
+                $this->lotType === 'Internal Road'
+                    ? null
+                    : $this->lotNumber,
+
             'name' =>
-                $this->lotName,
+                $this->lotType === 'Internal Road'
+                    ? 'Internal Road'
+                    : (
+                        $block
+                            ? $block->name . ', Lot ' . $this->lotNumber
+                            : 'Lot ' . $this->lotNumber
+                    ),
 
             /*
              * This lot was created using GIS, therefore it does not
@@ -445,7 +1051,9 @@ class LeafletMapView extends Component
                     : $this->lotPrice,
 
             'lot_area' =>
-                $this->lotArea,
+                $this->lotType === 'Internal Road'
+                    ? null
+                    : $this->lotArea,
 
             'user_id' =>
                 (
@@ -461,7 +1069,9 @@ class LeafletMapView extends Component
                     : null,
 
             'is_under_construction' =>
-                $this->isUnderConstruction,
+                $this->lotType === 'Internal Road'
+                    ? false
+                    : $this->isUnderConstruction,
         ]);
 
         $this->resetCreate();
@@ -517,8 +1127,8 @@ class LeafletMapView extends Component
         $this->editLotId =
             $lot->id;
 
-        $this->editLotName =
-            $lot->name;
+        $this->editLotNumber =
+            $lot->lot_number;
 
         $this->editLotType =
             $lot->type;
@@ -580,10 +1190,12 @@ class LeafletMapView extends Component
                 'exists:lots,id',
             ],
 
-            'editLotName' => [
+            'editLotNumber' => [
+                'exclude_if:editLotType,Internal Road',
                 'required',
-                'string',
-                'max:255',
+                'integer',
+                'min:1',
+                'max:999999',
             ],
 
             'editLotType' => [
@@ -623,6 +1235,7 @@ class LeafletMapView extends Component
             'editLotPrice' => [
                 'exclude_if:editLotType,Model House',
                 'exclude_if:editLotType,Playground & Community Amenities',
+                'exclude_if:editLotType,Internal Road',
                 'required',
                 'numeric',
                 'gt:0',
@@ -630,6 +1243,7 @@ class LeafletMapView extends Component
             ],
 
             'editLotArea' => [
+                'exclude_if:editLotType,Internal Road',
                 'required',
                 'numeric',
                 'gt:0',
@@ -758,11 +1372,104 @@ class LeafletMapView extends Component
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | INTERNAL ROAD MUST NOT BE INSIDE / OVERLAP ANY BLOCK
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $this->editLotType === 'Internal Road'
+        ) {
+            foreach (
+                $this->blocks as $existingBlock
+            ) {
+                if (
+                    !is_array(
+                        $existingBlock->geo_coords
+                    )
+                    ||
+                    count(
+                        $existingBlock->geo_coords
+                    ) < 3
+                ) {
+                    continue;
+                }
+
+                if (
+                    $this->geoPolygonsOverlap(
+                        $this->editGeoCoords,
+                        $existingBlock->geo_coords
+                    )
+                ) {
+                    Notification::make()
+                        ->title(
+                            'Invalid Internal Road Location'
+                        )
+                        ->body(
+                            "Internal Road cannot be inside, cross, touch, or overlap \"{$existingBlock->name}\"."
+                        )
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | FIND BLOCK FOR NORMAL LOT TYPES
+        |--------------------------------------------------------------------------
+        */
+
+        $block =
+            $this->editLotType === 'Internal Road'
+                ? null
+                : $this->findContainingBlock(
+                    $this->editGeoCoords
+                );
+
+        if ($block) {
+            $duplicateLotNumber = Lot::query()
+                ->where('map_id', $this->map->id)
+                ->where('block_id', $block->id)
+                ->where('lot_number', $this->editLotNumber)
+                ->where('id', '!=', $this->editLotId)
+                ->exists();
+
+            if ($duplicateLotNumber) {
+                Notification::make()
+                    ->title('Lot Number Already Exists')
+                    ->body(
+                        "\"{$block->name}, Lot {$this->editLotNumber}\" already exists."
+                    )
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
+        if (
+            $this->editLotType !== 'Internal Road' &&
+            !$block
+        ) {
+            Notification::make()
+                ->title('Block Required')
+                ->body('The property must be completely inside one block.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         $hideCommercialFields = in_array(
             $this->editLotType,
             [
                 'Model House',
                 'Playground & Community Amenities',
+                'Internal Road',
             ]
         );
 
@@ -775,8 +1482,24 @@ class LeafletMapView extends Component
         );
 
         $data = [
+            'block_id' =>
+                $this->editLotType === 'Internal Road'
+                    ? null
+                    : $block?->id,
+
+            'lot_number' =>
+                $this->editLotType === 'Internal Road'
+                    ? null
+                    : $this->editLotNumber,
+
             'name' =>
-                $this->editLotName,
+                $this->editLotType === 'Internal Road'
+                    ? 'Internal Road'
+                    : (
+                        $block
+                            ? $block->name . ', Lot ' . $this->editLotNumber
+                            : 'Lot ' . $this->editLotNumber
+                    ),
 
             'type' =>
                 $this->editLotType,
@@ -811,7 +1534,9 @@ class LeafletMapView extends Component
                     : null,
 
             'is_under_construction' =>
-                $this->editIsUnderConstruction,
+                $this->editLotType === 'Internal Road'
+                    ? false
+                    : $this->editIsUnderConstruction,
         ];
 
         if ($this->editLotImage) {
@@ -939,7 +1664,7 @@ class LeafletMapView extends Component
 
     public function resetCreate(): void
     {
-        $this->lotName =
+        $this->lotNumber =
             null;
 
         $this->lotType =
@@ -975,7 +1700,7 @@ class LeafletMapView extends Component
         $this->editLotId =
             null;
 
-        $this->editLotName =
+        $this->editLotNumber =
             null;
 
         $this->editLotType =
@@ -1016,41 +1741,41 @@ class LeafletMapView extends Component
     {
         $this->resetCreate();
         $this->resetEdit();
+
+        $this->newBoundaryGeoCoords = [];
+        $this->editBoundaryGeoCoords = [];
+        $this->isEditingBoundary = false;
+
+        $this->blockName = null;
+        $this->newBlockGeoCoords = [];
+        $this->editBlockId = null;
+        $this->editBlockName = null;
+        $this->editBlockGeoCoords = [];
+        $this->isEditingBlock = false;
     }
 
     private function subdivisionBoundary(): array
     {
-        return [
-            [13.920650, 121.420350],
-            [13.920720, 121.421820],
-            [13.920300, 121.422300],
-            [13.919150, 121.422250],
-            [13.918720, 121.421700],
-            [13.918800, 121.420500],
-            [13.919350, 121.420100],
-        ];
+        return is_array($this->map?->boundary_geo_coords)
+            ? $this->map->boundary_geo_coords
+            : [];
     }
 
-    private function polygonInsideSubdivisionBoundary(
-        array $polygon
+    private function polygonInsidePolygon(
+        array $polygon,
+        array $boundary
     ): bool {
-        if (count($polygon) < 3) {
+        if (
+            count($polygon) < 3 ||
+            count($boundary) < 3
+        ) {
             return false;
         }
 
-        $boundary =
-            $this->subdivisionBoundary();
-
         foreach ($polygon as $point) {
-
             if (
                 !is_array($point) ||
-                count($point) < 2
-            ) {
-                return false;
-            }
-
-            if (
+                count($point) < 2 ||
                 !$this->geoPointInPolygon(
                     $point,
                     $boundary
@@ -1061,6 +1786,34 @@ class LeafletMapView extends Component
         }
 
         return true;
+    }
+
+    private function findContainingBlock(
+        array $polygon
+    ): ?Block {
+        foreach ($this->blocks as $block) {
+            if (
+                is_array($block->geo_coords) &&
+                count($block->geo_coords) >= 3 &&
+                $this->polygonInsidePolygon(
+                    $polygon,
+                    $block->geo_coords
+                )
+            ) {
+                return $block;
+            }
+        }
+
+        return null;
+    }
+
+    private function polygonInsideSubdivisionBoundary(
+        array $polygon
+    ): bool {
+        return $this->polygonInsidePolygon(
+            $polygon,
+            $this->subdivisionBoundary()
+        );
     }
 
     private function geoPolygonsOverlap(

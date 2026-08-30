@@ -31,6 +31,58 @@
             display: none;
         }
 
+        .client-estate-block-label {
+            background: transparent !important;
+            color: #374151 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            font-size: 10px !important;
+            font-weight: 500 !important;
+            line-height: 1 !important;
+            white-space: nowrap;
+        }
+
+        .client-estate-block-label::before {
+            display: none !important;
+        }
+
+        .client-estate-lot-number-label,
+        .client-estate-lot-area-label {
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .client-estate-lot-number-label::before,
+        .client-estate-lot-area-label::before {
+            display: none !important;
+        }
+
+        .client-estate-lot-number-inner {
+            color: #000000;
+            font-weight: 800;
+            line-height: 1;
+            white-space: nowrap;
+            text-align: right;
+            pointer-events: none;
+            text-shadow: none;
+        }
+
+        .client-estate-lot-area-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+            font-weight: 700;
+            line-height: 1;
+            white-space: nowrap;
+            text-align: center;
+            pointer-events: none;
+            text-shadow: none;
+        }
+
         .client-estate-sold-label {
             background: transparent !important;
             border: 0 !important;
@@ -498,6 +550,78 @@
             margin-top: 8px;
         }
 
+        .client-estate-map-filter-panel {
+            position: absolute;
+            top: 14px;
+            left: 47%;
+            transform: translateX(-50%);
+            width: max-content;
+            max-width: calc(100% - 320px);
+            padding: 10px 12px;
+            border: 1px solid rgba(209, 213, 219, .95);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .96);
+            box-shadow: 0 4px 14px rgba(15, 23, 42, .14);
+            backdrop-filter: blur(4px);
+        }
+
+        .client-estate-map-filter-items {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px 12px;
+            flex-wrap: wrap;
+        }
+
+        .client-estate-map-filter-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #374151;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.2;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .client-estate-map-filter-item input {
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .client-estate-map-filter-color {
+            width: 10px;
+            height: 10px;
+            flex-shrink: 0;
+            border-radius: 3px;
+            border: 1px solid rgba(17, 24, 39, .18);
+        }
+
+        #client-estate-leaflet-map .leaflet-interactive,
+        #client-estate-leaflet-map .leaflet-interactive:focus,
+        #client-estate-leaflet-map .leaflet-interactive:focus-visible {
+            outline: none !important;
+        }
+
+        @media (max-width: 1100px) {
+            .client-estate-map-filter-panel {
+                left: 45%;
+                max-width: calc(100% - 300px);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .client-estate-map-filter-panel {
+                top: 95px;
+                left: 50%;
+                max-width: calc(100% - 30px);
+            }
+        }
+
         @media (max-width: 640px) {
             .client-estate-custom-tooltip {
                 width: min(92vw, 380px);
@@ -523,7 +647,7 @@
             .client-estate-popup-price {
                 color: #1f2937;
                 font-size: 17px;
-                font-weight: 600;
+                font-weight: 100;
             }
         }
 
@@ -558,9 +682,13 @@
 
                     'name' => $lot->name,
 
+                    'lot_number' => $lot->lot_number,
+
                     'geo_coords' => $lot->geo_coords,
 
                     'type' => $lot->type,
+
+                    'block_id' => $lot->block_id,
 
                     'status' => $lot->status,
 
@@ -622,6 +750,17 @@
             })
             ->values()
             ->toArray();
+
+        $leafletBlocks = collect($blocks ?? [])
+            ->map(function ($block) {
+                return [
+                    'id' => $block->id,
+                    'name' => $block->name,
+                    'geo_coords' => $block->geo_coords,
+                ];
+            })
+            ->values()
+            ->toArray();
     @endphp
 
 
@@ -663,12 +802,19 @@
                         grid
                         grid-cols-2
                         sm:grid-cols-3
-                        lg:grid-cols-5
+                        lg:grid-cols-3
                         gap-3
                     "
                 >
 
                     @foreach($typeColors as $type => $color)
+
+                        @php
+                            $displayColor =
+                                $type === 'Internal Road'
+                                    ? '#ebebeb'
+                                    : $color;
+                        @endphp
 
                         <div
                             class="
@@ -694,8 +840,8 @@
                                     flex-shrink-0
                                 "
                                 style="
-                                    background-color: {{ $color }}73;
-                                    border-color: {{ $color }};
+                                    background-color: {{ $displayColor }}73;
+                                    border-color: {{ $displayColor }};
                                 "
                             ></div>
 
@@ -753,6 +899,119 @@
                     z-index: 0;
                 "
             >
+            </div>
+
+            <div
+                id="client-estate-map-filter-panel"
+                class="client-estate-map-filter-panel"
+                wire:ignore
+            >
+                <div class="client-estate-map-filter-items">
+
+                    <label class="client-estate-map-filter-item">
+                        <input
+                            type="checkbox"
+                            class="client-estate-map-filter-checkbox"
+                            data-filter-kind="boundary"
+                            checked
+                        >
+                        <span
+                            class="client-estate-map-filter-color"
+                            style="background:#2563eb;"
+                        ></span>
+                        <span>Subdivision Boundary</span>
+                    </label>
+
+                    <label class="client-estate-map-filter-item">
+                        <input
+                            type="checkbox"
+                            class="client-estate-map-filter-checkbox"
+                            data-filter-kind="blocks"
+                            checked
+                        >
+                        <span
+                            class="client-estate-map-filter-color"
+                            style="background:#9333ea;"
+                        ></span>
+                        <span>Blocks</span>
+                    </label>
+
+                    <label class="client-estate-map-filter-item">
+                        <input
+                            type="checkbox"
+                            class="client-estate-map-filter-checkbox"
+                            data-filter-kind="lot-type"
+                            data-lot-type="Playground & Community Amenities"
+                            checked
+                        >
+                        <span
+                            class="client-estate-map-filter-color"
+                            style="background:#f2b879;"
+                        ></span>
+                        <span>Playground & Community Amenities</span>
+                    </label>
+
+                    <label class="client-estate-map-filter-item">
+                        <input
+                            type="checkbox"
+                            class="client-estate-map-filter-checkbox"
+                            data-filter-kind="lot-type"
+                            data-lot-type="Model House"
+                            checked
+                        >
+                        <span
+                            class="client-estate-map-filter-color"
+                            style="background:#c8c9c3;"
+                        ></span>
+                        <span>Model House</span>
+                    </label>
+
+                    <label class="client-estate-map-filter-item">
+                        <input
+                            type="checkbox"
+                            class="client-estate-map-filter-checkbox"
+                            data-filter-kind="lot-type"
+                            data-lot-type="Lot Only"
+                            checked
+                        >
+                        <span
+                            class="client-estate-map-filter-color"
+                            style="background:#c4e0b7;"
+                        ></span>
+                        <span>Lot Only</span>
+                    </label>
+
+                    <label class="client-estate-map-filter-item">
+                        <input
+                            type="checkbox"
+                            class="client-estate-map-filter-checkbox"
+                            data-filter-kind="lot-type"
+                            data-lot-type="House & Lot"
+                            checked
+                        >
+                        <span
+                            class="client-estate-map-filter-color"
+                            style="background:#f8e89c;"
+                        ></span>
+                        <span>House & Lot</span>
+                    </label>
+
+                    <label class="client-estate-map-filter-item">
+                        <input
+                            type="checkbox"
+                            class="client-estate-map-filter-checkbox"
+                            data-filter-kind="lot-type"
+                            data-lot-type="Internal Road"
+                            checked
+                        >
+                        <span
+                            class="client-estate-map-filter-color"
+                            style="background:#ebebeb;"
+                        ></span>
+                        <span>Internal Road</span>
+                    </label>
+
+                </div>
             </div>
 
             <button
@@ -829,12 +1088,22 @@
         window.clientEstateGISLots =
             @json($leafletLots);
 
+        window.clientEstateGISBlocks =
+            @json($leafletBlocks);
+
         if (
             window.clientEstateLeafletMap &&
             window.clientEstateLotLayer &&
             typeof renderClientEstateLots === 'function'
         ) {
             renderClientEstateLots();
+
+            if (
+                typeof applyClientEstateMapFilters ===
+                'function'
+            ) {
+                applyClientEstateMapFilters();
+            }
         }
     </script>
 
@@ -858,15 +1127,33 @@
 
         window.clientEstateLeafletMap = null;
         window.clientEstateLotLayer = null;
+        window.clientEstateBlockLayer = null;
         window.clientEstateBoundaryLayer = null;
 
         window.clientEstateConstructionMarkers = [];
         window.clientEstateSoldMarkers = [];
+        window.clientEstateLotNumberMarkers = [];
+        window.clientEstateLotAreaMarkers = [];
 
         window.clientEstatePanoramaViewer = null;
 
         window.clientEstateTooltipLotId = null;
         window.clientEstateTooltipLatLng = null;
+
+        window.clientEstateMapFilters =
+        window.clientEstateMapFilters || {
+            boundary: true,
+
+            blocks: true,
+
+            lotTypes: {
+                "Playground & Community Amenities": true,
+                "Model House": true,
+                "Lot Only": true,
+                "House & Lot": true,
+                "Internal Road": true,
+            },
+        };
 
 
         /*
@@ -875,15 +1162,8 @@
         |--------------------------------------------------------------------------
         */
 
-        const clientEstateSubdivisionBoundary = [
-            [13.920650, 121.420350],
-            [13.920720, 121.421820],
-            [13.920300, 121.422300],
-            [13.919150, 121.422250],
-            [13.918720, 121.421700],
-            [13.918800, 121.420500],
-            [13.919350, 121.420100]
-        ];
+        const clientEstateSubdivisionBoundary =
+            @json(isset($map) ? ($map?->boundary_geo_coords ?? []) : []);
 
 
         /*
@@ -904,6 +1184,9 @@
 
             "House & Lot":
                 "#f8e89c",
+
+            "Internal Road":
+                "#ebebeb",
 
             "Sold":
                 "#e9b4ae",
@@ -956,8 +1239,8 @@
                     container,
                     {
                         zoomControl: true,
-                        minZoom: 5,
-                        maxZoom: 22,
+                        minZoom: 18,
+                        maxZoom: 20,
                     }
                 );
 
@@ -965,12 +1248,6 @@
             window.clientEstateLeafletMap =
                 map;
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | SATELLITE TILE
-            |--------------------------------------------------------------------------
-            */
 
             L.tileLayer(
                 'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
@@ -991,35 +1268,46 @@
                 map
             );
 
-            const boundary =
-                L.polygon(
-                    clientEstateSubdivisionBoundary,
-                    {
-                        color:
-                            '#2563eb',
 
-                        weight:
-                            4,
+            let boundary = null;
 
-                        dashArray:
-                            '10 6',
-
-                        fillColor:
-                            '#3b82f6',
-
-                        fillOpacity:
-                            0.05,
-
-                        interactive:
-                            false,
-                    }
-                ).addTo(
-                    map
-                );
+            if (
+                Array.isArray(
+                    clientEstateSubdivisionBoundary
+                )
+                &&
+                clientEstateSubdivisionBoundary.length >= 3
+            ) {
+                boundary =
+                    L.polygon(
+                        clientEstateSubdivisionBoundary,
+                        {
+                            color: '#2563eb',
+                            weight: 4,
+                            dashArray: '10 6',
+                            fillColor: '#3b82f6',
+                            fillOpacity: 0.05,
+                            interactive: false,
+                        }
+                    ).addTo(
+                        map
+                    );
+            }
 
 
             window.clientEstateBoundaryLayer =
                 boundary;
+
+
+            const blockLayer =
+                L.layerGroup()
+                    .addTo(
+                        map
+                    );
+
+            window.clientEstateBlockLayer =
+                blockLayer;
+
 
             const lotLayer =
                 L.layerGroup()
@@ -1027,28 +1315,97 @@
                         map
                     );
 
-
             window.clientEstateLotLayer =
                 lotLayer;
 
-            map.fitBounds(
-                boundary.getBounds(),
-                {
-                    padding: [
-                        30,
-                        30
-                    ],
-                }
-            );
 
-
+            renderClientEstateBlocks();
             renderClientEstateLots();
 
+            initClientEstateMapFilters();
+            applyClientEstateMapFilters();
+
+
+            if (boundary) {
+                map.fitBounds(
+                    boundary.getBounds(),
+                    {
+                        padding: [
+                            30,
+                            30
+                        ],
+                    }
+                );
+            } else {
+                const visibleLayers = [];
+
+                blockLayer.eachLayer(
+                    function(layer)
+                    {
+                        if (
+                            typeof layer.getBounds ===
+                            'function'
+                        ) {
+                            visibleLayers.push(
+                                layer.getBounds()
+                            );
+                        }
+                    }
+                );
+
+                lotLayer.eachLayer(
+                    function(layer)
+                    {
+                        if (
+                            typeof layer.getBounds ===
+                            'function'
+                        ) {
+                            visibleLayers.push(
+                                layer.getBounds()
+                            );
+                        }
+                    }
+                );
+
+                if (visibleLayers.length > 0) {
+                    const bounds =
+                        visibleLayers.reduce(
+                            function(result, current)
+                            {
+                                return result.extend(
+                                    current
+                                );
+                            },
+                            L.latLngBounds()
+                        );
+
+                    map.fitBounds(
+                        bounds,
+                        {
+                            padding: [
+                                30,
+                                30
+                            ],
+                        }
+                    );
+                }
+            }
+
+
             map.on(
-                'zoomend',
+                'zoom zoomend',
                 function()
                 {
                     updateClientEstateLotOverlaySizes();
+                    updateClientEstateBlockLabelSizes();
+
+                    setTimeout(
+                        function()
+                        {
+                            updateClientEstateBlockLabelSizes();
+                        },
+                        50
+                    );
                 }
             );
 
@@ -1062,17 +1419,6 @@
             );
 
 
-            map.on(
-                'click',
-                function()
-                {
-                    /*
-                    | Do not automatically close here.
-                    | Polygon click controls the tooltip.
-                    */
-                }
-            );
-
             setTimeout(
                 function()
                 {
@@ -1083,11 +1429,150 @@
                         map.invalidateSize(
                             true
                         );
+
+                        updateClientEstateLotOverlaySizes();
+                        updateClientEstateBlockLabelSizes();
                     }
                 },
                 250
             );
         }
+
+
+        function renderClientEstateBlocks()
+        {
+            const blocks =
+                window.clientEstateGISBlocks || [];
+
+
+            window
+                .clientEstateBlockLayer
+                ?.clearLayers();
+
+
+            blocks.forEach(
+                function(block)
+                {
+                    if (
+                        !Array.isArray(
+                            block.geo_coords
+                        )
+                        ||
+                        block.geo_coords.length < 3
+                    ) {
+                        return;
+                    }
+
+
+                    const polygon =
+                        L.polygon(
+                            block.geo_coords,
+                            {
+                                color: '#9333ea',
+                                weight: 2,
+                                dashArray: '7 5',
+                                fillColor: '#a855f7',
+                                fillOpacity: 0.04,
+                            }
+                        );
+
+
+                    polygon.clientEstateBlockId =
+                        block.id;
+
+
+                    polygon.bindTooltip(
+                        block.name ?? 'Block',
+                        {
+                            direction: 'center',
+                            permanent: true,
+                            className:
+                                'client-estate-block-label',
+                            opacity: 1,
+                        }
+                    );
+
+
+                    polygon.on(
+                        'add',
+                        function()
+                        {
+                            const bounds =
+                                polygon.getBounds();
+
+                            const center =
+                                typeof polygon.getCenter ===
+                                    'function'
+                                    ? polygon.getCenter()
+                                    : bounds.getCenter();
+
+                            const labelPosition =
+                                L.latLng(
+                                    center.lat -
+                                    (
+                                        center.lat -
+                                        bounds.getSouth()
+                                    ) * 0.65,
+
+                                    center.lng
+                                );
+
+                            polygon
+                                .getTooltip()
+                                ?.setLatLng(
+                                    labelPosition
+                                );
+                        }
+                    );
+
+
+                    polygon.on(
+                        'click',
+                        function(event)
+                        {
+                            if (
+                                event.originalEvent
+                            ) {
+                                L.DomEvent.stopPropagation(
+                                    event.originalEvent
+                                );
+                            }
+
+                            showClientEstateBlockTooltip(
+                                block,
+                                event.latlng
+                            );
+                        }
+                    );
+
+
+                    polygon.addTo(
+                        window.clientEstateBlockLayer
+                    );
+
+
+                    polygon.on(
+                        'tooltipopen',
+                        function()
+                        {
+                            const tooltip =
+                                polygon.getTooltip();
+
+                            const element =
+                                tooltip?.getElement();
+
+                            if (!element) {
+                                return;
+                            }
+
+                            element.style.display =
+                                '';
+                        }
+                    );
+                }
+            );
+        }
+
 
         function renderClientEstateLots()
         {
@@ -1116,6 +1601,12 @@
             window.clientEstateSoldMarkers =
                 [];
 
+            window.clientEstateLotNumberMarkers =
+                [];
+
+            window.clientEstateLotAreaMarkers =
+                [];
+
 
             const lots =
                 window.clientEstateGISLots || [];
@@ -1141,27 +1632,40 @@
                         );
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | LOT POLYGON
-                    |--------------------------------------------------------------------------
-                    */
+                    const isInternalRoad =
+                        (
+                            lot.type || ''
+                        )
+                            .trim()
+                            .toLowerCase()
+                        === 'internal road';
+
 
                     const polygon =
                         L.polygon(
                             lot.geo_coords,
                             {
                                 color:
-                                    color,
+                                    isInternalRoad
+                                        ? '#ebebeb'
+                                        : color,
 
                                 fillColor:
-                                    color,
+                                    isInternalRoad
+                                        ? '#ebebeb'
+                                        : color,
 
-                                weight:
-                                    2,
+                                weight: 2,
 
                                 fillOpacity:
-                                    0.50,
+                                    isInternalRoad
+                                        ? 0.04
+                                        : 0.50,
+
+                                dashArray:
+                                    isInternalRoad
+                                        ? '10 5 2 5'
+                                        : null,
                             }
                         );
 
@@ -1169,19 +1673,19 @@
                     polygon.clientEstateLotId =
                         lot.id;
 
-
                     polygon.clientEstateLot =
                         lot;
+                    
+                    polygon.clientEstateLotType =
+                        lot.type;
 
 
                     polygon.bindTooltip(
                         lot.name ?? 'Lot',
                         {
-                            direction:
-                                'center',
-
-                            className:
-                                'client-estate-lot-tooltip',
+                            direction: 'center',
+                            className: 'client-estate-lot-tooltip',
+                            opacity: 1,
                         }
                     );
 
@@ -1212,11 +1716,107 @@
                     );
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | SOLD LABEL
-                    |--------------------------------------------------------------------------
-                    */
+                    if (
+                        lot.lot_number !== null &&
+                        lot.lot_number !== undefined
+                    ) {
+                        const scale =
+                            getClientEstateLotOverlayScale(
+                                polygon
+                            );
+
+                        const marker =
+                            L.marker(
+                                getClientEstatePolygonTopRight(
+                                    polygon
+                                ),
+                                {
+                                    interactive: false,
+
+                                    opacity:
+                                        scale > 0
+                                            ? 1
+                                            : 0,
+
+                                    icon:
+                                        buildClientEstateLotNumberIcon(
+                                            lot.lot_number,
+                                            scale
+                                        ),
+                                }
+                            );
+
+                        marker.clientEstatePolygon =
+                            polygon;
+
+                        marker.clientEstateLotNumber =
+                            lot.lot_number;
+
+                        marker.clientEstateLotType =
+                            lot.type;
+
+                        marker.addTo(
+                            lotLayer
+                        );
+
+                        window
+                            .clientEstateLotNumberMarkers
+                            .push(
+                                marker
+                            );
+                    }
+
+
+                    if (
+                        lot.lot_area !== null &&
+                        lot.lot_area !== undefined
+                    ) {
+                        const scale =
+                            getClientEstateLotOverlayScale(
+                                polygon
+                            );
+
+                        const marker =
+                            L.marker(
+                                getClientEstatePolygonCenter(
+                                    polygon
+                                ),
+                                {
+                                    interactive: false,
+
+                                    opacity:
+                                        scale > 0
+                                            ? 1
+                                            : 0,
+
+                                    icon:
+                                        buildClientEstateLotAreaIcon(
+                                            lot.lot_area,
+                                            scale
+                                        ),
+                                }
+                            );
+
+                        marker.clientEstatePolygon =
+                            polygon;
+
+                        marker.clientEstateLotArea =
+                            lot.lot_area;
+
+                        marker.clientEstateLotType =
+                            lot.type;
+
+                        marker.addTo(
+                            lotLayer
+                        );
+
+                        window
+                            .clientEstateLotAreaMarkers
+                            .push(
+                                marker
+                            );
+                    }
+
 
                     const status =
                         (
@@ -1229,12 +1829,6 @@
                     if (
                         status === 'sold'
                     ) {
-                        const center =
-                            polygon
-                                .getBounds()
-                                .getCenter();
-
-
                         const scale =
                             getClientEstateLotOverlayScale(
                                 polygon
@@ -1243,7 +1837,9 @@
 
                         const soldMarker =
                             L.marker(
-                                center,
+                                getClientEstatePolygonTopLeft(
+                                    polygon
+                                ),
                                 {
                                     interactive:
                                         false,
@@ -1263,6 +1859,9 @@
 
                         soldMarker.clientEstatePolygon =
                             polygon;
+                        
+                        soldMarker.clientEstateLotType =
+                            lot.type;
 
 
                         soldMarker.addTo(
@@ -1277,15 +1876,10 @@
                             );
                     }
 
+
                     if (
                         lot.is_under_construction
                     ) {
-                        const center =
-                            polygon
-                                .getBounds()
-                                .getCenter();
-
-
                         const scale =
                             getClientEstateLotOverlayScale(
                                 polygon
@@ -1294,7 +1888,9 @@
 
                         const constructionMarker =
                             L.marker(
-                                center,
+                                getClientEstatePolygonTopLeft(
+                                    polygon
+                                ),
                                 {
                                     interactive:
                                         false,
@@ -1315,6 +1911,9 @@
                         constructionMarker.clientEstatePolygon =
                             polygon;
 
+                        constructionMarker.clientEstateLotType =
+                            lot.type;
+
 
                         constructionMarker.addTo(
                             lotLayer
@@ -1329,6 +1928,287 @@
                     }
                 }
             );
+        }
+
+        function initClientEstateMapFilters()
+        {
+            const checkboxes =
+                document.querySelectorAll(
+                    '#client-estate-map-filter-panel .client-estate-map-filter-checkbox'
+                );
+
+            checkboxes.forEach(
+                function(checkbox)
+                {
+                    const kind =
+                        checkbox.dataset.filterKind;
+
+                    const lotType =
+                        checkbox.dataset.lotType;
+
+
+                    if (
+                        kind === 'boundary'
+                    ) {
+                        checkbox.checked =
+                            window.clientEstateMapFilters.boundary;
+                    }
+                    else if (
+                        kind === 'blocks'
+                    ) {
+                        checkbox.checked =
+                            window.clientEstateMapFilters.blocks;
+                    }
+                    else if (
+                        kind === 'lot-type'
+                        &&
+                        lotType
+                    ) {
+                        checkbox.checked =
+                            window.clientEstateMapFilters.lotTypes[
+                                lotType
+                            ] !== false;
+                    }
+
+
+                    if (
+                        checkbox.dataset.clientEstateFilterBound ===
+                        '1'
+                    ) {
+                        return;
+                    }
+
+
+                    checkbox.dataset.clientEstateFilterBound =
+                        '1';
+
+
+                    checkbox.addEventListener(
+                        'change',
+                        function()
+                        {
+                            const currentKind =
+                                checkbox.dataset.filterKind;
+
+                            const currentLotType =
+                                checkbox.dataset.lotType;
+
+
+                            if (
+                                currentKind === 'boundary'
+                            ) {
+                                window.clientEstateMapFilters.boundary =
+                                    checkbox.checked;
+                            }
+                            else if (
+                                currentKind === 'blocks'
+                            ) {
+                                window.clientEstateMapFilters.blocks =
+                                    checkbox.checked;
+                            }
+                            else if (
+                                currentKind === 'lot-type'
+                                &&
+                                currentLotType
+                            ) {
+                                window.clientEstateMapFilters.lotTypes[
+                                    currentLotType
+                                ] =
+                                    checkbox.checked;
+                            }
+
+
+                            hideClientEstateTooltip();
+
+                            applyClientEstateMapFilters();
+                        }
+                    );
+                }
+            );
+        }
+
+
+        function setClientEstateMapLayerVisibility(
+            layer,
+            visible
+        )
+        {
+            const map =
+                window.clientEstateLeafletMap;
+
+
+            if (
+                !map ||
+                !layer
+            ) {
+                return;
+            }
+
+
+            const isVisible =
+                map.hasLayer(
+                    layer
+                );
+
+
+            if (
+                visible &&
+                !isVisible
+            ) {
+                layer.addTo(
+                    map
+                );
+            }
+
+
+            if (
+                !visible &&
+                isVisible
+            ) {
+                map.removeLayer(
+                    layer
+                );
+            }
+        }
+
+
+        function applyClientEstateMapFilters()
+        {
+            const map =
+                window.clientEstateLeafletMap;
+
+
+            if (!map) {
+                return;
+            }
+
+
+            // Subdivision boundary
+            setClientEstateMapLayerVisibility(
+                window.clientEstateBoundaryLayer,
+                window.clientEstateMapFilters.boundary
+            );
+
+
+            // Blocks
+            if (
+                window.clientEstateBlockLayer
+            ) {
+                window
+                    .clientEstateBlockLayer
+                    .eachLayer(
+                        function(layer)
+                        {
+                            setClientEstateMapLayerVisibility(
+                                layer,
+                                window.clientEstateMapFilters.blocks
+                            );
+                        }
+                    );
+            }
+
+
+            // Lots and their markers
+            if (
+                window.clientEstateLotLayer
+            ) {
+                window
+                    .clientEstateLotLayer
+                    .eachLayer(
+                        function(layer)
+                        {
+                            const lotType =
+                                layer.clientEstateLotType
+                                ??
+                                layer.clientEstateLot?.type
+                                ??
+                                null;
+
+
+                            if (!lotType) {
+                                return;
+                            }
+
+
+                            const visible =
+                                window.clientEstateMapFilters.lotTypes[
+                                    lotType
+                                ] !== false;
+
+
+                            setClientEstateMapLayerVisibility(
+                                layer,
+                                visible
+                            );
+                        }
+                    );
+            }
+
+
+            // Keep correct map stacking safely
+            if (
+                window.clientEstateBoundaryLayer &&
+                map.hasLayer(
+                    window.clientEstateBoundaryLayer
+                ) &&
+                window.clientEstateBoundaryLayer._path &&
+                window.clientEstateBoundaryLayer._path.parentNode &&
+                typeof window.clientEstateBoundaryLayer.bringToBack ===
+                    'function'
+            ) {
+                window
+                    .clientEstateBoundaryLayer
+                    .bringToBack();
+            }
+
+
+            if (
+                window.clientEstateBlockLayer
+            ) {
+                window
+                    .clientEstateBlockLayer
+                    .eachLayer(
+                        function(layer)
+                        {
+                            if (
+                                map.hasLayer(layer) &&
+                                layer._path &&
+                                layer._path.parentNode &&
+                                typeof layer.bringToFront ===
+                                    'function'
+                            ) {
+                                layer.bringToFront();
+                            }
+                        }
+                    );
+            }
+
+
+            if (
+                window.clientEstateLotLayer
+            ) {
+                window
+                    .clientEstateLotLayer
+                    .eachLayer(
+                        function(layer)
+                        {
+                            if (
+                                map.hasLayer(layer) &&
+                                layer._path &&
+                                layer._path.parentNode &&
+                                typeof layer.bringToFront ===
+                                    'function'
+                            ) {
+                                layer.bringToFront();
+                            }
+                        }
+                    );
+            }
+
+
+            updateClientEstateLotOverlaySizes();
+
+            updateClientEstateBlockLabelSizes();
         }
 
         function getClientEstateLotColor(
@@ -1356,6 +2236,240 @@
                 lot.type
             ] ?? '#0096ff';
         }
+
+        function getClientEstatePolygonCenter(
+            polygon
+        )
+        {
+            if (!polygon) {
+                return null;
+            }
+
+            const bounds =
+                polygon.getBounds();
+
+            if (
+                !bounds ||
+                !bounds.isValid()
+            ) {
+                return null;
+            }
+
+            return bounds.getCenter();
+        }
+
+
+        function getClientEstatePolygonTopLeft(
+            polygon
+        )
+        {
+            if (!polygon) {
+                return null;
+            }
+
+            const bounds =
+                polygon.getBounds();
+
+            if (
+                !bounds ||
+                !bounds.isValid()
+            ) {
+                return null;
+            }
+
+            const points =
+                polygon.getLatLngs()[0];
+
+            if (
+                !Array.isArray(points) ||
+                points.length === 0
+            ) {
+                return bounds.getNorthWest();
+            }
+
+            const northWest =
+                bounds.getNorthWest();
+
+            let closestPoint =
+                points[0];
+
+            let closestDistance =
+                Infinity;
+
+            points.forEach(
+                function(point)
+                {
+                    const distance =
+                        northWest.distanceTo(
+                            point
+                        );
+
+                    if (
+                        distance <
+                        closestDistance
+                    ) {
+                        closestDistance =
+                            distance;
+
+                        closestPoint =
+                            point;
+                    }
+                }
+            );
+
+            return closestPoint;
+        }
+
+
+        function getClientEstatePolygonTopRight(
+            polygon
+        )
+        {
+            if (!polygon) {
+                return null;
+            }
+
+            const bounds =
+                polygon.getBounds();
+
+            if (
+                !bounds ||
+                !bounds.isValid()
+            ) {
+                return null;
+            }
+
+            const points =
+                polygon.getLatLngs()[0];
+
+            if (
+                !Array.isArray(points) ||
+                points.length === 0
+            ) {
+                return bounds.getNorthEast();
+            }
+
+            const northEast =
+                bounds.getNorthEast();
+
+            let closestPoint =
+                points[0];
+
+            let closestDistance =
+                Infinity;
+
+            points.forEach(
+                function(point)
+                {
+                    const distance =
+                        northEast.distanceTo(
+                            point
+                        );
+
+                    if (
+                        distance <
+                        closestDistance
+                    ) {
+                        closestDistance =
+                            distance;
+
+                        closestPoint =
+                            point;
+                    }
+                }
+            );
+
+            return closestPoint;
+        }
+
+
+        function getClientEstateBlockLabelSize(
+            polygon
+        )
+        {
+            const pixelSize =
+                getClientEstatePolygonPixelSize(
+                    polygon
+                );
+
+            const smallestSide =
+                Math.min(
+                    pixelSize.width,
+                    pixelSize.height
+                );
+
+            if (
+                !Number.isFinite(
+                    smallestSide
+                )
+                ||
+                smallestSide <= 0
+            ) {
+                return 0;
+            }
+
+            return Math.max(
+                7,
+                Math.min(
+                    18,
+                    smallestSide / 12
+                )
+            );
+        }
+
+
+        function updateClientEstateBlockLabelSizes()
+        {
+            if (
+                !window.clientEstateBlockLayer
+            ) {
+                return;
+            }
+
+            window
+                .clientEstateBlockLayer
+                .eachLayer(
+                    function(layer)
+                    {
+                        if (
+                            !layer.clientEstateBlockId ||
+                            typeof layer.getTooltip !==
+                                'function'
+                        ) {
+                            return;
+                        }
+
+                        const tooltip =
+                            layer.getTooltip();
+
+                        if (!tooltip) {
+                            return;
+                        }
+
+                        const element =
+                            tooltip.getElement();
+
+                        if (!element) {
+                            return;
+                        }
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | KEEP BLOCK LABEL VISIBLE
+                        |--------------------------------------------------------------------------
+                        |
+                        | Font size/weight are handled by CSS. Avoid hiding the
+                        | permanent tooltip when Leaflet briefly reports a zero
+                        | polygon pixel size during zoom/filter/layer updates.
+                        |
+                        */
+
+                        element.style.display =
+                            '';
+                    }
+                );
+        }
+
 
         function getClientEstatePolygonPixelSize(
             polygon
@@ -1442,7 +2556,7 @@
                     smallestSide
                 )
                 ||
-                smallestSide < 6
+                smallestSide < 8
             ) {
                 return 0;
             }
@@ -1450,7 +2564,7 @@
 
             return Math.min(
                 1,
-                smallestSide / 45
+                smallestSide / 100
             );
         }
 
@@ -1498,7 +2612,7 @@
                             height:${height}px;
                             display:flex;
                             align-items:center;
-                            justify-content:center;
+                            justify-content:flex-start;
                             font-size:${fontSize}px;
                             font-weight:800;
                             line-height:1;
@@ -1507,6 +2621,124 @@
                         "
                     >
                         SOLD
+                    </div>
+                `,
+
+                iconSize: [
+                    width,
+                    height,
+                ],
+
+                iconAnchor: [
+                    0,
+                    0,
+                ],
+            });
+        }
+
+
+        function buildClientEstateLotNumberIcon(
+            lotNumber,
+            scale
+        )
+        {
+            const safeScale =
+                Math.max(
+                    0,
+                    scale || 0
+                );
+
+            const width =
+                Math.max(
+                    1,
+                    55 * safeScale
+                );
+
+            const height =
+                Math.max(
+                    1,
+                    18 * safeScale
+                );
+
+            const fontSize =
+                Math.max(
+                    1,
+                    10 * safeScale
+                );
+
+            return L.divIcon({
+                className:
+                    'client-estate-lot-number-label',
+
+                html: `
+                    <div
+                        class="client-estate-lot-number-inner"
+                        style="
+                            width:${width}px;
+                            height:${height}px;
+                            font-size:${fontSize}px;
+                        "
+                    >
+                        ${lotNumber}
+                    </div>
+                `,
+
+                iconSize: [
+                    width,
+                    height,
+                ],
+
+                iconAnchor: [
+                    width,
+                    0,
+                ],
+            });
+        }
+
+
+        function buildClientEstateLotAreaIcon(
+            lotArea,
+            scale
+        )
+        {
+            const safeScale =
+                Math.max(
+                    0,
+                    scale || 0
+                );
+
+            const width =
+                Math.max(
+                    1,
+                    70 * safeScale
+                );
+
+            const height =
+                Math.max(
+                    1,
+                    18 * safeScale
+                );
+
+            const fontSize =
+                Math.max(
+                    1,
+                    11 * safeScale
+                );
+
+            return L.divIcon({
+                className:
+                    'client-estate-lot-area-label',
+
+                html: `
+                    <div
+                        class="client-estate-lot-area-inner"
+                        style="
+                            width:${width}px;
+                            height:${height}px;
+                            font-size:${fontSize}px;
+                        "
+                    >
+                        ${Math.round(Number(lotArea))}
                     </div>
                 `,
 
@@ -1589,8 +2821,8 @@
                 ],
 
                 iconAnchor: [
-                    size / 2,
-                    size / 2,
+                    0,
+                    0,
                 ],
             });
         }
@@ -1617,6 +2849,13 @@
                         getClientEstateLotOverlayScale(
                             polygon
                         );
+
+
+                    marker.setLatLng(
+                        getClientEstatePolygonTopLeft(
+                            polygon
+                        )
+                    );
 
 
                     marker.setOpacity(
@@ -1656,6 +2895,13 @@
                         );
 
 
+                    marker.setLatLng(
+                        getClientEstatePolygonTopLeft(
+                            polygon
+                        )
+                    );
+
+
                     marker.setOpacity(
                         scale > 0
                             ? 1
@@ -1670,14 +2916,193 @@
                     );
                 }
             );
+
+
+            (
+                window.clientEstateLotNumberMarkers
+                || []
+            ).forEach(
+                function(marker)
+                {
+                    const polygon =
+                        marker.clientEstatePolygon;
+
+                    if (!polygon) {
+                        return;
+                    }
+
+                    const scale =
+                        getClientEstateLotOverlayScale(
+                            polygon
+                        );
+
+                    marker.setLatLng(
+                        getClientEstatePolygonTopRight(
+                            polygon
+                        )
+                    );
+
+                    marker.setOpacity(
+                        scale > 0
+                            ? 1
+                            : 0
+                    );
+
+                    marker.setIcon(
+                        buildClientEstateLotNumberIcon(
+                            marker.clientEstateLotNumber,
+                            scale
+                        )
+                    );
+                }
+            );
+
+
+            (
+                window.clientEstateLotAreaMarkers
+                || []
+            ).forEach(
+                function(marker)
+                {
+                    const polygon =
+                        marker.clientEstatePolygon;
+
+                    if (!polygon) {
+                        return;
+                    }
+
+                    const scale =
+                        getClientEstateLotOverlayScale(
+                            polygon
+                        );
+
+                    marker.setLatLng(
+                        getClientEstatePolygonCenter(
+                            polygon
+                        )
+                    );
+
+                    marker.setOpacity(
+                        scale > 0
+                            ? 1
+                            : 0
+                    );
+
+                    marker.setIcon(
+                        buildClientEstateLotAreaIcon(
+                            marker.clientEstateLotArea,
+                            scale
+                        )
+                    );
+                }
+            );
         }
 
 
         /*
         |--------------------------------------------------------------------------
+        | BUILD CLIENT LOT TOOLTIP        /*
+        |--------------------------------------------------------------------------
         | BUILD CLIENT LOT TOOLTIP
         |--------------------------------------------------------------------------
         */
+
+        function buildClientEstateBlockPopup(
+            block
+        )
+        {
+            return `
+                <div
+                    class="client-estate-popup"
+                >
+                    <button
+                        type="button"
+                        class="client-estate-popup-close"
+                        onclick="hideClientEstateTooltip()"
+                        aria-label="Close"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            style="
+                                width:19px;
+                                height:19px;
+                                color:#64748b;
+                            "
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M6 6l12 12M18 6L6 18"
+                            />
+                        </svg>
+                    </button>
+
+                    <div
+                        style="
+                            height:120px;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            background:#eef2ff;
+                            color:#4f46e5;
+                        "
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            style="
+                                width:42px;
+                                height:42px;
+                            "
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25m-4.5-13.5h16.5m0 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 4.5m8.5-4.5 1 4.5m-9.5 0h8.5"
+                            />
+                        </svg>
+                    </div>
+
+                    <div
+                        class="client-estate-popup-body"
+                    >
+                        <div
+                            class="client-estate-popup-top-row"
+                        >
+                            <div
+                                class="client-estate-popup-title-wrap"
+                            >
+                                <div
+                                    class="client-estate-popup-title"
+                                >
+                                    ${escapeClientEstateHTML(
+                                        block.name ?? 'Block'
+                                    )}
+                                </div>
+
+                                <div
+                                    class="client-estate-popup-meta"
+                                >
+                                    <span
+                                        class="client-estate-popup-meta-type"
+                                    >
+                                        Subdivision Block
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
 
         function buildClientEstatePopup(
             lot
@@ -1701,6 +3126,7 @@
                 [
                     'Model House',
                     'Playground & Community Amenities',
+                    'Internal Road',
                 ].includes(
                     propertyType
                 );
@@ -1896,12 +3322,14 @@
                                             />
                                         </svg>
 
-                                        <span>
-                                            ${escapeClientEstateHTML(
-                                                lot.lot_area ?? '-'
-                                            )}
-                                            sqm
-                                        </span>
+                                        ${propertyType !== 'Internal Road' ? `
+                                            <span>
+                                                ${escapeClientEstateHTML(
+                                                    lot.lot_area ?? '-'
+                                                )}
+                                                sqm
+                                            </span>
+                                        ` : ''}
                                     </span>
                                 </div>
 
@@ -2130,6 +3558,62 @@
                 </div>
             `;
         }
+
+        function showClientEstateBlockTooltip(
+            block,
+            latlng
+        )
+        {
+            const tooltip =
+                document.getElementById(
+                    'client-estate-custom-tooltip'
+                );
+
+
+            const content =
+                document.getElementById(
+                    'client-estate-custom-tooltip-content'
+                );
+
+
+            if (
+                !tooltip ||
+                !content ||
+                !window.clientEstateLeafletMap
+            ) {
+                return;
+            }
+
+
+            hideClientEstateTooltip(
+                false
+            );
+
+
+            window.clientEstateTooltipLotId =
+                `block-${block.id}`;
+
+
+            window.clientEstateTooltipLatLng =
+                latlng;
+
+
+            content.innerHTML =
+                buildClientEstateBlockPopup(
+                    block
+                );
+
+
+            tooltip.classList.add(
+                'is-visible'
+            );
+
+
+            positionClientEstateTooltip(
+                latlng
+            );
+        }
+
 
         function showClientEstateTooltip(
             lot,
@@ -2601,6 +4085,7 @@
                 [
                     'Model House',
                     'Playground & Community Amenities',
+                    'Internal Road',
                 ].includes(
                     type
                 )

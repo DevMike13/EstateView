@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css">
 
     <livewire:fil-pages.map-management-page />
-    <livewire:fil-pages.map.leaflet-map-view />
 
     <x-dialog z-index="z-50" blur="md" align="center" />
     <script>

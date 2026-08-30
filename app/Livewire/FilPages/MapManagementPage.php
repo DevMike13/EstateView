@@ -134,6 +134,7 @@ class MapManagementPage extends Component
         'Model House' => '#c8c9c3',
         'Lot Only' => '#c4e0b7',
         'House & Lot' => '#f8e89c',
+        'Internal Road' => '#ebebeb',
         'Sold' => '#e9b4ae',
     ];
 

@@ -36,6 +36,25 @@
             display: none;
         }
 
+        .estate-block-label {
+            background: transparent !important;
+            color: #374151 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1;
+
+            white-space: nowrap;
+        }
+
+        .estate-block-label::before {
+            display: none !important;
+        }
+
         .estate-sold-label {
             background: transparent !important;
             border: 0 !important;
@@ -641,6 +660,14 @@
                 @else
                     <button
                         type="button"
+                        onclick="editEstateSubdivisionBoundary()"
+                        class="px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100"
+                    >
+                        Edit Boundary
+                    </button>
+
+                    <button
+                        type="button"
                         onclick="startEstateBlockMapping()"
                         class="px-4 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100"
                     >
@@ -776,7 +803,7 @@
                         >
                         <span
                             class="estate-map-filter-color"
-                            style="background:#9ca3af;"
+                            style="background:#ebebeb;"
                         ></span>
                         <span>Internal Road</span>
                     </label>
@@ -854,7 +881,7 @@
         {{-- CREATE SUBDIVISION BOUNDARY --}}
         <x-modal
             name="create-gis-boundary-modal"
-            max-width="2xl"
+            max-width="6xl"
             blur="md"
             align="center"
             x-on:gis-boundary-create-success.window="
@@ -866,8 +893,9 @@
                 }, 200);
             "
         >
-            <form wire:submit.prevent="createBoundary">
-                <x-card title="Create Subdivision Boundary">
+            <div class="w-[900px] max-w-[90vw] mx-auto">
+                <form wire:submit.prevent="createBoundary">
+                    <x-card title="Create Subdivision Boundary">
                     <p class="text-sm text-gray-500 -mt-2 mb-4">
                         Draw the outer subdivision boundary.
                     </p>
@@ -894,6 +922,14 @@
                             id="estate-create-boundary-mini-map"
                             class="absolute inset-0 w-full h-full"
                         ></div>
+
+                        <button
+                            type="button"
+                            onclick="resetEstateModalMapView('estate-create-boundary-mini-map')"
+                            class="absolute top-3 right-3 z-[500] px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                        >
+                            Reset View
+                        </button>
                     </div>
 
                     <p class="text-xs text-gray-400 mt-2">
@@ -926,8 +962,9 @@
                             type="submit"
                         />
                     </x-slot>
-                </x-card>
-            </form>
+                    </x-card>
+                </form>
+            </div>
         </x-modal>
 
 
@@ -974,6 +1011,14 @@
                             id="estate-edit-boundary-mini-map"
                             class="absolute inset-0 w-full h-full"
                         ></div>
+
+                        <button
+                            type="button"
+                            onclick="resetEstateModalMapView('estate-edit-boundary-mini-map')"
+                            class="absolute top-3 right-3 z-[500] px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                        >
+                            Reset View
+                        </button>
                     </div>
 
                     <div class="mt-3">
@@ -2068,7 +2113,7 @@
             "Model House": "#c8c9c3",
             "Lot Only": "#c4e0b7",
             "House & Lot": "#f8e89c",
-            "Internal Road": "#9ca3af",
+            "Internal Road": "#ebebeb",
             "Sold": "#e9b4ae",
         };
 
@@ -2130,23 +2175,9 @@
                         dashArray: '10 6',
                         fillColor: '#3b82f6',
                         fillOpacity: 0.05,
-                        interactive: true,
+                        interactive: false,
                     }
                 ).addTo(map);
-
-                boundary.on(
-                    'click',
-                    function(event)
-                    {
-                        L.DomEvent.stopPropagation(
-                            event
-                        );
-
-                        showEstateBoundaryTooltip(
-                            event.latlng
-                        );
-                    }
-                );
             }
 
             window.estateBoundaryLayer =
@@ -2377,8 +2408,49 @@
                         {
                             direction: 'center',
                             permanent: true,
-                            className: 'estate-lot-tooltip',
-                            opacity: 0.85,
+                            className: 'estate-block-label',
+                            opacity: 1,
+                            offset: [0, 0],
+                        }
+                    );
+
+                    polygon.on(
+                        'add',
+                        function()
+                        {
+                            const bounds =
+                                polygon.getBounds();
+
+                            const center =
+                                typeof polygon.getCenter ===
+                                    'function'
+                                    ? polygon.getCenter()
+                                    : bounds.getCenter();
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | POSITION LABEL NEAR BOTTOM, BUT INSIDE BLOCK
+                            |--------------------------------------------------------------------------
+                            */
+
+                            const labelPosition =
+                                L.latLng(
+                                    center.lat -
+                                    (
+                                        center.lat -
+                                        bounds.getSouth()
+                                    ) * 0.65,
+
+                                    center.lng
+                                );
+
+
+                            polygon
+                                .getTooltip()
+                                ?.setLatLng(
+                                    labelPosition
+                                );
                         }
                     );
 
@@ -2463,14 +2535,40 @@
                         );
 
 
+                    const isInternalRoad =
+                        (
+                            lot.type || ''
+                        )
+                            .trim()
+                            .toLowerCase()
+                        === 'internal road';
+
+
                     const polygon =
                         L.polygon(
                             lot.geo_coords,
                             {
-                                color: color,
-                                fillColor: color,
+                                color:
+                                    isInternalRoad
+                                        ? '#ebebeb'
+                                        : color,
+
+                                fillColor:
+                                    isInternalRoad
+                                        ? '#ebebeb'
+                                        : color,
+
                                 weight: 2,
-                                fillOpacity: 0.50,
+
+                                fillOpacity:
+                                    isInternalRoad
+                                        ? 0.04
+                                        : 0.50,
+
+                                dashArray:
+                                    isInternalRoad
+                                        ? '10 5 2 5'
+                                        : null,
                             }
                         );
 
@@ -3829,122 +3927,6 @@
         }
 
 
-        function buildEstateBoundaryPopup()
-        {
-            return `
-                <div
-                    class="estate-popup"
-                    style="position:relative;"
-                >
-                    <button
-                        type="button"
-                        class="estate-popup-close"
-                        onclick="hideEstateCustomTooltip()"
-                        aria-label="Close"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            style="width:20px;height:20px;color:#4b5563;"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 6l12 12M18 6L6 18"
-                            />
-                        </svg>
-                    </button>
-
-                    <div
-                        style="
-                            height:110px;
-                            display:flex;
-                            align-items:center;
-                            justify-content:center;
-                            background:#eff6ff;
-                            color:#2563eb;
-                        "
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.7"
-                            style="width:42px;height:42px;"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689A1.125 1.125 0 0 0 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
-                        </svg>
-                    </div>
-
-                    <div class="estate-popup-body">
-                        <div class="estate-popup-header">
-                            <div style="min-width:0;flex:1;">
-                                <div class="estate-popup-title">
-                                    Subdivision Boundary
-                                </div>
-
-                                <div class="estate-popup-meta">
-                                    <span>Subdivision perimeter</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="estate-popup-actions">
-                            <button
-                                type="button"
-                                class="estate-popup-button estate-popup-button-edit"
-                                onclick="editEstateSubdivisionBoundary()"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.8"
-                                >
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487 19.5 7.125m-1.318-3.957a1.875 1.875 0 1 1 2.652 2.652L8.25 18.404 4.5 19.5l1.096-3.75L18.182 3.168Z" />
-                                </svg>
-                                <span>Edit</span>
-                            </button>
-
-                            ${
-                                window.estateCanDeleteBoundary
-                                    ? `
-                                        <button
-                                            type="button"
-                                            class="estate-popup-button estate-popup-button-delete"
-                                            onclick="deleteEstateGISBoundary()"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="1.8"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.327L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0V4.477c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                                                />
-                                            </svg>
-
-                                            <span>Delete</span>
-                                        </button>
-                                    `
-                                    : ''
-                            }
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-
         function buildEstateBlockPopup(block)
         {
             return `
@@ -4263,12 +4245,14 @@
                                             />
                                         </svg>
 
-                                        <span>
-                                            ${escapeEstateHTML(
-                                                lot.lot_area ?? '-'
-                                            )}
-                                            sqm
-                                        </span>
+                                        ${propertyType !== 'Internal Road' ? `
+                                            <span>
+                                                ${escapeEstateHTML(
+                                                    lot.lot_area ?? '-'
+                                                )}
+                                                sqm
+                                            </span>
+                                        ` : ''}
 
                                     </span>
 
@@ -4493,49 +4477,6 @@
 
                 </div>
             `;
-        }
-
-
-        function showEstateBoundaryTooltip(latlng)
-        {
-            const tooltip =
-                document.getElementById(
-                    'estate-custom-tooltip'
-                );
-
-            const content =
-                document.getElementById(
-                    'estate-custom-tooltip-content'
-                );
-
-            if (
-                !tooltip ||
-                !content ||
-                !window.estateLeafletMap
-            ) {
-                return;
-            }
-
-            hideEstateCustomTooltip(
-                false
-            );
-
-            window.estateCustomTooltipLotId =
-                'boundary';
-
-            window.estateCustomTooltipLatLng =
-                latlng;
-
-            content.innerHTML =
-                buildEstateBoundaryPopup();
-
-            tooltip.classList.add(
-                'is-visible'
-            );
-
-            positionEstateCustomTooltip(
-                latlng
-            );
         }
 
 
@@ -5254,8 +5195,8 @@
                             container,
                             {
                                 zoomControl: true,
-                                minZoom: 5,
-                                maxZoom: 22,
+                                minZoom: 18,
+                                maxZoom: 20,
                                 attributionControl: false,
                             }
                         );
@@ -5878,8 +5819,8 @@
                             container,
                             {
                                 zoomControl: true,
-                                minZoom: 5,
-                                maxZoom: 22,
+                                minZoom: 18,
+                                maxZoom: 20,
                                 attributionControl: false,
                             }
                         );
@@ -7078,12 +7019,12 @@
             input.value =
                 'Adjust lot boundary';
 
-            @this.call(
-                'showMapNotification',
-                'Lot Outside Block',
-                'Adjust the lot boundary points so the entire lot is inside a block.',
-                'danger'
-            );
+            // @this.call(
+            //     'showMapNotification',
+            //     'Lot Outside Block',
+            //     'Adjust the lot boundary points so the entire lot is inside a block.',
+            //     'danger'
+            // );
         }
 
 

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Map;
 
+use App\Models\Block;
 use App\Models\Lot;
 use App\Models\Map;
 use Livewire\Component;
@@ -9,9 +10,13 @@ use Livewire\Component;
 class ClientLeafletMapViewPage extends Component
 {
     public $map;
+
     public $lots;
 
+    public $blocks;
+
     public $activeLotId = null;
+
     public $lastLotVersion = null;
 
     public $lotCounts = [];
@@ -21,8 +26,10 @@ class ClientLeafletMapViewPage extends Component
         'Model House' => '#c8c9c3',
         'Lot Only' => '#c4e0b7',
         'House & Lot' => '#f8e89c',
+        'Internal Road' => '#ffffff',
         'Sold' => '#e9b4ae',
     ];
+
 
     public function mount()
     {
@@ -32,35 +39,59 @@ class ClientLeafletMapViewPage extends Component
             $this->getLotVersion();
     }
 
+
     private function loadLots(): void
     {
         $this->map = Map::with([
             'lots.user',
             'lots.houseModel',
+            'blocks',
         ])->first();
 
+
         $this->lots =
-            $this->map?->lots ?? collect();
+            $this->map?->lots
+            ?? collect();
+
+
+        $this->blocks =
+            $this->map?->blocks
+            ?? collect();
+
 
         $this->generateLotCounts();
     }
 
+
     public function generateLotCounts(): void
     {
         $this->lotCounts =
-            collect(array_keys($this->typeColors))
+            collect(
+                array_keys(
+                    $this->typeColors
+                )
+            )
                 ->mapWithKeys(
-                    fn ($type) => [$type => 0]
+                    fn ($type) => [
+                        $type => 0,
+                    ]
                 )
                 ->toArray();
 
+
         $counts =
-            collect($this->lots)
-                ->groupBy('type')
+            collect(
+                $this->lots
+            )
+                ->groupBy(
+                    'type'
+                )
                 ->map(
-                    fn ($lots) => $lots->count()
+                    fn ($lots) =>
+                        $lots->count()
                 )
                 ->toArray();
+
 
         $this->lotCounts =
             array_merge(
@@ -69,10 +100,12 @@ class ClientLeafletMapViewPage extends Component
             );
     }
 
+
     public function refreshLots(): void
     {
         $newVersion =
             $this->getLotVersion();
+
 
         /*
         |--------------------------------------------------------------------------
@@ -93,6 +126,7 @@ class ClientLeafletMapViewPage extends Component
             return;
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | Something changed
@@ -102,7 +136,9 @@ class ClientLeafletMapViewPage extends Component
         $this->lastLotVersion =
             $newVersion;
 
+
         $this->loadLots();
+
 
         /*
         |--------------------------------------------------------------------------
@@ -115,10 +151,13 @@ class ClientLeafletMapViewPage extends Component
         );
     }
 
+
     private function getLotVersion(): string
     {
         return Lot::query()
-            ->orderBy('id')
+            ->orderBy(
+                'id'
+            )
             ->get([
                 'id',
                 'updated_at',
@@ -131,13 +170,20 @@ class ClientLeafletMapViewPage extends Component
                         $lot->updated_at
                     )->timestamp
             )
-            ->implode('|');
+            ->implode(
+                '|'
+            );
     }
 
-    public function setActiveLot($id): void
+
+    public function setActiveLot(
+        $id
+    ): void
     {
-        $this->activeLotId = $id;
+        $this->activeLotId =
+            $id;
     }
+
 
     public function render()
     {
@@ -146,6 +192,9 @@ class ClientLeafletMapViewPage extends Component
             [
                 'typeColors' =>
                     $this->typeColors,
+
+                'blocks' =>
+                    $this->blocks,
             ]
         );
     }

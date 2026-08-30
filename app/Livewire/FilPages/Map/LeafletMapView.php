@@ -342,16 +342,17 @@ class LeafletMapView extends Component
         $this->map->save();
         $this->map->refresh();
 
-        $this->resetMappingState();
-        $this->loadMap();
+        session()->flash(
+            'gis_success',
+            'Subdivision boundary was successfully deleted.'
+        );
 
-        Notification::make()
-            ->title('Subdivision Boundary Deleted')
-            ->body('The subdivision boundary was successfully removed.')
-            ->success()
-            ->send();
+        $this->redirect(
+            request()->header('Referer') ?? url()->current(),
+            navigate: false
+        );
 
-        $this->dispatch('gis-boundary-deleted');
+        return;
     }
 
     /*
@@ -608,16 +609,17 @@ class LeafletMapView extends Component
 
         $block->delete();
 
-        $this->resetMappingState();
-        $this->loadMap();
+        session()->flash(
+            'gis_success',
+            "\"{$blockName}\" was successfully deleted."
+        );
 
-        Notification::make()
-            ->title('Block Deleted')
-            ->body("\"{$blockName}\" was successfully deleted.")
-            ->success()
-            ->send();
+        $this->redirect(
+            request()->header('Referer') ?? url()->current(),
+            navigate: false
+        );
 
-        $this->dispatch('gis-block-deleted');
+        return;
     }
 
     /*
@@ -1637,20 +1639,17 @@ class LeafletMapView extends Component
 
         $lot->delete();
 
-        $this->resetMappingState();
-        $this->loadMap();
-
-        Notification::make()
-            ->title('Lot Deleted')
-            ->body(
-                "\"{$lotName}\" was successfully removed."
-            )
-            ->danger()
-            ->send();
-
-        $this->dispatch(
-            'gis-lot-saved'
+        session()->flash(
+            'gis_success',
+            "\"{$lotName}\" was successfully deleted."
         );
+
+        $this->redirect(
+            request()->header('Referer') ?? url()->current(),
+            navigate: false
+        );
+
+        return;
     }
 
     public function cancelMapping(): void

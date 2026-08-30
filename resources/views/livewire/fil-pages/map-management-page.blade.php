@@ -1,6 +1,6 @@
-<div class="pb-80">
+<div class="pb-8">
 
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         @foreach($lotCounts as $type => $count)
 
             @php
@@ -30,6 +30,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                             </svg>
+                        
+                        @elseif($type === 'Internal Road')
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-road-icon lucide-road"><path d="M12 17v4"/><path d="M12 5V3"/><path d="M12 9v3"/><path d="M2.077 18.449A2 2 0 0 0 4 21h16a2 2 0 0 0 1.924-2.55l-4-14A2 2 0 0 0 16 3H8a2 2 0 0 0-1.924 1.45z"/></svg>
 
                         {{-- Default Icon --}}
                         @else
@@ -1087,7 +1090,8 @@
         </x-modal>
     </div>
 
-    <livewire:fil-pages.map.map-view />
+    {{-- <livewire:fil-pages.map.map-view /> --}}
+    <livewire:fil-pages.map.leaflet-map-view />
 
     {{-- VIEW TOUR SCRIPT  --}}
     <script>

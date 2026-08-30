@@ -49,6 +49,7 @@ class AppointmentPage extends Component
 
         $allowedTabs = [
             'pending',
+            'awaiting_client_confirmation',
             'approved',
             'completed',
             'cancelled',
@@ -125,6 +126,7 @@ class AppointmentPage extends Component
     {
         $allowedTabs = [
             'pending',
+            'awaiting_client_confirmation',
             'approved',
             'completed',
             'cancelled',
@@ -900,6 +902,20 @@ class AppointmentPage extends Component
             ->count();
     }
 
+    public function getAwaitingConfirmationCountProperty()
+    {
+        return ClientAppointment::query()
+            ->where(
+                'user_id',
+                auth()->id()
+            )
+            ->where(
+                'status',
+                'awaiting_client_confirmation'
+            )
+            ->count();
+    }
+
     public function getApprovedCountProperty()
     {
         return ClientAppointment::query()
@@ -954,6 +970,192 @@ class AppointmentPage extends Component
                 'declined'
             )
             ->count();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Confirm Admin / Staff Appointment
+    |--------------------------------------------------------------------------
+    */
+
+    public function confirmAdminAppointment(
+        $id
+    ) {
+        $appointment =
+            ClientAppointment::query()
+                ->where(
+                    'user_id',
+                    auth()->id()
+                )
+                ->where(
+                    'status',
+                    'awaiting_client_confirmation'
+                )
+                ->findOrFail($id);
+
+        $appointment->update([
+            'status' =>
+                'approved',
+
+            'client_confirmed_at' =>
+                now(),
+
+            'client_declined_at' =>
+                null,
+        ]);
+
+        $this->activeTab = 'approved';
+
+        $this->notification()->success(
+            'Appointment Confirmed',
+            'The appointment has been confirmed.'
+        );
+    }
+
+    public function confirmAdminAppointmentConfirmation(
+        $id
+    ) {
+        $appointment =
+            ClientAppointment::query()
+                ->where(
+                    'user_id',
+                    auth()->id()
+                )
+                ->where(
+                    'status',
+                    'awaiting_client_confirmation'
+                )
+                ->findOrFail($id);
+
+        $formattedDate =
+            Carbon::parse(
+                $appointment->appointment_date
+            )->format('F d, Y');
+
+        $formattedTime =
+            Carbon::parse(
+                $appointment->appointment_time
+            )->format('h:i A');
+
+        $this->dialog()->confirm([
+            'title' =>
+                'Confirm Appointment?',
+
+            'description' =>
+                'Are you sure you want to confirm the appointment on '
+                . $formattedDate
+                . ' at '
+                . $formattedTime
+                . '?',
+
+            'acceptLabel' =>
+                'Yes, Confirm',
+
+            'rejectLabel' =>
+                'Cancel',
+
+            'method' =>
+                'confirmAdminAppointment',
+
+            'params' =>
+                $id,
+
+            'icon' =>
+                'success',
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Decline Admin / Staff Appointment
+    |--------------------------------------------------------------------------
+    */
+
+    public function declineAdminAppointment(
+        $id
+    ) {
+        $appointment =
+            ClientAppointment::query()
+                ->where(
+                    'user_id',
+                    auth()->id()
+                )
+                ->where(
+                    'status',
+                    'awaiting_client_confirmation'
+                )
+                ->findOrFail($id);
+
+        $appointment->update([
+            'status' =>
+                'declined',
+
+            'client_declined_at' =>
+                now(),
+
+            'client_confirmed_at' =>
+                null,
+        ]);
+
+        $this->activeTab = 'declined';
+
+        $this->notification()->success(
+            'Appointment Declined',
+            'The appointment has been declined.'
+        );
+    }
+
+    public function confirmDeclineAdminAppointment(
+        $id
+    ) {
+        $appointment =
+            ClientAppointment::query()
+                ->where(
+                    'user_id',
+                    auth()->id()
+                )
+                ->where(
+                    'status',
+                    'awaiting_client_confirmation'
+                )
+                ->findOrFail($id);
+
+        $formattedDate =
+            Carbon::parse(
+                $appointment->appointment_date
+            )->format('F d, Y');
+
+        $formattedTime =
+            Carbon::parse(
+                $appointment->appointment_time
+            )->format('h:i A');
+
+        $this->dialog()->confirm([
+            'title' =>
+                'Decline Appointment?',
+
+            'description' =>
+                'Are you sure you want to decline the appointment on '
+                . $formattedDate
+                . ' at '
+                . $formattedTime
+                . '?',
+
+            'acceptLabel' =>
+                'Yes, Decline',
+
+            'rejectLabel' =>
+                'Cancel',
+
+            'method' =>
+                'declineAdminAppointment',
+
+            'params' =>
+                $id,
+
+            'icon' =>
+                'warning',
+        ]);
     }
 
     /*

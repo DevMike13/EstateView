@@ -15,6 +15,22 @@
                     <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
                         {{ $this->pendingCount }}
                     </span>
+
+                </button>
+
+                <!-- Awaiting Client -->
+                <button wire:click="setTab('awaiting_client_confirmation')"
+                    class="py-4 px-4 text-sm font-medium border-b-2 flex items-center gap-2
+                    {{ $activeTab === 'awaiting_client_confirmation'
+                        ? 'border-[#129c45] text-[#129c45]'
+                        : 'border-transparent text-gray-500' }}">
+
+                    <span>Awaiting</span>
+
+                    <span class="w-5 h-5 flex items-center justify-center rounded-full text-xs bg-gray-200">
+                        {{ $this->awaitingClientCount }}
+                    </span>
+
                 </button>
 
                 <!-- Approved -->
@@ -135,19 +151,26 @@
                             <span class="hidden sm:inline-flex px-3 py-1 rounded-full text-xs font-medium
                                 {{
                                     match($appointment->status) {
-                                        'pending'   => 'bg-yellow-100 text-yellow-700',
-                                        'approved'  => 'bg-green-100 text-green-700',
+                                        'pending' => 'bg-yellow-100 text-yellow-700',
+                                        'awaiting_client_confirmation' => 'bg-orange-100 text-orange-700',
+                                        'approved' => 'bg-green-100 text-green-700',
                                         'completed' => 'bg-blue-100 text-blue-700',
                                         'cancelled' => 'bg-red-100 text-red-700',
                                         'declined',
-                                        'rejected'  => 'bg-red-100 text-red-700',
-                                        default     => 'bg-gray-100 text-gray-700',
+                                        'rejected' => 'bg-red-100 text-red-700',
+                                        default => 'bg-gray-100 text-gray-700',
                                     }
                                 }}"
                             >
-                                {{ $appointment->status === 'pending'
-                                    ? 'Pending Review'
-                                    : ucfirst($appointment->status) }}
+
+                                {{
+                                    match($appointment->status) {
+                                        'pending' => 'Pending Review',
+                                        'awaiting_client_confirmation' => 'Awaiting Client',
+                                        default => ucfirst($appointment->status),
+                                    }
+                                }}
+
                             </span>
 
                             <svg
@@ -181,19 +204,26 @@
                                 <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium
                                     {{
                                         match($appointment->status) {
-                                            'pending'   => 'bg-yellow-100 text-yellow-700',
-                                            'approved'  => 'bg-green-100 text-green-700',
+                                            'pending' => 'bg-yellow-100 text-yellow-700',
+                                            'awaiting_client_confirmation' => 'bg-orange-100 text-orange-700',
+                                            'approved' => 'bg-green-100 text-green-700',
                                             'completed' => 'bg-blue-100 text-blue-700',
                                             'cancelled' => 'bg-red-100 text-red-700',
                                             'declined',
-                                            'rejected'  => 'bg-red-100 text-red-700',
-                                            default     => 'bg-gray-100 text-gray-700',
+                                            'rejected' => 'bg-red-100 text-red-700',
+                                            default => 'bg-gray-100 text-gray-700',
                                         }
                                     }}"
                                 >
-                                    {{ $appointment->status === 'pending'
-                                        ? 'Pending Review'
-                                        : ucfirst($appointment->status) }}
+
+                                    {{
+                                        match($appointment->status) {
+                                            'pending' => 'Pending Review',
+                                            'awaiting_client_confirmation' => 'Awaiting Client',
+                                            default => ucfirst($appointment->status),
+                                        }
+                                    }}
+
                                 </span>
                             </div>
 
@@ -364,6 +394,13 @@
                                             rounded-lg font-semibold"
                                     />
 
+                                @elseif($activeTab === 'awaiting_client_confirmation')
+                                    <div
+                                        class="w-full rounded-lg bg-orange-50 border border-orange-200
+                                            px-4 py-3 text-sm text-orange-700"
+                                    >
+                                        Waiting for the client to confirm or decline this appointment.
+                                    </div>
                                 @elseif($activeTab === 'approved')
                                     <x-button
                                         wire:click="confirmComplete({{ $appointment->id }})"
@@ -395,35 +432,41 @@
                     </p>
                 </div>
             @endforelse
-
         </div>
         <!-- End Tab Content -->
     </div>
 
-
     <div class="w-full max-w-4xl mx-auto p-4 bg-[#f9fafc] rounded-xl shadow">
-
         {{-- HEADER --}}
         <div class="flex justify-between items-center mb-4">
-
-            <x-button.circle  wire:click="previousMonth" icon="chevron-left" />
+            <x-button.circle
+                wire:click="previousMonth"
+                icon="chevron-left"
+            />
 
             <h2 class="text-lg font-semibold">
                 {{ $currentMonth->format('F Y') }}
             </h2>
 
-            <x-button.circle  wire:click="nextMonth" icon="chevron-right" />
+            <x-button.circle
+                wire:click="nextMonth"
+                icon="chevron-right"
+            />
         </div>
 
         {{-- WEEKDAYS --}}
         <div class="grid grid-cols-7 text-center text-xs text-gray-500 mb-2">
-            <div>Sun</div><div>Mon</div><div>Tue</div>
-            <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
         </div>
 
         {{-- GRID --}}
         <div class="grid grid-cols-7 gap-2">
-
             {{-- EMPTY START --}}
             @for ($i = 0; $i < $startDay; $i++)
                 <div></div>
@@ -436,56 +479,80 @@
                     $isPast = $date['past'];
                     $isBlocked = in_array($date['date'], $blocked);
                     $isSelected = in_array($date['date'], $selectedDates);
+                    $isConfirmed = in_array($date['date'], $confirmedDates);
 
                     $classes = '';
 
-                    // 🚫 PAST
                     if ($isPast) {
                         $classes = 'bg-transparent text-gray-300 cursor-not-allowed';
                     }
 
-                    // 🔴 BLOCKED
                     elseif ($isBlocked) {
                         $classes = 'bg-red-500 text-white relative';
                     }
 
-                    // ⚪ AVAILABLE
+                    elseif ($isConfirmed) {
+                        $classes = 'bg-green-500 text-white hover:bg-green-600';
+                    }
+
                     else {
                         $classes = 'bg-gray-100 text-gray-700 hover:bg-gray-200';
                     }
 
-                    // 🔵 SELECTED
                     if ($isSelected && !$isPast) {
                         $classes .= ' ring-2 ring-blue-500';
                     }
+
                 @endphp
 
-                <button
-                    wire:click="toggleDate('{{ $date['date'] }}')"
-                    @disabled($isPast)
-                    class="
-                        h-10 rounded-xl transition
-                        flex items-center justify-center
-                        {{ $classes }}
-                    "
-                >
-                    {{ $date['day'] }}
+                <div class="min-w-0">
+                    <button
+                        wire:click="toggleDate('{{ $date['date'] }}')"
+                        @disabled($isPast)
+                        class="
+                            w-full h-10 rounded-xl transition
+                            flex items-center justify-center
+                            {{ $classes }}
+                        "
+                    >
+                        {{ $date['day'] }}
+                        @if($isBlocked)
+                            <span
+                                wire:click.stop="confirmRemoveBlockedDate('{{ $date['date'] }}')"
+                                class="absolute top-1 right-1 text-xs bg-white text-red-600 px-1 rounded-full cursor-pointer"
+                            >
+                                ×
+                            </span>
+                        @endif
+                    </button>
 
-                    @if($isBlocked)
-                        <span
-                            wire:click.stop="confirmRemoveBlockedDate('{{ $date['date'] }}')"
-                            class="absolute top-1 right-1 text-xs bg-white text-red-600 px-1 rounded-full cursor-pointer"
+                    {{-- @if(!$isPast && !$isBlocked)
+                        <button
+                            type="button"
+                            wire:click="openSetAppointment('{{ $date['date'] }}')"
+                            class="
+                                mt-1
+                                w-full
+                                rounded-md
+                                bg-[#129c45]
+                                px-1
+                                py-1
+                                text-[9px]
+                                font-medium
+                                text-white
+                                transition
+                                hover:bg-green-700
+                            "
                         >
-                            ×
-                        </span>
-                    @endif
-                </button>
+                            Set Appointment
+                        </button>
 
+                    @endif --}}
+                </div>
             @endforeach
-
         </div>
 
-        <div class="mt-4">
+        <div class="mt-4 flex flex-wrap items-center gap-3">
             <button
                 wire:click="confirmBlockDates"
                 class="px-4 py-2 bg-black text-white rounded-lg disabled:opacity-50"
@@ -493,7 +560,181 @@
             >
                 Save Blocked Dates
             </button>
-        </div>
 
+            <button
+                type="button"
+                wire:click="openSetAppointment"
+                class="
+                    px-4
+                    py-2
+                    bg-[#129c45]
+                    text-white
+                    rounded-lg
+                    font-medium
+                    transition
+                    hover:bg-green-700
+                "
+            >
+                Set Appointment
+            </button>
+        </div>
     </div>
+
+    {{-- SET APPOINTMENT MODAL --}}
+    <x-modal
+        wire:model="showSetAppointmentModal"
+        max-width="md"
+        blur="md"
+        align="center"
+    >
+        <div class="w-full sm:max-w-2xl md:max-w-3xl mx-auto">
+            <form wire:submit.prevent="createStaffAppointment">
+                <x-card title="Set Appointment">
+
+                    {{-- APPOINTMENT DATE --}}
+                    <div class="mb-5">
+                        <x-datetime-picker
+                            without-time
+                            without-timezone
+                            without-tips
+                            label="Appointment Date"
+                            placeholder="Select appointment date"
+                            display-format="MM/DD/YYYY"
+                            parse-format="YYYY-MM-DD"
+                            :min="$this->appointmentMinDate"
+                            wire:model.live="setAppointmentDate"
+                        />
+
+                        @error('setAppointmentDate')
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
+                    {{-- CLIENT NAME --}}
+                    <div>
+                        <x-select
+                            label="Client Name"
+                            placeholder="Select Client"
+                            :options="$this->eligibleClients"
+                            option-label="name"
+                            option-value="id"
+                            wire:model="setAppointmentClientId"
+                        />
+
+                        @error('setAppointmentClientId')
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
+                    {{-- APPOINTMENT TYPE --}}
+                    <div class="mt-4">
+                        <x-select
+                            label="Appointment Type"
+                            placeholder="Choose appointment type"
+                            :options="[
+                                'Property Tripping',
+                                'Loan Consultation',
+                                'Reservation Assistance',
+                                'Payment Discussion',
+                                'General Inquiry'
+                            ]"
+                            wire:model="setAppointmentType"
+                        />
+
+                        @error('setAppointmentType')
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
+                    {{-- NOTES --}}
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Notes (Purpose)
+                        </label>
+
+                        <textarea
+                            wire:model="setAppointmentNotes"
+                            rows="4"
+                            placeholder="Enter purpose or notes"
+                            class="
+                                w-full
+                                resize-none
+                                rounded-lg
+                                border-gray-300
+                                text-sm
+                                focus:border-green-500
+                                focus:ring-green-500
+                            "
+                        >
+                        </textarea>
+
+                        @error('setAppointmentNotes')
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
+                    {{-- TIME SLOT --}}
+                    <div class="mt-4">
+                        <x-select
+                            label="Select Time"
+                            placeholder="Choose an available time slot"
+                            :options="$this->setAppointmentTimeSlots"
+                            wire:model="setAppointmentTime"
+                        />
+
+                        @if($setAppointmentDate && count($this->setAppointmentTimeSlots))
+                            <p class="mt-1 text-[11px] text-gray-400">
+                                Booked and already-passed time slots are automatically hidden.
+                            </p>
+                        @elseif($setAppointmentDate)
+                            <p class="mt-1 text-xs text-orange-600">
+                                No available time slots for this date.
+                            </p>
+                        @endif
+
+                        @error('setAppointmentTime')
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
+                    <x-slot name="footer">
+                        <div class="flex justify-end gap-3">
+                            <button
+                                type="button"
+                                wire:click="closeSetAppointmentModal"
+                                class="
+                                    px-4
+                                    py-2
+                                    text-sm
+                                    font-medium
+                                    text-gray-600
+                                    hover:text-gray-900
+                                    transition
+                                "
+                            >
+                                Cancel
+                            </button>
+
+                            <x-button
+                                type="submit"
+                                positive
+                                label="Save"
+                                spinner="createStaffAppointment"
+                            />
+                        </div>
+                    </x-slot>
+                </x-card>
+            </form>
+        </div>
+    </x-modal>
 </div>

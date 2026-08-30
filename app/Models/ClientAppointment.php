@@ -12,6 +12,8 @@ class ClientAppointment extends Model
 
     protected $fillable = [
         'user_id',
+        'created_by',
+        'created_by_role',
         'appointment_date',
         'appointment_time',
         'appointment_type',
@@ -20,7 +22,20 @@ class ClientAppointment extends Model
         'notes',
         'document_path',
         'status',
+        'client_confirmed_at',
+        'client_declined_at',
     ];
+
+    protected $casts = [
+        'appointment_date' => 'date',
+        'client_confirmed_at' => 'datetime',
+        'client_declined_at' => 'datetime',
+    ];
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     public function user(): BelongsTo
     {

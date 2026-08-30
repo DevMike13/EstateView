@@ -7,6 +7,7 @@ use App\Mail\AppointmentCompletedMail;
 use App\Mail\AppointmentDeclinedMail;
 use App\Models\ClientAppointment;
 use App\Models\Notification;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 
 class AppointmentObserver
@@ -16,12 +17,26 @@ class AppointmentObserver
      */
     public function created(ClientAppointment $appointment): void
     {
+        $isStaffCreated = in_array(
+            $appointment->created_by_role,
+            ['admin', 'staff'],
+            true
+        );
+
+        $title = $isStaffCreated
+            ? 'New Appointment Scheduled'
+            : 'New Appointment Request';
+
+        $type = $isStaffCreated
+            ? 'appointment_scheduled'
+            : 'appointment_created';
+
         $this->notify(
             $appointment,
-            'New Appointment Request',
+            $title,
             $this->buildMessage($appointment),
-            'appointment_created',
-            false
+            $type,
+            true
         );
     }
 
@@ -30,50 +45,348 @@ class AppointmentObserver
      */
     public function updated(ClientAppointment $appointment): void
     {
-        if ($appointment->wasChanged('status')) {
+        if (! $appointment->wasChanged('status')) {
+            return;
+        }
 
-            $performedBy = 'System';
+        $appointment->loadMissing([
+            'user',
+            'creator',
+        ]);
 
-            if (auth()->check()) {
-                $performedBy = match (auth()->user()->role) {
-                    'staff' => auth()->user()->name,
-                    'user'  => auth()->user()->name,
-                    'agent' => auth()->user()->name,
-                    'admin' => 'Admin',
-                    default => auth()->user()->name ?? 'System',
-                };
-            }
+        $actor = auth()->user();
 
-            // Don't send the in-app notification back to the client
-            // when the client cancelled their own appointment.
-            $includeClient = !(
-                $appointment->status === 'cancelled'
-                && auth()->check()
-                && auth()->user()->role === 'user'
-            );
+        $performedBy = 'System';
 
-            $this->notify(
-                $appointment,
-                'Appointment Status Updated',
-                $this->buildMessage($appointment)
-                    . " Updated by: {$performedBy}.",
-                'appointment_updated',
-                $includeClient
-);
-
-            match ($appointment->status) {
-                'approved' => Mail::to($appointment->user->email)
-                    ->send(new AppointmentApprovedMail($appointment, $performedBy)),
-
-                'completed' => Mail::to($appointment->user->email)
-                    ->send(new AppointmentCompletedMail($appointment, $performedBy)),
-
-                'declined' => Mail::to($appointment->user->email)
-                    ->send(new AppointmentDeclinedMail($appointment, $performedBy)),
-
-                default => null,
+        if ($actor) {
+            $performedBy = match ($actor->role) {
+                'admin' => 'Admin',
+                default => $actor->name ?? 'System',
             };
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CLIENT CONFIRMED ADMIN / STAFF APPOINTMENT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $appointment->status === 'approved'
+            && $actor
+            && $actor->role === 'user'
+            && in_array(
+                $appointment->created_by_role,
+                ['admin', 'staff'],
+                true
+            )
+        ) {
+            $this->notify(
+                $appointment,
+                'Appointment Confirmed by Client',
+                $this->buildClientConfirmationMessage(
+                    $appointment
+                ),
+                'appointment_client_confirmed',
+                false
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CLIENT DECLINED ADMIN / STAFF APPOINTMENT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $appointment->status === 'declined'
+            && $actor
+            && $actor->role === 'user'
+            && in_array(
+                $appointment->created_by_role,
+                ['admin', 'staff'],
+                true
+            )
+        ) {
+            $this->notify(
+                $appointment,
+                'Appointment Declined by Client',
+                $this->buildClientDeclineMessage(
+                    $appointment
+                ),
+                'appointment_client_declined',
+                false
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / STAFF APPROVED APPOINTMENT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $appointment->status === 'approved'
+            && $actor
+            && in_array(
+                $actor->role,
+                ['admin', 'staff'],
+                true
+            )
+        ) {
+            $this->notify(
+                $appointment,
+                'Appointment Approved',
+                $this->buildStaffApproveMessage(
+                    $appointment,
+                    $performedBy
+                ),
+                'appointment_approved',
+                true
+            );
+
+            // Mail::to(
+            //     $appointment->user->email
+            // )->send(
+            //     new AppointmentApprovedMail(
+            //         $appointment,
+            //         $performedBy
+            //     )
+            // );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / STAFF DECLINED APPOINTMENT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $appointment->status === 'declined'
+            && $actor
+            && in_array(
+                $actor->role,
+                ['admin', 'staff'],
+                true
+            )
+        ) {
+            $this->notify(
+                $appointment,
+                'Appointment Declined',
+                $this->buildStaffDeclineMessage(
+                    $appointment,
+                    $performedBy
+                ),
+                'appointment_declined',
+                true
+            );
+
+            // Mail::to(
+            //     $appointment->user->email
+            // )->send(
+            //     new AppointmentDeclinedMail(
+            //         $appointment,
+            //         $performedBy
+            //     )
+            // );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | APPOINTMENT COMPLETED
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $appointment->status === 'completed'
+            && $actor
+            && in_array(
+                $actor->role,
+                ['admin', 'staff'],
+                true
+            )
+        ) {
+            $this->notify(
+                $appointment,
+                'Appointment Completed',
+                $this->buildCompletedMessage(
+                    $appointment,
+                    $performedBy
+                ),
+                'appointment_completed',
+                true
+            );
+
+            Mail::to(
+                $appointment->user->email
+            )->send(
+                new AppointmentCompletedMail(
+                    $appointment,
+                    $performedBy
+                )
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | NORMAL STATUS UPDATE
+        |--------------------------------------------------------------------------
+        */
+
+        $includeClient = ! (
+            $appointment->status === 'cancelled'
+            && $actor
+            && $actor->role === 'user'
+        );
+
+        $this->notify(
+            $appointment,
+            'Appointment Status Updated',
+            $this->buildMessage($appointment)
+                . " Updated by: {$performedBy}.",
+            'appointment_updated',
+            $includeClient
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | EMAIL
+        |--------------------------------------------------------------------------
+        */
+
+        match ($appointment->status) {
+            'approved' =>
+                Mail::to(
+                    $appointment->user->email
+                )->send(
+                    new AppointmentApprovedMail(
+                        $appointment,
+                        $performedBy
+                    )
+                ),
+
+            'completed' =>
+                Mail::to(
+                    $appointment->user->email
+                )->send(
+                    new AppointmentCompletedMail(
+                        $appointment,
+                        $performedBy
+                    )
+                ),
+
+            'declined' =>
+                Mail::to(
+                    $appointment->user->email
+                )->send(
+                    new AppointmentDeclinedMail(
+                        $appointment,
+                        $performedBy
+                    )
+                ),
+
+            default => null,
+        };
+    }
+
+    private function buildStaffDeclineMessage(
+        ClientAppointment $appointment,
+        string $performedBy
+    ): string {
+        $appointment->loadMissing('user');
+
+        $client =
+            $appointment->name
+            ?? $appointment->user?->name
+            ?? 'Unknown Client';
+
+        $date =
+            Carbon::parse(
+                $appointment->appointment_date
+            )->format('M d, Y');
+
+        $time =
+            Carbon::parse(
+                $appointment->appointment_time
+            )->format('h:i A');
+
+        $type =
+            $appointment->appointment_type
+            ?? 'appointment';
+
+        return "The {$type} appointment for {$client} scheduled on {$date} at {$time} was declined by {$performedBy}.";
+    }
+
+    private function buildStaffApproveMessage(
+        ClientAppointment $appointment,
+        string $performedBy
+    ): string {
+        $appointment->loadMissing('user');
+
+        $client = $appointment->name ?? $appointment->user?->name ?? 'Unknown Client';
+
+        $date = Carbon::parse($appointment->appointment_date)->format('M d, Y');
+
+        $time = Carbon::parse($appointment->appointment_time)->format('h:i A');
+
+        $type = $appointment->appointment_type ?? 'appointment';
+
+        return "The {$type} appointment for {$client} scheduled on {$date} at {$time} was approved by {$performedBy}.";
+    }
+
+    private function buildClientConfirmationMessage(
+        ClientAppointment $appointment
+    ): string {
+        $client = $appointment->name ?? $appointment->user?->name ?? 'The client';
+
+        $date = Carbon::parse($appointment->appointment_date)->format('M d, Y');
+
+        $time = Carbon::parse($appointment->appointment_time)->format('h:i A');
+
+        $type =$appointment->appointment_type?? 'appointment';
+
+        return "{$client} confirmed the {$type} appointment scheduled for {$date} at {$time}.";
+    }
+
+    private function buildCompletedMessage(
+        ClientAppointment $appointment,
+        string $performedBy
+    ): string {
+        $appointment->loadMissing('user');
+
+        $client = $appointment->name ?? $appointment->user?->name ?? 'Unknown Client';
+
+        $date = Carbon::parse($appointment->appointment_date)->format('M d, Y');
+
+        $time = Carbon::parse($appointment->appointment_time)->format('h:i A');
+
+        $type = $appointment->appointment_type ?? 'appointment';
+
+        return "The {$type} appointment for {$client} scheduled on {$date} at {$time} was marked as completed by {$performedBy}.";
+    }
+
+    private function buildClientDeclineMessage(
+        ClientAppointment $appointment
+    ): string {
+        $client = $appointment->name ?? $appointment->user?->name ?? 'The client';
+
+        $date = Carbon::parse($appointment->appointment_date)->format('M d, Y');
+
+        $time = Carbon::parse($appointment->appointment_time)->format('h:i A');
+
+        $type = $appointment->appointment_type ?? 'appointment';
+
+        return "{$client} declined the {$type} appointment scheduled for {$date} at {$time}.";
     }
 
     /**
@@ -117,39 +430,71 @@ class AppointmentObserver
 
     private function buildMessage(ClientAppointment $appointment): string
     {
-        $appointment->loadMissing(['user']);
+        $appointment->loadMissing(['user', 'creator']);
 
-        $client = $appointment->name ?? $appointment->user?->name ?? 'Unknown Client';
-        $date = $appointment->appointment_date;
-        $time = $appointment->appointment_time;
+        $client =
+            $appointment->name
+            ?? $appointment->user?->name
+            ?? 'Unknown Client';
+
+        $date = Carbon::parse(
+            $appointment->appointment_date
+        )->format('M d, Y');
+
+        $time = Carbon::parse(
+            $appointment->appointment_time
+        )->format('h:i A');
+
         $type = $appointment->appointment_type;
         $status = $appointment->status;
 
-        return "Client {$client} scheduled a {$type} appointment on {$date} at {$time}. Status: {$status}.";
+        if (
+            in_array(
+                $appointment->created_by_role,
+                ['admin', 'staff'],
+                true
+            )
+        ) {
+            $creator = $appointment->creator?->name ?? ucfirst($appointment->created_by_role);
+
+            return "{$creator} scheduled a {$type} appointment for {$client} on {$date} at {$time}. Status: {$status}.";
+        }
+
+        return "{$client} scheduled a {$type} appointment on {$date} at {$time}. Status: {$status}.";
     }
 
     /**
      * Save notification
      */
     private function notify(
-    ClientAppointment $appointment,
+        ClientAppointment $appointment,
         string $title,
         string $message,
         string $type,
         bool $includeClient = true
     ): void {
+        $appointment->loadMissing(['user']);
+
+        $performedById = auth()->id();
+
+        if (
+            $type === 'appointment_scheduled'
+            && $appointment->created_by
+        ) {
+            $performedById = $appointment->created_by;
+        }
 
         $notification = Notification::create([
             'title' => $title,
             'message' => $message,
             'type' => $type,
-
-            // 🔥 Deep link (adjust route if needed)
-            'url' => route('filament.ev-admin.pages.appointments', [
-                'activeTab' => $appointment->status,
-                'highlight' => $appointment->id,
-            ]),
-
+            'url' => route(
+                'filament.ev-admin.pages.appointments',
+                [
+                    'activeTab' => $appointment->status,
+                    'highlight' => $appointment->id,
+                ]
+            ),
             'data' => [
                 'client_name' => $appointment->name ?? $appointment->user?->name,
                 'phone' => $appointment->phone,
@@ -158,43 +503,50 @@ class AppointmentObserver
                 'appointment_type' => $appointment->appointment_type,
                 'status' => $appointment->status,
                 'appointment_id' => $appointment->id,
-
-                'client_url' => route('client.appointment', [
-                    'activeTab' => $appointment->status,
-                    'highlight' => $appointment->id,
-                ]),
+                'client_url' => route(
+                    'client.appointment',
+                    [
+                        'activeTab' => $appointment->status,
+                        'highlight' => $appointment->id,
+                    ]
+                ),
             ],
-
-            'created_by' => auth()->id(),
+            'created_by' => $performedById,
         ]);
 
-        $staffAdmins = \App\Models\User::whereIn(
-            'role',
-            ['admin', 'staff']
-        )
-        ->when(
-            auth()->check(),
-            fn ($query) =>
-                $query->where(
-                    'id',
-                    '!=',
-                    auth()->id()
-                )
-        )
-        ->pluck('id');
+        $staffAdmins = \App\Models\User::query()
+            ->whereIn('role', [
+                'admin',
+                'staff',
+            ])
+            ->when(
+                $performedById,
+                fn ($query) =>
+                    $query->where(
+                        'id',
+                        '!=',
+                        $performedById
+                    )
+            )
+            ->pluck('id');
 
         $users = $staffAdmins;
 
-        if ($includeClient && $appointment->user_id) {
-            $users = $users->merge([
-                $appointment->user_id,
-            ]);
+        if (
+            $includeClient
+            && $appointment->user_id
+            && (int) $appointment->user_id !== (int) $performedById
+        ) {
+            $users->push(
+                $appointment->user_id
+            );
         }
 
         $notification->users()->attach(
             $users
                 ->filter()
                 ->unique()
+                ->values()
                 ->toArray()
         );
     }

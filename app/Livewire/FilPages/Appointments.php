@@ -2,11 +2,14 @@
 
 namespace App\Livewire\FilPages;
 
+use App\Mail\AdminStaffCreatedAppointmentMail;
 use App\Mail\AppointmentApprovedMail;
 use App\Mail\AppointmentCompletedMail;
 use App\Mail\AppointmentDeclinedMail;
 use App\Models\BlockedDate;
 use App\Models\ClientAppointment;
+use Filament\Notifications\Notification;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Url;
@@ -31,11 +34,26 @@ class Appointments extends Component
     public $selectedDates = [];
     public $currentMonth;
 
+    // SET APPOINTMENT
+    public $setAppointmentDate = null;
+    public $setAppointmentClientId = null;
+    public $setAppointmentType = null;
+    public $setAppointmentNotes = null;
+    public $setAppointmentTime = null;
+    public $showSetAppointmentModal = false;
+
     public function mount()
     {
         $this->currentMonth = Carbon::now()->startOfMonth();
 
-        if (!in_array($this->activeTab, ['pending', 'approved', 'completed', 'declined', 'cancelled'])) {
+        if (!in_array($this->activeTab, [
+            'pending',
+            'awaiting_client_confirmation',
+            'approved',
+            'completed',
+            'declined',
+            'cancelled'
+        ])) {
             $this->activeTab = 'pending';
         }
     }
@@ -54,9 +72,17 @@ class Appointments extends Component
             ->get();
     }
 
-     public function getPendingCountProperty()
+    public function getPendingCountProperty()
     {
         return ClientAppointment::where('status', 'pending')->count();
+    }
+
+    public function getAwaitingClientCountProperty()
+    {
+        return ClientAppointment::where(
+            'status',
+            'awaiting_client_confirmation'
+        )->count();
     }
 
     public function getApprovedCountProperty()
@@ -79,7 +105,617 @@ class Appointments extends Component
         return ClientAppointment::where('status', 'cancelled')->count();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | ELIGIBLE USERS
+    |--------------------------------------------------------------------------
+    */
+
+    public function getEligibleClientsProperty()
+    {
+        return User::query()
+            ->where('role', 'user')
+            ->whereHas('purchaseAccounts')
+            ->with([
+                'info',
+                'purchaseAccounts.ledgers',
+                'purchaseAccounts.billings' => function ($query) {
+                    $query->where('status', '!=', 'cancelled');
+                },
+            ])
+            ->get()
+            ->filter(function ($user) {
+                return $user->purchaseAccounts->contains(
+                    function ($account) {
+
+                        // CASH PAYMENT
+                        if (
+                            strtolower(
+                                trim((string) $account->payment_scheme)
+                            ) === 'cash'
+                        ) {
+                            return true;
+                        }
+
+                        // OTHER PAYMENT SCHEMES
+                        if ($account->ledgers->isEmpty()) {
+                            return false;
+                        }
+
+                        $billings = $account->billings;
+
+                        if ($billings->isEmpty()) {
+                            return false;
+                        }
+
+                        $totalDue = (float) $billings->sum('amount_due');
+                        $totalPaid = (float) $billings->sum('amount_paid');
+
+                        if ($totalDue <= 0) {
+                            return false;
+                        }
+
+                        return ($totalPaid / $totalDue) >= 0.50;
+                    }
+                );
+            })
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    private function isClientEligibleForStaffAppointment(int $userId): bool
+    {
+        $user = User::query()
+            ->where('role', 'user')
+            ->with([
+                'purchaseAccounts.ledgers',
+                'purchaseAccounts.billings',
+            ])
+            ->find($userId);
+
+        if (!$user) {
+            return false;
+        }
+
+        return $user->purchaseAccounts->contains(
+            function ($account) {
+
+                // CASH PAYMENT
+                if (
+                    strtolower(
+                        trim((string) $account->payment_scheme)
+                    ) === 'cash'
+                ) {
+                    return true;
+                }
+
+                // OTHER PAYMENT SCHEMES
+                if ($account->ledgers->isEmpty()) {
+                    return false;
+                }
+
+                $billings = $account->billings
+                    ->where('status', '!=', 'cancelled');
+
+                if ($billings->isEmpty()) {
+                    return false;
+                }
+
+                $totalDue = (float) $billings->sum('amount_due');
+                $totalPaid = (float) $billings->sum('amount_paid');
+
+                if ($totalDue <= 0) {
+                    return false;
+                }
+
+                return ($totalPaid / $totalDue) >= 0.50;
+            }
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BASE TIME SLOTS
+    |--------------------------------------------------------------------------
+    */
+
+    private function baseTimeSlots(): array
+    {
+        return [
+            '09:00 AM',
+            '10:00 AM',
+            '11:00 AM',
+            '01:00 PM',
+            '02:00 PM',
+            '03:00 PM',
+            '04:00 PM',
+            '05:00 PM',
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | AVAILABLE SET APPOINTMENT TIME SLOTS
+    |--------------------------------------------------------------------------
+    */
+
+    public function getSetAppointmentTimeSlotsProperty()
+    {
+        /*
+         * No selected appointment date.
+         */
+        if (!$this->setAppointmentDate) {
+            return [];
+        }
+
+        $selectedDate = Carbon::parse(
+            $this->setAppointmentDate
+        );
+
+        /*
+         * Past date safety.
+         */
+        if (
+            $selectedDate
+                ->copy()
+                ->startOfDay()
+                ->lt(Carbon::today())
+        ) {
+            return [];
+        }
+
+        /*
+         * Blocked date safety.
+         */
+        if (
+            BlockedDate::query()
+                ->whereDate(
+                    'date',
+                    $selectedDate->format('Y-m-d')
+                )
+                ->exists()
+        ) {
+            return [];
+        }
+
+        /*
+         * Get already occupied times.
+         *
+         * Cancelled and declined appointments
+         * are ignored just like the client side.
+         */
+        $bookedTimes =
+            ClientAppointment::query()
+                ->whereDate(
+                    'appointment_date',
+                    $selectedDate->format('Y-m-d')
+                )
+                ->whereNotIn(
+                    'status',
+                    [
+                        'cancelled',
+                        'declined',
+                    ]
+                )
+                ->pluck('appointment_time')
+                ->map(function ($time) {
+                    return Carbon::parse($time)
+                        ->format('H:i:s');
+                })
+                ->toArray();
+
+        return collect(
+            $this->baseTimeSlots()
+        )
+            ->filter(function ($slot) use (
+                $selectedDate,
+                $bookedTimes
+            ) {
+
+                /*
+                 * Convert 09:00 AM to 09:00:00
+                 */
+                $databaseTime =
+                    Carbon::createFromFormat(
+                        'h:i A',
+                        $slot
+                    )
+                    ->format('H:i:s');
+
+                /*
+                 * Hide booked slot.
+                 */
+                if (
+                    in_array(
+                        $databaseTime,
+                        $bookedTimes,
+                        true
+                    )
+                ) {
+                    return false;
+                }
+
+                /*
+                 * For today, hide already-passed slots.
+                 */
+                if ($selectedDate->isToday()) {
+
+                    $slotDateTime =
+                        Carbon::createFromFormat(
+                            'Y-m-d h:i A',
+                            $selectedDate->format('Y-m-d')
+                            . ' '
+                            . $slot
+                        );
+
+                    if (
+                        $slotDateTime->lte(now())
+                    ) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            ->values()
+            ->toArray();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SET APPOINTMENT
+    |--------------------------------------------------------------------------
+    */
+
+    // public function openSetAppointment($date)
+    // {
+    //     $appointmentDate = Carbon::parse($date)->startOfDay();
+
+    //     if ($appointmentDate->lt(Carbon::today())) {
+    //         return;
+    //     }
+
+    //     if (
+    //         BlockedDate::where(
+    //             'date',
+    //             $appointmentDate->format('Y-m-d')
+    //         )->exists()
+    //     ) {
+    //         $this->notification()->error(
+    //             'Blocked Date',
+    //             'You cannot create an appointment on a blocked date.'
+    //         );
+
+    //         return;
+    //     }
+
+    //     $this->resetValidation();
+
+    //     $this->setAppointmentClientId = null;
+    //     $this->setAppointmentNotes = null;
+    //     $this->setAppointmentTime = null;
+    //     $this->setAppointmentDate = $appointmentDate->format('Y-m-d');
+
+    //     $this->showSetAppointmentModal = true;
+    // }
+    public function openSetAppointment()
+    {
+        $this->resetValidation();
+
+        $this->setAppointmentDate = null;
+        $this->setAppointmentClientId = null;
+        $this->setAppointmentType = null;
+        $this->setAppointmentNotes = null;
+        $this->setAppointmentTime = null;
+
+        $this->showSetAppointmentModal = true;
+    }
+
+    public function closeSetAppointmentModal()
+    {
+        $this->showSetAppointmentModal = false;
+
+        $this->resetValidation();
+    }
+
+    public function createStaffAppointment()
+    {
+        $this->validate([
+            'setAppointmentDate' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+            ],
+
+            'setAppointmentClientId' => [
+                'required',
+                'exists:users,id',
+            ],
+
+            'setAppointmentType' => [
+                'required',
+                'string',
+                'in:Property Tripping,Loan Consultation,Reservation Assistance,Payment Discussion,General Inquiry',
+            ],
+
+            'setAppointmentNotes' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+
+            'setAppointmentTime' => [
+                'required',
+                'string',
+            ],
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client eligibility
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$this->isClientEligibleForStaffAppointment(
+                (int) $this->setAppointmentClientId
+            )
+        ) {
+            $this->addError(
+                'setAppointmentClientId',
+                'This user is not eligible for an appointment.'
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Date validation
+        |--------------------------------------------------------------------------
+        */
+
+        $selectedDate =
+            Carbon::parse(
+                $this->setAppointmentDate
+            )
+            ->startOfDay();
+
+        if (
+            $selectedDate->lt(
+                Carbon::today()
+            )
+        ) {
+            $this->addError(
+                'setAppointmentDate',
+                'Cannot book past dates.'
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Blocked date
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            BlockedDate::query()
+                ->whereDate(
+                    'date',
+                    $selectedDate->format('Y-m-d')
+                )
+                ->exists()
+        ) {
+            $this->addError(
+                'setAppointmentDate',
+                'This date is blocked.'
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ensure selected time is valid
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !in_array(
+                $this->setAppointmentTime,
+                $this->baseTimeSlots(),
+                true
+            )
+        ) {
+            $this->addError(
+                'setAppointmentTime',
+                'Invalid appointment time.'
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Build appointment date/time
+        |--------------------------------------------------------------------------
+        */
+
+        $appointmentDateTime =
+            Carbon::createFromFormat(
+                'Y-m-d h:i A',
+                $selectedDate->format('Y-m-d')
+                . ' '
+                . $this->setAppointmentTime
+            );
+
+        /*
+         * Prevent passed time today.
+         */
+        if (
+            $appointmentDateTime->lte(now())
+        ) {
+            $this->addError(
+                'setAppointmentTime',
+                'This appointment time has already passed.'
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Convert selected time to DB format
+        |--------------------------------------------------------------------------
+        */
+
+        $time =
+            Carbon::createFromFormat(
+                'h:i A',
+                $this->setAppointmentTime
+            )
+            ->format('H:i:s');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent duplicate booking
+        |--------------------------------------------------------------------------
+        */
+
+        $exists =
+            ClientAppointment::query()
+                ->whereDate(
+                    'appointment_date',
+                    $selectedDate->format('Y-m-d')
+                )
+                ->where(
+                    'appointment_time',
+                    $time
+                )
+                ->whereNotIn(
+                    'status',
+                    [
+                        'cancelled',
+                        'declined',
+                    ]
+                )
+                ->exists();
+
+        if ($exists) {
+            $this->addError(
+                'setAppointmentTime',
+                'This time slot has already been booked.'
+            );
+
+            $this->setAppointmentTime = null;
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client
+        |--------------------------------------------------------------------------
+        */
+
+        $client = User::with('info')->findOrFail(
+            $this->setAppointmentClientId
+        );
+
+        $creator = auth()->user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Save
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment = ClientAppointment::create([
+            'user_id' => $client->id,
+
+            'created_by' => $creator->id,
+
+            'created_by_role' => $creator->role,
+
+            'appointment_date' =>
+                $selectedDate->format('Y-m-d'),
+
+            'appointment_time' =>
+                $time,
+
+            'appointment_type' =>
+                $this->setAppointmentType,
+
+            'notes' =>
+                $this->setAppointmentNotes,
+
+            'name' =>
+                $client->name,
+
+            'phone' =>
+                $client->info?->phone ?? '',
+
+            'status' =>
+                'awaiting_client_confirmation',
+        ]);
+
+        $performedBy = $creator->role === 'admin'
+            ? 'Admin'
+            : $creator->name;
+
+        Mail::to($client->email)->send(
+            new AdminStaffCreatedAppointmentMail(
+                $appointment,
+                $client,
+                $performedBy
+            )
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Reset fields
+        |--------------------------------------------------------------------------
+        */
+
+        $this->setAppointmentDate = null;
+        $this->setAppointmentClientId = null;
+        $this->setAppointmentType = null;
+        $this->setAppointmentNotes = null;
+        $this->setAppointmentTime = null;
+
+        $this->resetValidation();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Close modal
+        |--------------------------------------------------------------------------
+        */
+
+        $this->showSetAppointmentModal = false;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Show toast in the SAME request — no event bridge, no race condition
+        |--------------------------------------------------------------------------
+        */
+
+        Notification::make()
+            ->title('Appointment Sent')
+            ->body('The appointment was created and is waiting for client confirmation.')
+            ->success()
+            ->send();
+    }
+
     // CHANGE STATUS
+
     public function confirmApprove($id)
     {
         $this->dialog()->confirm([
@@ -91,6 +727,21 @@ class Appointments extends Component
             'icon' => 'success',
         ]);
     }
+
+    public function getAppointmentMinDateProperty()
+    {
+        $lastSlot = collect($this->baseTimeSlots())->last(); // '05:00 PM'
+
+        $lastSlotToday = Carbon::createFromFormat(
+            'Y-m-d h:i A',
+            Carbon::today()->format('Y-m-d') . ' ' . $lastSlot
+        );
+
+        return now()->gte($lastSlotToday)
+            ? Carbon::tomorrow()->startOfDay()
+            : Carbon::today()->startOfDay();
+    }
+
     public function approve($id)
     {
         $appointment = ClientAppointment::with('user')->findOrFail($id);
@@ -124,6 +775,7 @@ class Appointments extends Component
             'icon' => 'error',
         ]);
     }
+
     public function decline($id)
     {
         $appointment = ClientAppointment::with('user')->findOrFail($id);
@@ -158,6 +810,7 @@ class Appointments extends Component
             'icon' => 'success',
         ]);
     }
+
     public function complete($id)
     {
         $appointment = ClientAppointment::with('user')->findOrFail($id);
@@ -191,6 +844,7 @@ class Appointments extends Component
             'icon' => 'warning',
         ]);
     }
+
     public function reopen($id)
     {
         ClientAppointment::findOrFail($id)->update([
@@ -199,7 +853,7 @@ class Appointments extends Component
 
         $this->reloadWeb();
     }
-    
+
     public function previousMonth()
     {
         $this->currentMonth = $this->currentMonth->copy()->subMonth();
@@ -279,7 +933,6 @@ class Appointments extends Component
         $today = Carbon::today();
 
         while ($start <= $end) {
-
             $dates[] = [
                 'date' => $start->format('Y-m-d'),
                 'day' => $start->day,
@@ -300,17 +953,26 @@ class Appointments extends Component
             ->dayOfWeek;
     }
 
-    public function reloadWeb(){
-
+    public function reloadWeb()
+    {
         $this->dispatch('reload');
-        return redirect()->back();
 
+        return redirect()->back();
     }
 
     public function render()
     {
         return view('livewire.fil-pages.appointments', [
             'blocked' => BlockedDate::pluck('date')->toArray(),
+
+            'confirmedDates' => ClientAppointment::query()
+                ->where('status', 'approved')
+                ->pluck('appointment_date')
+                ->map(function ($date) {
+                    return Carbon::parse($date)->format('Y-m-d');
+                })
+                ->toArray(),
+
             'dates' => $this->dates,
             'startDay' => $this->startDay,
         ]);

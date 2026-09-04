@@ -168,13 +168,7 @@ class LeafletMapView extends Component
     public function createBoundary(): void
     {
         if (!$this->map) {
-            Notification::make()
-                ->title('Subdivision Map Not Found')
-                ->body('No subdivision map record is available.')
-                ->danger()
-                ->send();
-
-            return;
+            $this->map = Map::create();
         }
 
         if (count($this->subdivisionBoundary()) >= 3) {
@@ -1170,6 +1164,11 @@ class LeafletMapView extends Component
             lotId: $lot->id,
             coords: $lot->geo_coords
         );
+    }
+
+    public function removeNewLotImagePreview()
+    {
+        $this->resetFilePond('editLotImage');
     }
 
     public function updateLot(): void

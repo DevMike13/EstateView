@@ -33,22 +33,50 @@ class UserInfoObserver
 
     public function updated(UserInfo $userInfo): void
     {
-        if (! auth()->check()) return;
+        if (! auth()->check()) {
+            return;
+        }
 
-        $userInfo->loadMissing('user');
+        $actor = auth()->user();
+        $user = $userInfo->user;
 
-        $changes  = $userInfo->getChanges();
+        if (! $user) {
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ONLY CLIENT / AGENT PROFILE RECORDS
+        |--------------------------------------------------------------------------
+        */
+
+        if (! in_array($user->role, ['user', 'agent'])) {
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | BUILD CHANGES
+        |--------------------------------------------------------------------------
+        */
+
+        $changes = $userInfo->getChanges();
         $original = $userInfo->getOriginal();
 
         $diff = [];
 
         foreach ($this->trackedFields as $field => $label) {
-            if (! array_key_exists($field, $changes)) continue;
+
+            if (! array_key_exists($field, $changes)) {
+                continue;
+            }
 
             $old = $original[$field] ?? null;
             $new = $changes[$field] ?? null;
 
-            if ($old === $new) continue;
+            if ($old === $new) {
+                continue;
+            }
 
             $diff[$field] = [
                 'label' => $label,
@@ -57,26 +85,144 @@ class UserInfoObserver
             ];
         }
 
-        if (empty($diff)) return;
+        if (empty($diff)) {
+            return;
+        }
 
-        $notification = Notification::create([
-            'title' => 'Client Personal Info Updated',
-            'message' => "Personal information for {$userInfo->user?->name} was updated.",
-            'type' => 'client_personal_info_updated',
-            'url' => route('filament.ev-admin.pages.client-records'),
-            'data' => [
-                'client_id'   => $userInfo->user_id,
-                'client_name' => $userInfo->user?->name,
-                'changes'     => $diff,
-            ],
-            'created_by' => auth()->id(),
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | BUILD CHANGED FIELD TEXT
+        |--------------------------------------------------------------------------
+        */
 
-        $staffAdmins = User::whereIn('role', ['admin', 'staff'])->pluck('id');
+        $changedFields = collect($diff)
+            ->pluck('label')
+            ->map(fn ($label) => strtolower($label))
+            ->values();
 
-        $notification->users()->attach(
-            $staffAdmins->merge([$userInfo->user_id])->unique()->toArray()
-        );
+        if ($changedFields->count() === 1) {
+
+            $changesText = $changedFields->first();
+
+        } elseif ($changedFields->count() === 2) {
+
+            $changesText = $changedFields->implode(' and ');
+
+        } else {
+
+            $lastField = $changedFields->pop();
+
+            $changesText =
+                $changedFields->implode(', ')
+                . ', and '
+                . $lastField;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / STAFF EDITED CLIENT OR AGENT
+        |--------------------------------------------------------------------------
+        |
+        | Send the notification TO the affected user.
+        |
+        */
+
+        if (in_array($actor->role, ['admin', 'staff'])) {
+
+            $isAgent = $user->role === 'agent';
+
+            $notification = Notification::create([
+                'title' => $isAgent
+                    ? 'Account Information Updated'
+                    : 'Personal Information Updated',
+
+                'message' =>
+                    "{$actor->name} has made changes to your {$changesText}.",
+
+                'type' => $isAgent
+                    ? 'agent_account_updated_by_staff'
+                    : 'client_account_updated_by_staff',
+
+                'url' => route('client.account'),
+
+                'data' => [
+                    'user_id'         => $user->id,
+                    'user_name'       => $user->name,
+                    'role'            => $user->role,
+                    'changes'         => $diff,
+                    'updated_by'      => $actor->id,
+                    'updated_by_name' => $actor->name,
+                ],
+
+                'created_by' => $actor->id,
+            ]);
+
+            /*
+            * Only the affected client / agent receives it.
+            */
+            $notification->users()->attach([
+                $user->id,
+            ]);
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CLIENT / AGENT EDITED THEIR OWN INFORMATION
+        |--------------------------------------------------------------------------
+        |
+        | Send the notification TO admin + staff.
+        |
+        */
+
+        if (in_array($actor->role, ['user', 'agent'])) {
+
+            $isAgent = $user->role === 'agent';
+
+            $notification = Notification::create([
+                'title' => $isAgent
+                    ? 'Agent Profile Updated'
+                    : 'Client Personal Info Updated',
+
+                'message' =>
+                    "{$user->name} has made changes to their {$changesText}.",
+
+                'type' => $isAgent
+                    ? 'agent_profile_updated'
+                    : 'client_personal_info_updated',
+
+                'url' => $isAgent
+                    ? route('filament.ev-admin.pages.agent-management')
+                    : route('filament.ev-admin.pages.client-records'),
+
+                'data' => [
+                    'user_id'   => $user->id,
+                    'user_name' => $user->name,
+                    'role'      => $user->role,
+                    'changes'   => $diff,
+                ],
+
+                'created_by' => $actor->id,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | SEND TO ADMIN + STAFF
+            |--------------------------------------------------------------------------
+            */
+
+            $staffAdmins = User::whereIn(
+                'role',
+                ['admin', 'staff']
+            )
+                ->where('id', '!=', $actor->id)
+                ->pluck('id');
+
+            $notification->users()->attach(
+                $staffAdmins->toArray()
+            );
+        }
     }
 
     /**

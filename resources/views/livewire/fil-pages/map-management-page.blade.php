@@ -1,62 +1,7 @@
 <div class="pb-8">
 
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        @foreach($lotCounts as $type => $count)
-
-            @php
-                $color = $typeColors[$type] ?? '#ccc';
-            @endphp
-
-            <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
-                
-                <div class="flex gap-5 items-center">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style="background-color: {{ $color }}20; color: {{ $color }}">
-
-                        {{-- House & Lot --}}
-                        @if($type === 'House & Lot')
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                            </svg>
-
-                        {{-- Model House --}}
-                        @elseif($type === 'Model House')
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" />
-                            </svg>
-
-                        {{-- Lot Only --}}
-                        @elseif($type === 'Lot Only')
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                            </svg>
-                        
-                        @elseif($type === 'Internal Road')
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-road-icon lucide-road"><path d="M12 17v4"/><path d="M12 5V3"/><path d="M12 9v3"/><path d="M2.077 18.449A2 2 0 0 0 4 21h16a2 2 0 0 0 1.924-2.55l-4-14A2 2 0 0 0 16 3H8a2 2 0 0 0-1.924 1.45z"/></svg>
-
-                        {{-- Default Icon --}}
-                        @else
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v18h18" />
-                            </svg>
-                        @endif
-                    </div>
-
-                    <h2 class="text-3xl font-bold text-gray-900">
-                        {{ $count }}
-                    </h2>
-                </div>
-
-                <p class="text-xs text-gray-500 mt-1">
-                    {{ $type }}
-                </p>
-            </div>
-
-        @endforeach
-    </div>
-
     {{-- MODEL HOUSE --}}
-    <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100 mt-10">
+    <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100 mt-10" wire:poll.5s="refreshHouseModels">
         <div class="w-full h-auto flex justify-between items-center mb-5">
             <div>
                 <h2 class="text-lg font-semibold">House Models</h2>
@@ -274,6 +219,12 @@
                             label="Virtual Tour URL (Optional)"
                             placeholder="Ex: https://example.com/virtual-tour"
                             wire:model="virtualTourUrl"
+                            maxlength="50"
+                            maxlength="50"
+                            x-on:input="
+                                $el.value = $el.value.replace(/[^A-Za-z\s]/g, '');
+                                $el.dispatchEvent(new Event('input', { bubbles: true }));
+                            "
                         />
                     </div>
 
@@ -282,21 +233,52 @@
                             label="Model Name"
                             placeholder="E.g, Naomi"
                             wire:model="modelName"
+                            maxlength="50"
+                            x-on:input="
+                                $el.value = $el.value.replace(/[^A-Za-z\s]/g, '');
+                                $el.dispatchEvent(new Event('input', { bubbles: true }));
+                            "
                         />
                     </div>
 
                     <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <x-inputs.number 
-                            label="Bedrooms" 
+
+                        <x-inputs.number
+                            label="Bedrooms"
                             min="0"
-                            wire:model="bedroomsCount" 
+                            step="1"
+                            wire:model="bedroomsCount"
+                            x-on:keydown="
+                                if (['e', 'E', '+', '-', '.'].includes($event.key)) {
+                                    $event.preventDefault();
+                                }
+                            "
+                            x-on:input="
+                                $el.value = $el.value.replace(/\D/g, '');
+                                $el.dispatchEvent(
+                                    new Event('input', { bubbles: true })
+                                );
+                            "
                         />
 
-                        <x-inputs.number 
-                            label="Bathrooms" 
+                        <x-inputs.number
+                            label="Bathrooms"
                             min="0"
-                            wire:model="bathroomsCount" 
+                            step="1"
+                            wire:model="bathroomsCount"
+                            x-on:keydown="
+                                if (['e', 'E', '+', '-', '.'].includes($event.key)) {
+                                    $event.preventDefault();
+                                }
+                            "
+                            x-on:input="
+                                $el.value = $el.value.replace(/\D/g, '');
+                                $el.dispatchEvent(
+                                    new Event('input', { bubbles: true })
+                                );
+                            "
                         />
+
                     </div>
 
                     <div class="mt-3">
@@ -309,6 +291,22 @@
                             placeholder="100"
                             suffix="sqm"
                             wire:model="floorArea"
+                            x-on:keydown="
+                                if (['e', 'E', '+', '-'].includes($event.key)) {
+                                    $event.preventDefault();
+                                }
+                            "
+                            x-on:input="
+                                let value = $el.value.replace(/[^0-9.]/g, '');
+                                const parts = value.split('.');
+
+                                if (parts.length > 2) {
+                                    value = parts[0] + '.' + parts.slice(1).join('');
+                                }
+
+                                $el.value = value;
+                                $el.dispatchEvent(new Event('input', { bubbles: true }));
+                            "
                         />
                     </div>
 
@@ -372,6 +370,7 @@
                         label="Virtual Tour URL (Optional)"
                         placeholder="Ex: https://example.com/virtual-tour"
                         wire:model="editVirtualTourUrl"
+                        maxlength="50"
                     />
                 </div>
 
@@ -380,21 +379,52 @@
                         label="Model Name"
                         placeholder="E.g, Naomi"
                         wire:model="editModelName"
+                        maxlength="50"
+                        x-on:input="
+                            $el.value = $el.value.replace(/[^A-Za-z\s]/g, '');
+                            $el.dispatchEvent(new Event('input', { bubbles: true }));
+                        "
                     />
                 </div>
 
                 <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-inputs.number 
-                        label="Bedrooms" 
+
+                    <x-inputs.number
+                        label="Bedrooms"
                         min="0"
-                        wire:model="editBedroomsCount" 
+                        step="1"
+                        wire:model="editBedroomsCount"
+                        x-on:keydown="
+                            if (['e', 'E', '+', '-', '.'].includes($event.key)) {
+                                $event.preventDefault();
+                            }
+                        "
+                        x-on:input="
+                            $el.value = $el.value.replace(/\D/g, '');
+                            $el.dispatchEvent(
+                                new Event('input', { bubbles: true })
+                            );
+                        "
                     />
 
-                    <x-inputs.number 
-                        label="Bathrooms" 
+                    <x-inputs.number
+                        label="Bathrooms"
                         min="0"
-                        wire:model="editBathroomsCount" 
+                        step="1"
+                        wire:model="editBathroomsCount"
+                        x-on:keydown="
+                            if (['e', 'E', '+', '-', '.'].includes($event.key)) {
+                                $event.preventDefault();
+                            }
+                        "
+                        x-on:input="
+                            $el.value = $el.value.replace(/\D/g, '');
+                            $el.dispatchEvent(
+                                new Event('input', { bubbles: true })
+                            );
+                        "
                     />
+
                 </div>
 
                 <div class="mt-3">
@@ -407,6 +437,22 @@
                         placeholder="100"
                         suffix="sqm"
                         wire:model="editFloorArea"
+                        x-on:keydown="
+                            if (['e', 'E', '+', '-'].includes($event.key)) {
+                                $event.preventDefault();
+                            }
+                        "
+                        x-on:input="
+                            let value = $el.value.replace(/[^0-9.]/g, '');
+                            const parts = value.split('.');
+
+                            if (parts.length > 2) {
+                                value = parts[0] + '.' + parts.slice(1).join('');
+                            }
+
+                            $el.value = value;
+                            $el.dispatchEvent(new Event('input', { bubbles: true }));
+                        "
                     />
                 </div>
 
@@ -929,7 +975,7 @@
                         }
 
                         el.innerHTML = '';
-
+                        console.log('LIVEWIRE PREVIEW URL:', scene.preview);
                         this.viewer = pannellum.viewer(el, {
                             type: 'equirectangular',
                             panorama: scene.preview,
@@ -1090,6 +1136,61 @@
         </x-modal>
     </div>
 
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-10">
+        @foreach($lotCounts as $type => $count)
+
+            @php
+                $color = $typeColors[$type] ?? '#ccc';
+            @endphp
+
+            <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
+                
+                <div class="flex gap-5 items-center">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style="background-color: {{ $color }}20; color: {{ $color }}">
+
+                        {{-- House & Lot --}}
+                        @if($type === 'House & Lot')
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                            </svg>
+
+                        {{-- Model House --}}
+                        @elseif($type === 'Model House')
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" />
+                            </svg>
+
+                        {{-- Lot Only --}}
+                        @elseif($type === 'Lot Only')
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                            </svg>
+                        
+                        @elseif($type === 'Internal Road')
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-road-icon lucide-road"><path d="M12 17v4"/><path d="M12 5V3"/><path d="M12 9v3"/><path d="M2.077 18.449A2 2 0 0 0 4 21h16a2 2 0 0 0 1.924-2.55l-4-14A2 2 0 0 0 16 3H8a2 2 0 0 0-1.924 1.45z"/></svg>
+
+                        {{-- Default Icon --}}
+                        @else
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v18h18" />
+                            </svg>
+                        @endif
+                    </div>
+
+                    <h2 class="text-3xl font-bold text-gray-900">
+                        {{ $count }}
+                    </h2>
+                </div>
+
+                <p class="text-xs text-gray-500 mt-1">
+                    {{ $type }}
+                </p>
+            </div>
+
+        @endforeach
+    </div>
+
     {{-- <livewire:fil-pages.map.map-view /> --}}
     <livewire:fil-pages.map.leaflet-map-view />
 
@@ -1103,364 +1204,318 @@
                 activeIndex: 0,
 
                 setScenes(data) {
-            this.scenes =
-                Array.isArray(data)
-                    ? data
-                    : [];
-        },
+                    this.scenes = Array.isArray(data) ? data : [];
+                },
 
-        preloadScenes() {
-            this.scenes.forEach(scene => {
-                if (!scene.image) return;
+                preloadScenes() {
+                    this.scenes.forEach(scene => {
+                        if (!scene.image) return;
 
-                const img = new Image();
-                img.src = scene.image;
-            });
-        },
+                        const img = new Image();
+                        img.src = scene.image;
+                    });
+                },
 
-        init() {
+                init() {
+                    if (this.scenes.length === 0) {
+                        return;
+                    }
 
-            if (this.scenes.length === 0) {
-                return;
-            }
+                    this.preloadScenes();
 
-            // Preload every panorama
-            this.preloadScenes();
-
-            this.$nextTick(() => {
-                this.createViewer();
-            });
-        },
+                    this.$nextTick(() => {
+                        this.createViewer();
+                    });
+                },
 
                 getSceneKey(index) {
                     return `scene-${index}`;
                 },
 
-                createViewer() {
+                normalizeYaw(yaw) {
+                    let value = Number(yaw);
 
-                    const container =
-                        this.$refs.viewer;
+                    if (!Number.isFinite(value)) {
+                        return 0;
+                    }
+
+                    while (value > 180) value -= 360;
+                    while (value < -180) value += 360;
+
+                    return value;
+                },
+
+                yawDistance(a, b) {
+                    const first = this.normalizeYaw(a);
+                    const second = this.normalizeYaw(b);
+                    let diff = Math.abs(first - second);
+
+                    if (diff > 180) {
+                        diff = 360 - diff;
+                    }
+
+                    return diff;
+                },
+
+                hotspotDistance(hotspot, referencePitch = 0, referenceYaw = 0) {
+                    const pitch = Number(hotspot?.pitch);
+                    const yaw = Number(hotspot?.yaw);
+
+                    if (!Number.isFinite(pitch) || !Number.isFinite(yaw)) {
+                        return Number.POSITIVE_INFINITY;
+                    }
+
+                    const pitchDiff = pitch - Number(referencePitch || 0);
+                    const yawDiff = this.yawDistance(yaw, referenceYaw);
+
+                    return Math.sqrt(
+                        (pitchDiff * pitchDiff) +
+                        (yawDiff * yawDiff)
+                    );
+                },
+
+                getNearestHotspot(
+                    scene,
+                    referencePitch = 0,
+                    referenceYaw = 0,
+                    preferredTargetSceneId = null
+                ) {
+                    const hotspots = (scene?.hotspots || []).filter(h => {
+                        return Number.isFinite(Number(h.pitch)) &&
+                               Number.isFinite(Number(h.yaw));
+                    });
+
+                    if (hotspots.length === 0) {
+                        return null;
+                    }
+
+                    let candidates = hotspots;
+
+                    // When entering a scene from another scene, prioritize the
+                    // hotspot that links back to the scene we just came from.
+                    if (preferredTargetSceneId !== null) {
+                        const returnHotspots = hotspots.filter(h =>
+                            Number(h.target_scene_id) === Number(preferredTargetSceneId)
+                        );
+
+                        if (returnHotspots.length > 0) {
+                            candidates = returnHotspots;
+                        }
+                    }
+
+                    return candidates.reduce((nearest, hotspot) => {
+                        if (!nearest) {
+                            return hotspot;
+                        }
+
+                        const currentDistance = this.hotspotDistance(
+                            hotspot,
+                            referencePitch,
+                            referenceYaw
+                        );
+
+                        const nearestDistance = this.hotspotDistance(
+                            nearest,
+                            referencePitch,
+                            referenceYaw
+                        );
+
+                        return currentDistance < nearestDistance
+                            ? hotspot
+                            : nearest;
+                    }, null);
+                },
+
+                getInitialLookAt(scene) {
+                    const nearestHotspot = this.getNearestHotspot(scene, 0, 0);
+
+                    if (!nearestHotspot) {
+                        return {
+                            pitch: 0,
+                            yaw: 0,
+                        };
+                    }
+
+                    return {
+                        pitch: Number(nearestHotspot.pitch),
+                        yaw: Number(nearestHotspot.yaw),
+                    };
+                },
+
+                createViewer() {
+                    const container = this.$refs.viewer;
 
                     if (!container) {
                         return;
                     }
 
+                    if (this.viewer) {
+                        try {
+                            this.viewer.destroy();
+                        } catch (e) {}
+
+                        this.viewer = null;
+                    }
+
+                    container.innerHTML = '';
+
                     const pannellumScenes = {};
 
                     this.scenes.forEach((scene, index) => {
+                        const initialLookAt = this.getInitialLookAt(scene);
 
-                        pannellumScenes[
-                            this.getSceneKey(index)
-                        ] = {
-
+                        pannellumScenes[this.getSceneKey(index)] = {
                             type: 'equirectangular',
-
                             panorama: scene.image,
 
-                            hotSpots:
-                                this.buildHotspots(
-                                    scene
-                                ),
+                            // Point the scene toward its nearest hotspot when
+                            // Pannellum loads this scene without an explicit
+                            // pitch / yaw override.
+                            pitch: initialLookAt.pitch,
+                            yaw: initialLookAt.yaw,
+
+                            hotSpots: this.buildHotspots(scene),
                         };
                     });
 
-                    this.viewer =
-                        pannellum.viewer(
-                            container,
-                            {
-                                default: {
-                                    firstScene:
-                                        this.getSceneKey(0),
+                    const firstSceneLookAt = this.getInitialLookAt(this.scenes[0]);
 
-                                    autoLoad:
-                                        true,
+                    this.viewer = pannellum.viewer(container, {
+                        default: {
+                            firstScene: this.getSceneKey(0),
+                            autoLoad: true,
+                            sceneFadeDuration: 300,
+                            showControls: true,
+                            showZoomCtrl: true,
+                            showFullscreenCtrl: true,
 
-                                    sceneFadeDuration:
-                                        300,
+                            // Initial tour view also faces the nearest hotspot.
+                            pitch: firstSceneLookAt.pitch,
+                            yaw: firstSceneLookAt.yaw,
+                        },
 
-                                    showControls:
-                                        true,
-
-                                    showZoomCtrl:
-                                        true,
-
-                                    showFullscreenCtrl:
-                                        true,
-                                },
-
-                                scenes:
-                                    pannellumScenes,
-                            }
-                        );
+                        scenes: pannellumScenes,
+                    });
                 },
 
                 buildHotspots(scene) {
+                    return (scene.hotspots || []).map(h => ({
+                        pitch: Number(h.pitch),
+                        yaw: Number(h.yaw),
+                        type: 'custom',
 
-                    return (
-                        scene.hotspots || []
-                    ).map(h => ({
+                        createTooltipFunc: (hotSpotDiv) => {
+                            const wrapper = document.createElement('div');
 
-                        pitch:
-                            Number(h.pitch),
+                            wrapper.style.position = 'relative';
+                            wrapper.style.display = 'inline-flex';
+                            wrapper.style.alignItems = 'center';
+                            wrapper.style.justifyContent = 'center';
 
-                        yaw:
-                            Number(h.yaw),
+                            const ping = document.createElement('div');
 
-                        type:
-                            'custom',
+                            Object.assign(ping.style, {
+                                position: 'absolute',
+                                inset: '-10px',
+                                borderRadius: '9999px',
+                                background: 'rgba(37, 99, 235, 0.25)',
+                                animation: 'hotspot-ping 1.6s ease-out infinite',
+                                zIndex: '0'
+                            });
 
-                        createTooltipFunc:
-                            (hotSpotDiv) => {
+                            const button = document.createElement('button');
 
-                                const wrapper =
-                                    document.createElement(
-                                        'div'
+                            button.type = 'button';
+                            button.innerText = h.label;
+
+                            Object.assign(button.style, {
+                                position: 'relative',
+                                zIndex: '2',
+                                background: '#2563eb',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '999px',
+                                padding: '10px 14px',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+                                whiteSpace: 'nowrap',
+                                transition: 'transform .2s ease, background .2s ease'
+                            });
+
+                            button.onmouseover = () => {
+                                button.style.transform = 'scale(1.08)';
+                                button.style.background = '#1d4ed8';
+                            };
+
+                            button.onmouseout = () => {
+                                button.style.transform = 'scale(1)';
+                                button.style.background = '#2563eb';
+                            };
+
+                            button.onclick = (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                const currentScene = scene;
+
+                                const targetIndex = this.scenes.findIndex(s =>
+                                    Number(s.id) === Number(h.target_scene_id)
+                                );
+
+                                if (targetIndex === -1) {
+                                    return;
+                                }
+
+                                const targetScene = this.scenes[targetIndex];
+                                const sceneKey = this.getSceneKey(targetIndex);
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | POINT TARGET SCENE TO THE NEAREST HOTSPOT
+                                |--------------------------------------------------------------------------
+                                |
+                                | First priority is a hotspot in the target scene that points back to
+                                | the scene we just came from. This makes the new panorama face the
+                                | doorway / connection the visitor just entered through.
+                                |
+                                | If there is no return hotspot, use the hotspot nearest to the target
+                                | panorama's natural center instead of leaving the camera facing an
+                                | unrelated direction.
+                                |
+                                */
+                                const nearestHotspot = this.getNearestHotspot(
+                                    targetScene,
+                                    0,
+                                    0,
+                                    currentScene.id
+                                );
+
+                                if (nearestHotspot) {
+                                    const pitch = Number(nearestHotspot.pitch);
+                                    const yaw = Number(nearestHotspot.yaw);
+
+                                    this.viewer.loadScene(
+                                        sceneKey,
+                                        pitch,
+                                        yaw
                                     );
-
-                                wrapper.style.position =
-                                    'relative';
-
-                                wrapper.style.display =
-                                    'inline-flex';
-
-                                wrapper.style.alignItems =
-                                    'center';
-
-                                wrapper.style.justifyContent =
-                                    'center';
-
-
-                                const ping =
-                                    document.createElement(
-                                        'div'
-                                    );
-
-                                Object.assign(
-                                    ping.style,
-                                    {
-                                        position:
-                                            'absolute',
-
-                                        inset:
-                                            '-10px',
-
-                                        borderRadius:
-                                            '9999px',
-
-                                        background:
-                                            'rgba(37, 99, 235, 0.25)',
-
-                                        animation:
-                                            'hotspot-ping 1.6s ease-out infinite',
-
-                                        zIndex:
-                                            '0'
-                                    }
-                                );
-
-
-                                const button =
-                                    document.createElement(
-                                        'button'
-                                    );
-
-                                button.type =
-                                    'button';
-
-                                button.innerText =
-                                    h.label;
-
-
-                                Object.assign(
-                                    button.style,
-                                    {
-                                        position:
-                                            'relative',
-
-                                        zIndex:
-                                            '2',
-
-                                        background:
-                                            '#2563eb',
-
-                                        color:
-                                            'white',
-
-                                        border:
-                                            'none',
-
-                                        borderRadius:
-                                            '999px',
-
-                                        padding:
-                                            '10px 14px',
-
-                                        fontSize:
-                                            '13px',
-
-                                        fontWeight:
-                                            '600',
-
-                                        cursor:
-                                            'pointer',
-
-                                        boxShadow:
-                                            '0 4px 12px rgba(0,0,0,0.35)',
-
-                                        whiteSpace:
-                                            'nowrap',
-
-                                        transition:
-                                            'transform .2s ease, background .2s ease'
-                                    }
-                                );
-
-
-                                button.onmouseover =
-                                    () => {
-
-                                        button.style.transform =
-                                            'scale(1.08)';
-
-                                        button.style.background =
-                                            '#1d4ed8';
-                                    };
-
-
-                                button.onmouseout =
-                                    () => {
-
-                                        button.style.transform =
-                                            'scale(1)';
-
-                                        button.style.background =
-                                            '#2563eb';
-                                    };
-
-
-                                button.onclick =
-                                    (e) => {
-
-                                        e.preventDefault();
-
-                                        e.stopPropagation();
-
-                                        const currentScene =
-                                            scene;
-
-                                        const targetIndex =
-                                            this.scenes.findIndex(
-                                                s =>
-                                                    Number(s.id)
-                                                    ===
-                                                    Number(
-                                                        h.target_scene_id
-                                                    )
-                                            );
-
-                                        if (
-                                            targetIndex === -1
-                                        ) {
-                                            return;
-                                        }
-
-                                        const targetScene =
-                                            this.scenes[
-                                                targetIndex
-                                            ];
-
-                                        /*
-                                        |--------------------------------------------------------------------------
-                                        | FACE RETURN HOTSPOT
-                                        |--------------------------------------------------------------------------
-                                        */
-
-                                        const returnHotspot =
-                                            (
-                                                targetScene.hotspots
-                                                || []
-                                            ).find(
-                                                targetHotspot =>
-                                                    Number(
-                                                        targetHotspot
-                                                            .target_scene_id
-                                                    )
-                                                    ===
-                                                    Number(
-                                                        currentScene.id
-                                                    )
-                                            );
-
-                                        const sceneKey =
-                                            this.getSceneKey(
-                                                targetIndex
-                                            );
-
-                                        if (returnHotspot) {
-
-                                            const pitch =
-                                                Number(
-                                                    returnHotspot.pitch
-                                                );
-
-                                            const yaw =
-                                                Number(
-                                                    returnHotspot.yaw
-                                                );
-
-                                            if (
-                                                Number.isFinite(
-                                                    pitch
-                                                )
-                                                &&
-                                                Number.isFinite(
-                                                    yaw
-                                                )
-                                            ) {
-
-                                                this.viewer.loadScene(
-                                                    sceneKey,
-                                                    pitch,
-                                                    yaw
-                                                );
-
-                                            } else {
-
-                                                this.viewer.loadScene(
-                                                    sceneKey
-                                                );
-                                            }
-
-                                        } else {
-
-                                            this.viewer.loadScene(
-                                                sceneKey
-                                            );
-                                        }
-
-                                        this.activeIndex =
-                                            targetIndex;
-                                    };
-
-
-                                wrapper.appendChild(
-                                    ping
-                                );
-
-                                wrapper.appendChild(
-                                    button
-                                );
-
-                                hotSpotDiv.appendChild(
-                                    wrapper
-                                );
-
-                                hotSpotDiv.style.transform =
-                                    'translate(-50%, -50%)';
-                            }
+                                } else {
+                                    this.viewer.loadScene(sceneKey);
+                                }
+
+                                this.activeIndex = targetIndex;
+                            };
+
+                            wrapper.appendChild(ping);
+                            wrapper.appendChild(button);
+
+                            hotSpotDiv.appendChild(wrapper);
+                            hotSpotDiv.style.transform = 'translate(-50%, -50%)';
+                        }
                     }));
                 }
-
             }));
 
         });

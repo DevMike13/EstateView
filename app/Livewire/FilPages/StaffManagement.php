@@ -8,6 +8,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use WireUi\Traits\Actions;
+use Illuminate\Support\Facades\DB;
 
 class StaffManagement extends Component
 {
@@ -27,11 +28,40 @@ class StaffManagement extends Component
     public function createStaffMemberAccount()
     {
         $this->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20',
-            'password' => 'required|min:8',
-            'is_active' => 'required|boolean',
+            'name' => [
+                'required',
+                'string',
+                'max:50',
+            ],
+
+            'email' => [
+                'required',
+                'email',
+                'max:50',
+                'unique:users,email',
+            ],
+
+            'phone' => [
+                'required',
+                'string',
+                'max:20',
+            ],
+
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:20',
+                'regex:/[a-z]/',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
+            ],
+
+            'is_active' => [
+                'required',
+                'boolean',
+            ],
         ]);
 
         // Create user
@@ -73,6 +103,7 @@ class StaffManagement extends Component
         $this->edit_is_active = $staff->is_active;
 
         $this->editPhone = $staff->info->phone ?? null;
+        $this->editPassword = null;
     }
 
     public function editStaffMemberAccount()
@@ -80,25 +111,81 @@ class StaffManagement extends Component
         if (!$this->selectedStaffMember) return;
 
         $this->validate([
-            'editName' => 'required|string|max:255',
-            'editEmail' => 'required|email|unique:users,email,' . $this->selectedStaffMember,
-            'editPhone' => 'required|string|max:20',
-            'edit_is_active' => 'required|boolean',
-            'editPassword' => 'nullable|min:8',
+            'editName' => [
+                'required',
+                'string',
+                'max:50',
+            ],
+
+            'editEmail' => [
+                'required',
+                'email',
+                'max:50',
+                'unique:users,email,' . $this->selectedStaffMember,
+            ],
+
+            'editPhone' => [
+                'required',
+                'string',
+                'max:20',
+            ],
+
+            'edit_is_active' => [
+                'required',
+                'boolean',
+            ],
+
+            'editPassword' => [
+                'nullable',
+                'string',
+                'min:8',
+                'max:20',
+                'regex:/[a-z]/',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
+            ],
         ]);
 
         $user = User::findOrFail($this->selectedStaffMember);
 
-        $user->update([
+        $wasDeactivated = (bool) $user->is_active === true && (bool) $this->edit_is_active === false;
+
+        if (
+            ! empty($this->editPassword) &&
+            Hash::check($this->editPassword, $user->password)
+        ) {
+            $this->addError(
+                'editPassword',
+                'The new password must be different from the current password.'
+            );
+
+            return;
+        }
+
+        $userData = [
             'name' => $this->editName,
             'email' => $this->editEmail,
             'is_active' => $this->edit_is_active,
-        ]);
+        ];
 
-        if ($this->editPassword) {
-            $user->update([
-                'password' => Hash::make($this->editPassword),
-            ]);
+        $passwordChanged = false;
+
+        if (! empty($this->editPassword)) {
+            $userData['password'] = Hash::make($this->editPassword);
+
+            // Invalidate Remember Me login
+            $userData['remember_token'] = null;
+
+            $passwordChanged = true;
+        }
+
+        $user->update($userData);
+
+        if ($passwordChanged || $wasDeactivated) {
+            DB::table('sessions')
+                ->where('user_id', $user->id)
+                ->delete();
         }
 
         $phone = $this->editPhone;

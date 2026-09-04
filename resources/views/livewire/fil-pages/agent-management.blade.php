@@ -261,6 +261,8 @@
                             step="0.01"
                             suffix="%"
                             wire:model.defer="commissionPercentage"
+                            onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault()"
+                            oninput="this.value = this.value.replace(/[^0-9.]/g, '')"
                         />
 
                         <p class="mt-1 text-xs text-gray-500">
@@ -270,7 +272,40 @@
                 </div>
 
                 <div class="mt-3">
-                    <x-inputs.password label="Password" wire:model.defer="password" placeholder="Enter Initial Password" />
+                    <x-inputs.password
+                        label="Password"
+                        wire:model.live.debounce.300ms="password"
+                        placeholder="Enter Initial Password"
+                        minlength="8"
+                        maxlength="20"
+                    />
+
+                    <div class="mt-2 space-y-1 text-sm">
+                        <div class="flex items-center gap-2 {{ strlen($password ?? '') >= 8 && strlen($password ?? '') <= 20 ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ strlen($password ?? '') >= 8 && strlen($password ?? '') <= 20 ? '✓' : '✕' }}</span>
+                            <span>Must be 8-20 characters</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 {{ preg_match('/[0-9]/', $password ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ preg_match('/[0-9]/', $password ?? '') ? '✓' : '✕' }}</span>
+                            <span>At least one number</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 {{ preg_match('/[A-Z]/', $password ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ preg_match('/[A-Z]/', $password ?? '') ? '✓' : '✕' }}</span>
+                            <span>At least one capital letter</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 {{ preg_match('/[a-z]/', $password ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ preg_match('/[a-z]/', $password ?? '') ? '✓' : '✕' }}</span>
+                            <span>At least one lowercase letter</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 {{ preg_match('/[^A-Za-z0-9]/', $password ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ preg_match('/[^A-Za-z0-9]/', $password ?? '') ? '✓' : '✕' }}</span>
+                            <span>At least one special character</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mt-3">
@@ -384,12 +419,49 @@
                         step="0.01"
                         suffix="%"
                         wire:model.defer="editCommissionPercentage"
+                        onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault()"
+                        oninput="this.value = this.value.replace(/[^0-9.]/g, '')"
                     />
                 </div>
             </div>
 
             <div class="mt-3">
-                <x-inputs.password label="Password" wire:model.defer="editPassword" placeholder="Enter Initial Password" />
+                <x-inputs.password
+                    label="Password"
+                    wire:model.live.debounce.300ms="editPassword"
+                    placeholder="Enter New Password (optional)"
+                    minlength="8"
+                    maxlength="20"
+                />
+
+                @if(filled($editPassword))
+                    <div class="mt-2 space-y-1 text-sm">
+                        <div class="flex items-center gap-2 {{ strlen($editPassword ?? '') >= 8 && strlen($editPassword ?? '') <= 20 ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ strlen($editPassword ?? '') >= 8 && strlen($editPassword ?? '') <= 20 ? '✓' : '✕' }}</span>
+                            <span>Must be 8-20 characters</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 {{ preg_match('/[0-9]/', $editPassword ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ preg_match('/[0-9]/', $editPassword ?? '') ? '✓' : '✕' }}</span>
+                            <span>At least one number</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 {{ preg_match('/[A-Z]/', $editPassword ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ preg_match('/[A-Z]/', $editPassword ?? '') ? '✓' : '✕' }}</span>
+                            <span>At least one capital letter</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 {{ preg_match('/[a-z]/', $editPassword ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ preg_match('/[a-z]/', $editPassword ?? '') ? '✓' : '✕' }}</span>
+                            <span>At least one lowercase letter</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 {{ preg_match('/[^A-Za-z0-9]/', $editPassword ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                            <span>{{ preg_match('/[^A-Za-z0-9]/', $editPassword ?? '') ? '✓' : '✕' }}</span>
+                            <span>At least one special character</span>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div class="mt-3">

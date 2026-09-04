@@ -19,6 +19,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password;
 use Laravolt\Avatar\Facade as Avatar;
 use App\Mail\ClientCreditedToAgentMail;
 use App\Models\Notification;
@@ -73,11 +74,11 @@ class RegisterPage extends Component
 
         // Validate required Step 1 fields
         $this->validate([
-            'firstName' => 'required|max:255',
-            'middleName' => 'required|max:255',
-            'lastName' => 'required|max:255',
-            'suffix' => 'nullable|max:255',
-            'agentProfessionalId' => 'nullable|string|max:255',
+            'firstName' => 'required|max:50',
+            'middleName' => 'required|max:50',
+            'lastName' => 'required|max:50',
+            'suffix' => 'nullable|max:5',
+            'agentProfessionalId' => 'nullable|string|max:50',
             'region' => 'required|max:255',
             'province' => 'required|max:255',
             'municipality' => 'required|max:255',
@@ -122,24 +123,37 @@ class RegisterPage extends Component
     public function register()
     {
         $this->validate([
-            'firstName' => 'required|max:255',
-            'lastName' => 'required|max:255',
-            'middleName' => 'required|max:255',
-            'suffix' => 'nullable|max:255',
+            'firstName' => 'required|max:50',
+            'lastName' => 'required|max:50',
+            'middleName' => 'required|max:50',
+            'suffix' => 'nullable|max:5',
             'agentProfessionalId' => [
                 'nullable',
                 'string',
-                'max:255',
+                'max:50',
             ],
             'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|unique:users,email|max:255',
+            'email' => 'nullable|email|unique:users,email|max:50',
             'region' => 'required|max:255',
             'province' => 'required|max:255',
             'municipality' => 'required|max:255',
             'barangay' => 'required|max:255',
             'state' => 'required|max:255',
-            'password' => 'required|min:8|max:255',
-            'confirmPassword' => 'required|same:password|min:8|max:255',
+            'password' => [
+                'required',
+                'string',
+                'size:8',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
+            'confirmPassword' => [
+                'required',
+                'string',
+                'size:8',
+                'same:password',
+            ],
         ]);
 
         $agentId = null;

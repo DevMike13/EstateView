@@ -961,123 +961,162 @@
 
                             <div class="grid md:grid-cols-2 gap-6">
 
-                                <div>
+                                {{-- AGENT: FULL NAME ONLY --}}
+                                @if(auth()->user()->role === 'agent')
 
-                                    <label
-                                        for="firstName"
-                                        class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
-                                    >
-                                        First Name
-                                    </label>
+                                    <div class="md:col-span-2">
 
-                                    <input
-                                        id="firstName"
-                                        type="text"
-                                        wire:model.blur="firstName"
-                                        class="w-full px-4 py-3 border
-                                            @error('firstName')
-                                                border-red-500 focus:ring-red-500
-                                            @else
-                                                border-gray-300 focus:ring-gray-900
-                                            @enderror
-                                            rounded focus:ring-2 focus:border-transparent outline-none"
-                                    >
+                                        <label
+                                            for="fullName"
+                                            class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
+                                        >
+                                            Full Name
+                                        </label>
 
-                                    @error('firstName')
-                                        <span class="text-xs text-red-600 mt-1 block">
-                                            {{ $message }}
-                                        </span>
-                                    @enderror
+                                        <input
+                                            id="fullName"
+                                            type="text"
+                                            wire:model.blur="fullName"
+                                            maxlength="50"
+                                            class="w-full px-4 py-3 border
+                                                @error('fullName')
+                                                    border-red-500 focus:ring-red-500
+                                                @else
+                                                    border-gray-300 focus:ring-gray-900
+                                                @enderror
+                                                rounded focus:ring-2 focus:border-transparent outline-none"
+                                        >
 
-                                </div>
+                                        @error('fullName')
+                                            <span class="text-xs text-red-600 mt-1 block">
+                                                {{ $message }}
+                                            </span>
+                                        @enderror
 
+                                    </div>
 
-                                <div>
+                                {{-- CLIENT: KEEP EXISTING NAME FIELDS --}}
+                                @else
 
-                                    <label
-                                        for="middleName"
-                                        class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
-                                    >
-                                        Middle Name
-                                    </label>
+                                    <div>
 
-                                    <input
-                                        id="middleName"
-                                        type="text"
-                                        wire:model.blur="middleName"
-                                        class="w-full px-4 py-3 border
-                                            @error('middleName')
-                                                border-red-500 focus:ring-red-500
-                                            @else
-                                                border-gray-300 focus:ring-gray-900
-                                            @enderror
-                                            rounded focus:ring-2 focus:border-transparent outline-none"
-                                    >
+                                        <label
+                                            for="firstName"
+                                            class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
+                                        >
+                                            First Name
+                                        </label>
 
-                                    @error('middleName')
-                                        <span class="text-xs text-red-600 mt-1 block">
-                                            {{ $message }}
-                                        </span>
-                                    @enderror
+                                        <input
+                                            id="firstName"
+                                            type="text"
+                                            wire:model.blur="firstName"
+                                            class="w-full px-4 py-3 border
+                                                @error('firstName')
+                                                    border-red-500 focus:ring-red-500
+                                                @else
+                                                    border-gray-300 focus:ring-gray-900
+                                                @enderror
+                                                rounded focus:ring-2 focus:border-transparent outline-none"
+                                        >
 
-                                </div>
+                                        @error('firstName')
+                                            <span class="text-xs text-red-600 mt-1 block">
+                                                {{ $message }}
+                                            </span>
+                                        @enderror
 
-
-                                <div>
-
-                                    <label
-                                        for="lastName"
-                                        class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
-                                    >
-                                        Last Name
-                                    </label>
-
-                                    <input
-                                        id="lastName"
-                                        type="text"
-                                        wire:model.blur="lastName"
-                                        class="w-full px-4 py-3 border
-                                            @error('lastName')
-                                                border-red-500 focus:ring-red-500
-                                            @else
-                                                border-gray-300 focus:ring-gray-900
-                                            @enderror
-                                            rounded focus:ring-2 focus:border-transparent outline-none"
-                                    >
-
-                                    @error('lastName')
-                                        <span class="text-xs text-red-600 mt-1 block">
-                                            {{ $message }}
-                                        </span>
-                                    @enderror
-
-                                </div>
+                                    </div>
 
 
-                                <div>
+                                    <div>
 
-                                    <label
-                                        for="suffix"
-                                        class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
-                                    >
-                                        Suffix
-                                    </label>
+                                        <label
+                                            for="middleName"
+                                            class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
+                                        >
+                                            Middle Name
+                                        </label>
 
-                                    <input
-                                        id="suffix"
-                                        type="text"
-                                        placeholder="Jr., Sr., III"
-                                        wire:model.blur="suffix"
-                                        class="w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-gray-900 focus:border-transparent rounded outline-none"
-                                    >
+                                        <input
+                                            id="middleName"
+                                            type="text"
+                                            wire:model.blur="middleName"
+                                            class="w-full px-4 py-3 border
+                                                @error('middleName')
+                                                    border-red-500 focus:ring-red-500
+                                                @else
+                                                    border-gray-300 focus:ring-gray-900
+                                                @enderror
+                                                rounded focus:ring-2 focus:border-transparent outline-none"
+                                        >
 
-                                    @error('suffix')
-                                        <span class="text-xs text-red-600 mt-1 block">
-                                            {{ $message }}
-                                        </span>
-                                    @enderror
+                                        @error('middleName')
+                                            <span class="text-xs text-red-600 mt-1 block">
+                                                {{ $message }}
+                                            </span>
+                                        @enderror
 
-                                </div>
+                                    </div>
+
+
+                                    <div>
+
+                                        <label
+                                            for="lastName"
+                                            class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
+                                        >
+                                            Last Name
+                                        </label>
+
+                                        <input
+                                            id="lastName"
+                                            type="text"
+                                            wire:model.blur="lastName"
+                                            class="w-full px-4 py-3 border
+                                                @error('lastName')
+                                                    border-red-500 focus:ring-red-500
+                                                @else
+                                                    border-gray-300 focus:ring-gray-900
+                                                @enderror
+                                                rounded focus:ring-2 focus:border-transparent outline-none"
+                                        >
+
+                                        @error('lastName')
+                                            <span class="text-xs text-red-600 mt-1 block">
+                                                {{ $message }}
+                                            </span>
+                                        @enderror
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <label
+                                            for="suffix"
+                                            class="block text-xs text-gray-500 mb-2 uppercase tracking-wide"
+                                        >
+                                            Suffix
+                                        </label>
+
+                                        <input
+                                            id="suffix"
+                                            type="text"
+                                            placeholder="Jr., Sr., III"
+                                            wire:model.blur="suffix"
+                                            class="w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-gray-900 focus:border-transparent rounded outline-none"
+                                        >
+
+                                        @error('suffix')
+                                            <span class="text-xs text-red-600 mt-1 block">
+                                                {{ $message }}
+                                            </span>
+                                        @enderror
+
+                                    </div>
+
+                                @endif
 
                             </div>
 
@@ -1519,7 +1558,32 @@
                         x-data="{
                             showCurrentPassword: false,
                             showNewPassword: false,
-                            showConfirmPassword: false
+                            showConfirmPassword: false,
+                            newPasswordValue: '',
+
+                            hasMinLength() {
+                                return this.newPasswordValue.length >= 8;
+                            },
+
+                            hasMaxLength() {
+                                return this.newPasswordValue.length <= 20;
+                            },
+
+                            hasLowercase() {
+                                return /[a-z]/.test(this.newPasswordValue);
+                            },
+
+                            hasUppercase() {
+                                return /[A-Z]/.test(this.newPasswordValue);
+                            },
+
+                            hasNumber() {
+                                return /[0-9]/.test(this.newPasswordValue);
+                            },
+
+                            hasSpecialCharacter() {
+                                return /[@$!%*?&#^()_\-+=]/.test(this.newPasswordValue);
+                            }
                         }"
                     >
 
@@ -1658,6 +1722,9 @@
                                         x-bind:type="showNewPassword ? 'text' : 'password'"
                                         placeholder="••••••••"
                                         wire:model.blur="newPassword"
+                                        x-model="newPasswordValue"
+                                        maxlength="20"
+                                        autocomplete="new-password"
                                         class="w-full pl-4 pr-12 py-3 border
                                             @error('newPassword')
                                                 border-red-500 focus:ring-red-500
@@ -1714,6 +1781,144 @@
 
                                 </div>
 
+                                {{-- PASSWORD REQUIREMENTS --}}
+                                <div class="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+
+                                    <p class="mb-2 text-xs font-medium text-gray-600">
+                                        Password must contain:
+                                    </p>
+
+                                    <div class="space-y-1.5">
+
+                                        {{-- 8 CHARACTERS --}}
+                                        <div
+                                            class="flex items-center gap-2 text-xs"
+                                            :class="hasMinLength()
+                                                ? 'text-green-600'
+                                                : 'text-gray-400'"
+                                        >
+                                            <span
+                                                class="flex h-4 w-4 items-center justify-center rounded-full border"
+                                                :class="hasMinLength()
+                                                    ? 'border-green-500 bg-green-500 text-white'
+                                                    : 'border-gray-300'"
+                                            >
+                                                <span x-show="hasMinLength()">✓</span>
+                                            </span>
+
+                                            At least 8 characters
+                                        </div>
+
+
+                                        {{-- MAX 20 CHARACTERS --}}
+                                        <div
+                                            class="flex items-center gap-2 text-xs"
+                                            :class="hasMaxLength() && newPasswordValue.length > 0
+                                                ? 'text-green-600'
+                                                : 'text-gray-400'"
+                                        >
+                                            <span
+                                                class="flex h-4 w-4 items-center justify-center rounded-full border"
+                                                :class="hasMaxLength() && newPasswordValue.length > 0
+                                                    ? 'border-green-500 bg-green-500 text-white'
+                                                    : 'border-gray-300'"
+                                            >
+                                                <span
+                                                    x-show="hasMaxLength() && newPasswordValue.length > 0"
+                                                >
+                                                    ✓
+                                                </span>
+                                            </span>
+
+                                            Maximum of 20 characters
+                                        </div>
+
+
+                                        {{-- LOWERCASE --}}
+                                        <div
+                                            class="flex items-center gap-2 text-xs"
+                                            :class="hasLowercase()
+                                                ? 'text-green-600'
+                                                : 'text-gray-400'"
+                                        >
+                                            <span
+                                                class="flex h-4 w-4 items-center justify-center rounded-full border"
+                                                :class="hasLowercase()
+                                                    ? 'border-green-500 bg-green-500 text-white'
+                                                    : 'border-gray-300'"
+                                            >
+                                                <span x-show="hasLowercase()">✓</span>
+                                            </span>
+
+                                            One lowercase letter
+                                        </div>
+
+
+                                        {{-- UPPERCASE --}}
+                                        <div
+                                            class="flex items-center gap-2 text-xs"
+                                            :class="hasUppercase()
+                                                ? 'text-green-600'
+                                                : 'text-gray-400'"
+                                        >
+                                            <span
+                                                class="flex h-4 w-4 items-center justify-center rounded-full border"
+                                                :class="hasUppercase()
+                                                    ? 'border-green-500 bg-green-500 text-white'
+                                                    : 'border-gray-300'"
+                                            >
+                                                <span x-show="hasUppercase()">✓</span>
+                                            </span>
+
+                                            One uppercase letter
+                                        </div>
+
+
+                                        {{-- NUMBER --}}
+                                        <div
+                                            class="flex items-center gap-2 text-xs"
+                                            :class="hasNumber()
+                                                ? 'text-green-600'
+                                                : 'text-gray-400'"
+                                        >
+                                            <span
+                                                class="flex h-4 w-4 items-center justify-center rounded-full border"
+                                                :class="hasNumber()
+                                                    ? 'border-green-500 bg-green-500 text-white'
+                                                    : 'border-gray-300'"
+                                            >
+                                                <span x-show="hasNumber()">✓</span>
+                                            </span>
+
+                                            One number
+                                        </div>
+
+
+                                        {{-- SPECIAL CHARACTER --}}
+                                        <div
+                                            class="flex items-center gap-2 text-xs"
+                                            :class="hasSpecialCharacter()
+                                                ? 'text-green-600'
+                                                : 'text-gray-400'"
+                                        >
+                                            <span
+                                                class="flex h-4 w-4 items-center justify-center rounded-full border"
+                                                :class="hasSpecialCharacter()
+                                                    ? 'border-green-500 bg-green-500 text-white'
+                                                    : 'border-gray-300'"
+                                            >
+                                                <span x-show="hasSpecialCharacter()">✓</span>
+                                            </span>
+
+                                            One special character
+                                            <span class="text-gray-400">
+                                                (@$!%*?&#^()_-+=)
+                                            </span>
+                                        </div>
+
+                                    </div>
+
+                                </div>
 
                                 @error('newPassword')
                                     <span class="text-xs text-red-600 mt-1 block">

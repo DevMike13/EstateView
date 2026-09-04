@@ -117,32 +117,54 @@
                                     </button>
                                 @endif
 
-                                @if(
-                                (
-                                    $notification->title !== 'Client Ledger Updated' &&
-                                    auth()->user()->role !== 'agent'
-                                )
-                                ||
-                                (
-                                    auth()->user()->role === 'agent' &&
-                                    in_array($notification->type, [
-                                        'property_credited_to_agent',
-                                        'client_credited_to_agent',
-                                    ])
-                                )
-                            )
+                                @php
+                                    $hideOpenTypes = [
+                                        'client_personal_info_updated',
+                                        'agent_profile_updated',
+                                        'agent_account_updated_by_staff',
+                                        'client_account_updated_by_staff',
+                                    ];
+
+                                    $canOpen =
+                                        ! in_array($notification->type, $hideOpenTypes)
+                                        &&
+                                        (
+                                            (
+                                                $notification->title !== 'Client Ledger Updated' &&
+                                                auth()->user()->role !== 'agent'
+                                            )
+                                            ||
+                                            (
+                                                auth()->user()->role === 'agent' &&
+                                                in_array($notification->type, [
+                                                    'property_credited_to_agent',
+                                                    'client_credited_to_agent',
+                                                ])
+                                            )
+                                        );
+                                @endphp
+
+                                @if($canOpen)
+
                                     <button
                                         wire:click.stop="openNotification({{ $notification->id }})"
                                         class="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
                                     >
                                         <x-heroicon-o-arrow-top-right-on-square class="h-3 w-3" />
+
                                         Open
                                     </button>
+
                                 @endif
 
                                 {{-- NEW: View Changes trigger, only when there's a diff --}}
                                 @if(
-                                    $notification->type === 'client_personal_info_updated'
+                                    in_array($notification->type, [
+                                        'client_personal_info_updated',
+                                        'agent_profile_updated',
+                                        'agent_account_updated_by_staff',
+                                        'client_account_updated_by_staff',
+                                    ])
                                     && !empty($data['changes'])
                                 )
                                     <button
@@ -176,7 +198,12 @@
 
                 {{-- NEW: Changes modal --}}
                 @if(
-                    $notification->type === 'client_personal_info_updated'
+                    in_array($notification->type, [
+                        'client_personal_info_updated',
+                        'agent_profile_updated',
+                        'agent_account_updated_by_staff',
+                        'client_account_updated_by_staff',
+                    ])
                     && !empty($data['changes'])
                 )
                     <div
@@ -190,7 +217,7 @@
                             x-show="showChanges"
                             x-transition
                             @click.stop
-                            class="bg-white rounded-lg shadow-xl w-full max-w-sm p-5"
+                            class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-5"
                         >
                             <div class="relative mb-4 border-b pb-3 pr-8">
                                 <h3 class="text-sm font-semibold text-gray-900">
@@ -213,13 +240,109 @@
                             <div class="space-y-3">
                                 @foreach($data['changes'] as $change)
                                     @continue(!is_array($change) || !isset($change['label']))
-                                    <div class="text-xs">
-                                        <span class="font-medium text-gray-600">{{ $change['label'] }}</span>
-                                        <div class="flex items-center gap-1 mt-0.5">
-                                            <span class="line-through text-gray-400">{{ $change['old'] ?? '—' }}</span>
-                                            <span>→</span>
-                                            <span class="text-gray-800 font-medium">{{ $change['new'] ?? '—' }}</span>
-                                        </div>
+
+                                    <div
+                                        class="text-xs"
+                                        @if(($change['label'] ?? null) === 'Password')
+                                            x-data="{ showPassword: false }"
+                                        @endif
+                                    >
+                                        <span class="font-medium text-gray-600">
+                                            {{ $change['label'] }}
+                                        </span>
+
+                                        @if(($change['label'] ?? null) === 'Password')
+
+                                            @php
+                                                $decryptedPassword = null;
+
+                                                if (
+                                                    !empty($change['is_encrypted']) &&
+                                                    !empty($change['new'])
+                                                ) {
+                                                    try {
+                                                        $decryptedPassword =
+                                                            \Illuminate\Support\Facades\Crypt::decryptString(
+                                                                $change['new']
+                                                            );
+                                                    } catch (\Throwable $e) {
+                                                        $decryptedPassword = null;
+                                                    }
+                                                }
+                                            @endphp
+
+                                            @if($decryptedPassword !== null)
+
+                                                <div
+                                                    x-data="{ showPassword: false }"
+                                                    class="flex items-center gap-2 mt-1"
+                                                >
+
+                                                    <span class="text-gray-800 font-medium">
+
+                                                        <span x-show="!showPassword">
+                                                            ••••••••••••
+                                                        </span>
+
+                                                        <span
+                                                            x-show="showPassword"
+                                                            x-cloak
+                                                        >
+                                                            {{ $decryptedPassword }}
+                                                        </span>
+
+                                                    </span>
+
+                                                    <button
+                                                        type="button"
+                                                        @click="showPassword = !showPassword"
+                                                        class="text-gray-400 hover:text-gray-700"
+                                                    >
+
+                                                        <x-heroicon-o-eye
+                                                            x-show="!showPassword"
+                                                            class="w-4 h-4"
+                                                        />
+
+                                                        <x-heroicon-o-eye-slash
+                                                            x-show="showPassword"
+                                                            x-cloak
+                                                            class="w-4 h-4"
+                                                        />
+
+                                                    </button>
+
+                                                </div>
+
+                                            @else
+
+                                                <div class="mt-1 text-gray-500">
+                                                    Password was changed
+                                                </div>
+
+                                            @endif
+
+                                        @else
+
+                                            <div class="flex items-center gap-1 mt-0.5">
+                                                <span class="line-through text-gray-400">
+                                                    {{ filled($change['old'] ?? null)
+                                                        ? $change['old']
+                                                        : '—'
+                                                    }}
+                                                </span>
+
+                                                <span>→</span>
+
+                                                <span class="text-gray-800 font-medium">
+                                                    {{ filled($change['new'] ?? null)
+                                                        ? $change['new']
+                                                        : '—'
+                                                    }}
+                                                </span>
+                                            </div>
+
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>

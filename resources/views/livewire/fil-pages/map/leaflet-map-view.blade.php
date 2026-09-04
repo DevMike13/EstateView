@@ -38,17 +38,14 @@
 
         .estate-block-label {
             background: transparent !important;
-            color: #374151 !important;
+            color: #d9dde7 !important;
             border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             padding: 0 !important;
-
-            font-size: 11px;
-            font-weight: 500;
-            line-height: 1;
-
+            font-weight: 700;
             white-space: nowrap;
+            text-transform: uppercase;
         }
 
         .estate-block-label::before {
@@ -487,6 +484,10 @@
             border: 1px solid rgba(17, 24, 39, .18);
         }
 
+        .estate-block-label-modal {
+            font-size: 9px !important;
+        }
+
         @media (max-width: 1100px) {
             .estate-map-filter-panel {
                 left: 45%;
@@ -535,6 +536,16 @@
 
         #estate-leaflet-map .leaflet-interactive:focus {
             outline: none !important;
+        }
+
+        .estate-map-not-allowed-area {
+            cursor: not-allowed !important;
+        }
+
+        .estate-map-cursor-not-allowed,
+        .estate-map-cursor-not-allowed .leaflet-map-pane,
+        .estate-map-cursor-not-allowed .leaflet-map-pane * {
+            cursor: not-allowed !important;
         }
 
     </style>
@@ -631,7 +642,7 @@
     @endphp
 
     <div
-        class="bg-white rounded-2xl shadow-md p-5 border border-gray-100 mt-24"
+        class="bg-white rounded-2xl shadow-md p-5 border border-gray-100 mt-16"
     >
 
         {{-- HEADER --}}
@@ -803,7 +814,7 @@
                         >
                         <span
                             class="estate-map-filter-color"
-                            style="background:#ebebeb;"
+                            style="background:#ffffff;"
                         ></span>
                         <span>Internal Road</span>
                     </label>
@@ -915,6 +926,7 @@
                     </div>
 
                     <div
+                        id="estate-create-boundary-map-container"
                         wire:ignore
                         class="relative w-full h-[360px] rounded-xl border border-gray-200 overflow-hidden bg-gray-100"
                     >
@@ -923,13 +935,31 @@
                             class="absolute inset-0 w-full h-full"
                         ></div>
 
-                        <button
-                            type="button"
-                            onclick="resetEstateModalMapView('estate-create-boundary-mini-map')"
-                            class="absolute top-3 right-3 z-[500] px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
-                        >
-                            Reset View
-                        </button>
+                        {{-- Map Controls --}}
+                        <div class="absolute top-3 right-3 z-[500] flex gap-2">
+
+                            {{-- Fullscreen --}}
+                            <button
+                                type="button"
+                                onclick="toggleEstateMapFullscreen(
+                                    'estate-create-boundary-map-container',
+                                    this
+                                )"
+                                class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                            >
+                                ⛶
+                            </button>
+
+                            {{-- Reset View --}}
+                            <button
+                                type="button"
+                                onclick="resetEstateModalMapView('estate-create-boundary-mini-map')"
+                                class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                            >
+                                Reset View
+                            </button>
+
+                        </div>
                     </div>
 
                     <p class="text-xs text-gray-400 mt-2">
@@ -939,6 +969,7 @@
                     <div class="mt-3">
                         <x-input
                             label="GIS Coordinates"
+                            id="estate-create-boundary-coords"
                             :value="json_encode($newBoundaryGeoCoords)"
                             readonly
                         />
@@ -971,7 +1002,7 @@
         {{-- EDIT SUBDIVISION BOUNDARY --}}
         <x-modal
             name="edit-gis-boundary-modal"
-            max-width="2xl"
+            max-width="7xl"
             blur="md"
             align="center"
             x-on:gis-boundary-edit-success.window="
@@ -1004,6 +1035,7 @@
                     </div>
 
                     <div
+                        id="estate-edit-boundary-map-container"
                         wire:ignore
                         class="relative w-full h-[360px] rounded-xl border border-gray-200 overflow-hidden bg-gray-100"
                     >
@@ -1012,18 +1044,34 @@
                             class="absolute inset-0 w-full h-full"
                         ></div>
 
-                        <button
-                            type="button"
-                            onclick="resetEstateModalMapView('estate-edit-boundary-mini-map')"
-                            class="absolute top-3 right-3 z-[500] px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
-                        >
-                            Reset View
-                        </button>
+                        <div class="absolute top-3 right-3 z-[500] flex gap-2">
+
+                            <button
+                                type="button"
+                                onclick="toggleEstateMapFullscreen(
+                                    'estate-edit-boundary-map-container',
+                                    this
+                                )"
+                                class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                            >
+                                ⛶
+                            </button>
+
+                            <button
+                                type="button"
+                                onclick="resetEstateModalMapView('estate-edit-boundary-mini-map')"
+                                class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                            >
+                                Reset View
+                            </button>
+
+                        </div>
                     </div>
 
                     <div class="mt-3">
                         <x-input
                             label="GIS Coordinates"
+                            id="estate-edit-boundary-coords"
                             :value="json_encode($editBoundaryGeoCoords)"
                             readonly
                         />
@@ -1089,6 +1137,7 @@
                         </div>
 
                         <div
+                            id="estate-create-block-map-container"
                             wire:ignore
                             class="relative w-full h-[320px] rounded-xl border border-gray-200 overflow-hidden bg-gray-100"
                         >
@@ -1097,13 +1146,28 @@
                                 class="absolute inset-0 w-full h-full"
                             ></div>
 
-                            <button
-                                type="button"
-                                onclick="resetEstateModalMapView('estate-create-block-mini-map')"
-                                class="absolute top-3 right-3 z-[500] px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
-                            >
-                                Reset View
-                            </button>
+                            <div class="absolute top-3 right-3 z-[500] flex gap-2">
+
+                                <button
+                                    type="button"
+                                    onclick="toggleEstateMapFullscreen(
+                                        'estate-create-block-map-container',
+                                        this
+                                    )"
+                                    class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                                >
+                                    ⛶
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onclick="resetEstateModalMapView('estate-create-block-mini-map')"
+                                    class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                                >
+                                    Reset View
+                                </button>
+
+                            </div>
                         </div>
 
                         <div class="mt-3">
@@ -1117,6 +1181,7 @@
                         <div class="mt-3">
                             <x-input
                                 label="GIS Coordinates"
+                                id="estate-create-block-coords"
                                 :value="json_encode($newBlockGeoCoords)"
                                 readonly
                             />
@@ -1149,7 +1214,7 @@
         {{-- EDIT BLOCK --}}
         <x-modal
             name="edit-gis-block-modal"
-            max-width="2xl"
+            max-width="7xl"
             blur="md"
             align="center"
             x-on:gis-block-edit-success.window="
@@ -1183,6 +1248,7 @@
                     </div>
 
                     <div
+                        id="estate-edit-block-map-container"
                         wire:ignore
                         class="relative w-full h-[320px] rounded-xl border border-gray-200 overflow-hidden bg-gray-100"
                     >
@@ -1191,13 +1257,30 @@
                             class="absolute inset-0 w-full h-full"
                         ></div>
 
-                        <button
-                            type="button"
-                            onclick="resetEstateModalMapView('estate-edit-block-mini-map')"
-                            class="absolute top-3 right-3 z-[500] px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
-                        >
-                            Reset View
-                        </button>
+                        <div class="absolute top-3 right-3 z-[500] flex gap-2">
+
+                            {{-- Fullscreen --}}
+                            <button
+                                type="button"
+                                onclick="toggleEstateMapFullscreen(
+                                    'estate-edit-block-map-container',
+                                    this
+                                )"
+                                class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                            >
+                                ⛶
+                            </button>
+
+                            {{-- Reset View --}}
+                            <button
+                                type="button"
+                                onclick="resetEstateModalMapView('estate-edit-block-mini-map')"
+                                class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                            >
+                                Reset View
+                            </button>
+
+                        </div>
                     </div>
 
                     <div class="mt-3">
@@ -1211,6 +1294,7 @@
                     <div class="mt-3">
                         <x-input
                             label="GIS Coordinates"
+                            id="estate-edit-block-coords"
                             :value="json_encode($editBlockGeoCoords)"
                             readonly
                         />
@@ -1243,7 +1327,7 @@
         {{-- CREATE FORM --}}
         <x-modal
             name="create-gis-lot-modal"
-            max-width="2xl"
+            max-width="7xl"
             blur="md"
             align="center"
             x-on:gis-create-success.window="
@@ -1279,6 +1363,7 @@
                             </div>
 
                             <div
+                                id="estate-create-lot-map-container"
                                 wire:ignore
                                 class="relative w-full h-[280px] rounded-xl border border-gray-200 overflow-hidden bg-gray-100"
                             >
@@ -1288,15 +1373,25 @@
                                 ></div>
 
 
-                                {{-- RESET VIEW --}}
-                                <button
-                                    type="button"
-                                    onclick="resetEstateModalMapView('estate-create-mini-map')"
+                                <div class="absolute top-3 right-3 z-[500] flex gap-2">
+
+                                    {{-- Fullscreen --}}
+                                    <button
+                                        type="button"
+                                        onclick="toggleEstateMapFullscreen(
+                                            'estate-create-lot-map-container',
+                                            this
+                                        )"
+                                        class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                                    >
+                                        ⛶
+                                    </button>
+
+                                    {{-- Reset View --}}
+                                    <button
+                                        type="button"
+                                        onclick="resetEstateModalMapView('estate-create-mini-map')"
                                     class="
-                                        absolute
-                                        top-3
-                                        right-3
-                                        z-[500]
                                         flex
                                         items-center
                                         gap-2
@@ -1332,7 +1427,9 @@
                                     <span>
                                         Reset View
                                     </span>
-                                </button>
+                                    </button>
+
+                                </div>
                             </div>
 
                             <p class="text-xs text-gray-400 mt-2">
@@ -1360,23 +1457,29 @@
 
                             <div class="mt-3">
                                 <x-input
-                                    type="number"
+                                    type="text"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
                                     min="1"
-                                    step="1"
                                     label="Lot Number"
                                     placeholder="Ex: 43"
                                     wire:model.defer="lotNumber"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                 />
                             </div>
 
                             <div class="mt-3">
                                 <x-input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
+                                    type="text"
+                                    inputmode="decimal"
                                     label="Lot Area"
-                                    suffix="sqm"
+                                    placeholder="Ex: 150.50"
                                     wire:model.defer="lotArea"
+                                    oninput="
+                                        this.value = this.value
+                                            .replace(/[^0-9.]/g, '')
+                                            .replace(/(\..*)\./g, '$1');
+                                    "
                                 />
                             </div>
                         @endif
@@ -1384,6 +1487,7 @@
                         <div class="mt-3">
                             <x-native-select
                                 label="Property Type"
+                                id="estate-create-lot-type"
                                 wire:model.live="lotType"
                             >
                                 <option value="">
@@ -1568,6 +1672,7 @@
                         <div class="mt-3">
                             <x-input
                                 label="GIS Coordinates"
+                                id="estate-create-lot-coords"
                                 :value="json_encode($newGeoCoords)"
                                 readonly
                             />
@@ -1604,7 +1709,7 @@
             persistent
             blur="md"
             align="center"
-            max-width="2xl"
+            max-width="7xl"
             x-on:gis-edit-success.window="
                 destroyEstateModalMiniMap('estate-edit-mini-map');
                 close();
@@ -1641,6 +1746,7 @@
                             </div>
 
                             <div
+                                id="estate-edit-lot-map-container"
                                 wire:ignore
                                 class="relative w-full h-[280px] rounded-xl border border-gray-200 overflow-hidden bg-gray-100"
                             >
@@ -1650,15 +1756,25 @@
                                 ></div>
 
 
-                                {{-- RESET VIEW --}}
-                                <button
-                                    type="button"
-                                    onclick="resetEstateModalMapView('estate-edit-mini-map')"
+                                <div class="absolute top-3 right-3 z-[500] flex gap-2">
+
+                                    {{-- Fullscreen --}}
+                                    <button
+                                        type="button"
+                                        onclick="toggleEstateMapFullscreen(
+                                            'estate-edit-lot-map-container',
+                                            this
+                                        )"
+                                        class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium shadow-md hover:bg-gray-50"
+                                    >
+                                        ⛶
+                                    </button>
+
+                                    {{-- Reset View --}}
+                                    <button
+                                        type="button"
+                                        onclick="resetEstateModalMapView('estate-edit-mini-map')"
                                     class="
-                                        absolute
-                                        top-3
-                                        right-3
-                                        z-[500]
                                         flex
                                         items-center
                                         gap-2
@@ -1694,7 +1810,9 @@
                                     <span>
                                         Reset View
                                     </span>
-                                </button>
+                                    </button>
+
+                                </div>
                             </div>
 
                             <p class="text-xs text-gray-400 mt-2">
@@ -1721,26 +1839,29 @@
                             {{-- LOT NAME --}}
                             <div class="mt-3">
                                 <x-input
-                                    type="number"
-                                    min="1"
-                                    step="1"
+                                    type="text"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
                                     label="Lot Number"
                                     placeholder="Ex: 43"
                                     wire:model.defer="editLotNumber"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                 />
                             </div>
 
                             {{-- LOT AREA --}}
                             <div class="mt-3">
                                 <x-input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    class="pr-28"
+                                    type="text"
+                                    inputmode="decimal"
                                     label="Lot Area"
-                                    placeholder="100"
-                                    suffix="sqm"
+                                    placeholder="Ex: 150.50"
                                     wire:model.defer="editLotArea"
+                                    oninput="
+                                        this.value = this.value
+                                            .replace(/[^0-9.]/g, '')
+                                            .replace(/(\..*)\./g, '$1');
+                                    "
                                 />
                             </div>
                         @endif
@@ -1964,27 +2085,60 @@
 
 
                         {{-- CURRENT IMAGE --}}
-                        @if($editLotImagePreview)
-                            <div class="mt-4">
+                        @if ($editLotImage)
+
+                            <div class="mt-4" wire:key="edit-lot-new-image-preview">
+                                <p class="text-sm font-medium text-gray-700 mb-2">
+                                    New Image Preview
+                                </p>
+
+                                <div class="relative">
+                                    <img
+                                        src="{{ $editLotImage->temporaryUrl() }}"
+                                        class="w-full max-h-60 object-cover rounded-xl border border-gray-200 shadow-sm"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        wire:click="removeNewLotImagePreview"
+                                        class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white"
+                                        aria-label="Remove new image preview"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-gray-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                        @elseif ($editLotImagePreview)
+
+                            <div x-data="{ hideCurrentImage: false }" class="mt-4" x-show="!hideCurrentImage" wire:key="edit-lot-current-image-preview">
 
                                 <p class="text-sm font-medium text-gray-700 mb-2">
                                     Current Image
                                 </p>
 
-                                <img
-                                    src="{{ asset('storage/' . $editLotImagePreview) }}"
-                                    class="
-                                        w-full
-                                        max-h-60
-                                        object-cover
-                                        rounded-xl
-                                        border
-                                        border-gray-200
-                                        shadow-sm
-                                    "
-                                >
+                                <div class="relative">
+                                    <img
+                                        src="{{ asset('storage/' . $editLotImagePreview) }}"
+                                        class="w-full max-h-60 object-cover rounded-xl border border-gray-200 shadow-sm"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        @click="hideCurrentImage = true"
+                                        class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white"
+                                        aria-label="Remove current image preview"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-gray-600">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+                                        </svg>
+                                    </button>
+                                </div>
 
                             </div>
+
                         @endif
 
 
@@ -2016,6 +2170,7 @@
 
                             <x-input
                                 label="GIS Coordinates"
+                                id="estate-edit-lot-coords"
                                 :value="json_encode($editGeoCoords)"
                                 readonly
                             />
@@ -2076,6 +2231,7 @@
         window.estateBlockLayer = null;
         window.estateDrawingLayer = null;
         window.estateBoundaryLayer = null;
+        window.estateBoundaryClickMask = null;
         window.estateConstructionMarkers = [];
         window.estateSoldMarkers = [];
         window.estateLotNumberMarkers = [];
@@ -2113,9 +2269,1219 @@
             "Model House": "#c8c9c3",
             "Lot Only": "#c4e0b7",
             "House & Lot": "#f8e89c",
-            "Internal Road": "#ebebeb",
+            "Internal Road": "#ffffff",
             "Sold": "#e9b4ae",
         };
+
+
+        function getEstateSubdivisionBoundaryPoints()
+        {
+            if (
+                !Array.isArray(
+                    estateSubdivisionBoundary
+                )
+                ||
+                estateSubdivisionBoundary.length < 3
+            ) {
+                return [];
+            }
+
+            return estateSubdivisionBoundary.map(
+                point =>
+                    L.latLng(
+                        point[0],
+                        point[1]
+                    )
+            );
+        }
+
+
+        function isEstatePointInsideSubdivisionBoundary(
+            latlng
+        )
+        {
+            const boundaryPoints =
+                getEstateSubdivisionBoundaryPoints();
+
+            if (
+                !latlng ||
+                boundaryPoints.length < 3
+            ) {
+                return false;
+            }
+
+            return pointInsidePolygon(
+                latlng,
+                boundaryPoints
+            );
+        }
+
+
+        function addEstateBoundaryInteractionMask(
+            map
+        )
+        {
+            if (
+                !map
+                ||
+                !Array.isArray(
+                    estateSubdivisionBoundary
+                )
+                ||
+                estateSubdivisionBoundary.length < 3
+            ) {
+                return null;
+            }
+
+            const worldRing = [
+                [
+                    85.05112878,
+                    -180,
+                ],
+                [
+                    85.05112878,
+                    180,
+                ],
+                [
+                    -85.05112878,
+                    180,
+                ],
+                [
+                    -85.05112878,
+                    -180,
+                ],
+            ];
+
+            const mask =
+                L.polygon(
+                    [
+                        worldRing,
+                        estateSubdivisionBoundary,
+                    ],
+                    {
+                        stroke: false,
+                        fill: true,
+                        fillColor: '#000000',
+                        fillOpacity: 0.001,
+                        interactive: true,
+                        bubblingMouseEvents: false,
+                        className: 'estate-map-not-allowed-area',
+                    }
+                ).addTo(
+                    map
+                );
+
+            [
+                'click',
+                'dblclick',
+                // 'mousedown',
+                // 'mouseup',
+                'contextmenu',
+            ].forEach(
+                function(eventName)
+                {
+                    mask.on(
+                        eventName,
+                        function(event)
+                        {
+                            if (
+                                event?.originalEvent
+                            ) {
+                                L.DomEvent.stop(
+                                    event.originalEvent
+                                );
+                            }
+                        }
+                    );
+                }
+            );
+
+            return mask;
+        }
+
+
+        function stopEstateMappedAreaClicks(
+            layer
+        )
+        {
+            if (!layer) {
+                return layer;
+            }
+
+            [
+                'click',
+                'dblclick',
+                'contextmenu',
+            ].forEach(
+                function(eventName)
+                {
+                    layer.on(
+                        eventName,
+                        function(event)
+                        {
+                            L.DomEvent.stopPropagation(
+                                event
+                            );
+
+                            if (
+                                event?.originalEvent
+                            ) {
+                                L.DomEvent.stop(
+                                    event.originalEvent
+                                );
+                            }
+                        }
+                    );
+                }
+            );
+
+            return layer;
+        }
+
+
+        function isEstatePointInsideExistingBlock(
+            latlng,
+            ignoreBlockId = null
+        )
+        {
+            const blocks =
+                window.estateGISBlocks || [];
+
+            for (
+                const block of blocks
+            ) {
+                if (
+                    ignoreBlockId
+                    &&
+                    Number(block.id) ===
+                    Number(ignoreBlockId)
+                ) {
+                    continue;
+                }
+
+                if (
+                    !Array.isArray(
+                        block.geo_coords
+                    )
+                    ||
+                    block.geo_coords.length < 3
+                ) {
+                    continue;
+                }
+
+                const blockPoints =
+                    block.geo_coords.map(
+                        point =>
+                            L.latLng(
+                                point[0],
+                                point[1]
+                            )
+                    );
+
+                if (
+                    pointInsidePolygon(
+                        latlng,
+                        blockPoints
+                    )
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+
+        function isEstatePointInsideAnyBlock(
+            latlng
+        )
+        {
+            return isEstatePointInsideExistingBlock(
+                latlng
+            );
+        }
+
+
+        function isEstatePointInsideExistingLot(
+            latlng,
+            ignoreLotId = null
+        )
+        {
+            const lots =
+                window.estateGISLots || [];
+
+            for (
+                const lot of lots
+            ) {
+                if (
+                    ignoreLotId
+                    &&
+                    Number(lot.id) ===
+                    Number(ignoreLotId)
+                ) {
+                    continue;
+                }
+
+                if (
+                    !Array.isArray(
+                        lot.geo_coords
+                    )
+                    ||
+                    lot.geo_coords.length < 3
+                ) {
+                    continue;
+                }
+
+                const lotPoints =
+                    lot.geo_coords.map(
+                        point =>
+                            L.latLng(
+                                point[0],
+                                point[1]
+                            )
+                    );
+
+                if (
+                    pointInsidePolygon(
+                        latlng,
+                        lotPoints
+                    )
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+
+        function addEstateOutsideBlocksInteractionMask(
+            map
+        )
+        {
+            if (!map) {
+                return null;
+            }
+
+            const blockRings =
+                (window.estateGISBlocks || [])
+                    .filter(
+                        block =>
+                            Array.isArray(
+                                block.geo_coords
+                            )
+                            &&
+                            block.geo_coords.length >= 3
+                    )
+                    .map(
+                        block =>
+                            block.geo_coords
+                    );
+
+            if (
+                blockRings.length === 0
+            ) {
+                return null;
+            }
+
+            const worldRing = [
+                [
+                    85.05112878,
+                    -180,
+                ],
+                [
+                    85.05112878,
+                    180,
+                ],
+                [
+                    -85.05112878,
+                    180,
+                ],
+                [
+                    -85.05112878,
+                    -180,
+                ],
+            ];
+
+            const mask =
+                L.polygon(
+                    [
+                        worldRing,
+                        ...blockRings,
+                    ],
+                    {
+                        stroke: false,
+                        fill: true,
+                        fillColor: '#000000',
+                        fillOpacity: 0.001,
+                        interactive: true,
+                        bubblingMouseEvents: false,
+                    }
+                ).addTo(
+                    map
+                );
+
+            stopEstateMappedAreaClicks(
+                mask
+            );
+
+            return mask;
+        }
+
+
+        function doesEstateSegmentCrossCoordinates(
+            startPoint,
+            endPoint,
+            coordinates
+        )
+        {
+            if (
+                !startPoint
+                ||
+                !endPoint
+                ||
+                !Array.isArray(
+                    coordinates
+                )
+                ||
+                coordinates.length < 3
+            ) {
+                return false;
+            }
+
+            const polygonPoints =
+                coordinates.map(
+                    point =>
+                        L.latLng(
+                            point[0],
+                            point[1]
+                        )
+                );
+
+            for (
+                let index = 0;
+                index < polygonPoints.length;
+                index++
+            ) {
+                const edgeStart =
+                    polygonPoints[
+                        index
+                    ];
+
+                const edgeEnd =
+                    polygonPoints[
+                        (
+                            index + 1
+                        )
+                        %
+                        polygonPoints.length
+                    ];
+
+                if (
+                    segmentsIntersect(
+                        startPoint,
+                        endPoint,
+                        edgeStart,
+                        edgeEnd
+                    )
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+
+        function doesEstateSegmentCrossExistingBlock(
+            startPoint,
+            endPoint,
+            ignoreBlockId = null
+        )
+        {
+            const blocks =
+                window.estateGISBlocks || [];
+
+            for (
+                const block of blocks
+            ) {
+                if (
+                    ignoreBlockId
+                    &&
+                    Number(block.id) ===
+                    Number(ignoreBlockId)
+                ) {
+                    continue;
+                }
+
+                if (
+                    !Array.isArray(
+                        block.geo_coords
+                    )
+                    ||
+                    block.geo_coords.length < 3
+                ) {
+                    continue;
+                }
+
+                if (
+                    doesEstateSegmentCrossCoordinates(
+                        startPoint,
+                        endPoint,
+                        block.geo_coords
+                    )
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+
+        function doesEstateSegmentCrossExistingLot(
+            startPoint,
+            endPoint,
+            ignoreLotId = null
+        )
+        {
+            const lots =
+                window.estateGISLots || [];
+
+            for (
+                const lot of lots
+            ) {
+                if (
+                    ignoreLotId
+                    &&
+                    Number(lot.id) ===
+                    Number(ignoreLotId)
+                ) {
+                    continue;
+                }
+
+                if (
+                    !Array.isArray(
+                        lot.geo_coords
+                    )
+                    ||
+                    lot.geo_coords.length < 3
+                ) {
+                    continue;
+                }
+
+                if (
+                    doesEstateSegmentCrossCoordinates(
+                        startPoint,
+                        endPoint,
+                        lot.geo_coords
+                    )
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+
+        function getEstateBlockContainingPoint(
+            latlng
+        )
+        {
+            if (!latlng) {
+                return null;
+            }
+
+            const blocks =
+                window.estateGISBlocks || [];
+
+            for (
+                const block of blocks
+            ) {
+                if (
+                    !Array.isArray(
+                        block.geo_coords
+                    )
+                    ||
+                    block.geo_coords.length < 3
+                ) {
+                    continue;
+                }
+
+                const blockPoints =
+                    block.geo_coords.map(
+                        point =>
+                            L.latLng(
+                                point[0],
+                                point[1]
+                            )
+                    );
+
+                if (
+                    pointInsidePolygon(
+                        latlng,
+                        blockPoints
+                    )
+                ) {
+                    return block;
+                }
+            }
+
+            return null;
+        }
+
+
+        function isEstateInternalRoadDrawing()
+        {
+            const inputId = window.estateActiveLotTypeInputId;
+            return !!inputId && document.getElementById(inputId)?.value === 'Internal Road';
+        }
+
+
+        function isEstateDrawingSegmentAllowed(
+            startPoint,
+            endPoint,
+            mode,
+            ignoreLotId = null,
+            ignoreBlockId = null
+        )
+        {
+            if (
+                !startPoint
+                ||
+                !endPoint
+            ) {
+                return true;
+            }
+
+            if (
+                mode === 'block'
+            ) {
+                return !doesEstateSegmentCrossExistingBlock(
+                    startPoint,
+                    endPoint,
+                    ignoreBlockId
+                );
+            }
+
+            if (
+                mode === 'lot'
+            ) {
+                if (isEstateInternalRoadDrawing()) {
+                    if (
+                        isEstatePointInsideAnyBlock(startPoint)
+                        || isEstatePointInsideAnyBlock(endPoint)
+                        || doesEstateSegmentCrossExistingBlock(startPoint, endPoint)
+                    ) {
+                        return false;
+                    }
+
+                    return !doesEstateSegmentCrossExistingLot(
+                        startPoint,
+                        endPoint,
+                        ignoreLotId
+                    );
+                }
+
+                const startBlock =
+                    getEstateBlockContainingPoint(
+                        startPoint
+                    );
+
+                const endBlock =
+                    getEstateBlockContainingPoint(
+                        endPoint
+                    );
+
+                if (
+                    !startBlock
+                    ||
+                    !endBlock
+                    ||
+                    Number(startBlock.id) !==
+                    Number(endBlock.id)
+                ) {
+                    return false;
+                }
+
+                if (
+                    doesEstateSegmentCrossCoordinates(
+                        startPoint,
+                        endPoint,
+                        startBlock.geo_coords
+                    )
+                ) {
+                    return false;
+                }
+
+                if (
+                    doesEstateSegmentCrossExistingLot(
+                        startPoint,
+                        endPoint,
+                        ignoreLotId
+                    )
+                ) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+
+        function restrictEstateDrawerToMappedAreas(
+            drawer,
+            mode,
+            ignoreLotId = null,
+            ignoreBlockId = null
+        )
+        {
+            if (
+                !drawer
+                ||
+                mode === 'boundary'
+                ||
+                typeof drawer.addVertex !==
+                    'function'
+            ) {
+                return;
+            }
+
+            const originalAddVertex =
+                drawer.addVertex.bind(
+                    drawer
+                );
+
+            drawer.addVertex =
+                function(latlng)
+                {
+                    if (
+                        !isEstatePointInsideSubdivisionBoundary(
+                            latlng
+                        )
+                    ) {
+                        return;
+                    }
+
+                    if (
+                        mode === 'block'
+                        &&
+                        isEstatePointInsideExistingBlock(
+                            latlng,
+                            ignoreBlockId
+                        )
+                    ) {
+                        return;
+                    }
+
+                    if (
+                        mode === 'lot'
+                    ) {
+                        if (
+                            isEstateInternalRoadDrawing()
+                                ? isEstatePointInsideAnyBlock(latlng)
+                                : !isEstatePointInsideAnyBlock(latlng)
+                        ) {
+                            return;
+                        }
+
+                        if (
+                            isEstatePointInsideExistingLot(
+                                latlng,
+                                ignoreLotId
+                            )
+                        ) {
+                            return;
+                        }
+                    }
+
+                    const markers =
+                        Array.isArray(
+                            drawer._markers
+                        )
+                            ? drawer._markers
+                            : [];
+
+                    const lastMarker =
+                        markers.length > 0
+                            ? markers[
+                                markers.length - 1
+                            ]
+                            : null;
+
+                    const lastPoint =
+                        lastMarker
+                            &&
+                            typeof lastMarker.getLatLng ===
+                                'function'
+                                ? lastMarker.getLatLng()
+                                : null;
+
+                    if (
+                        lastPoint
+                        &&
+                        !isEstateDrawingSegmentAllowed(
+                            lastPoint,
+                            latlng,
+                            mode,
+                            ignoreLotId,
+                            ignoreBlockId
+                        )
+                    ) {
+                        @this.call(
+                            'showMapNotification',
+                            mode === 'block'
+                                ? 'Block Edge Not Allowed'
+                                : 'Lot Edge Not Allowed',
+                            mode === 'block'
+                                ? 'That point would make the new block edge pass through an existing mapped block. Choose another point.'
+                                : 'That point would make the new lot edge leave its block or pass through an existing mapped lot. Choose another point.',
+                            'danger'
+                        );
+
+                        return;
+                    }
+
+                    return originalAddVertex(
+                        latlng
+                    );
+                };
+
+
+            if (
+                typeof drawer._finishShape ===
+                    'function'
+            ) {
+                const originalFinishShape =
+                    drawer._finishShape.bind(
+                        drawer
+                    );
+
+                drawer._finishShape =
+                    function()
+                    {
+                        const markers =
+                            Array.isArray(
+                                drawer._markers
+                            )
+                                ? drawer._markers
+                                : [];
+
+                        if (
+                            markers.length >= 3
+                        ) {
+                            const firstMarker =
+                                markers[0];
+
+                            const lastMarker =
+                                markers[
+                                    markers.length - 1
+                                ];
+
+                            const firstPoint =
+                                firstMarker
+                                &&
+                                typeof firstMarker.getLatLng ===
+                                    'function'
+                                    ? firstMarker.getLatLng()
+                                    : null;
+
+                            const lastPoint =
+                                lastMarker
+                                &&
+                                typeof lastMarker.getLatLng ===
+                                    'function'
+                                    ? lastMarker.getLatLng()
+                                    : null;
+
+                            if (
+                                firstPoint
+                                &&
+                                lastPoint
+                                &&
+                                !isEstateDrawingSegmentAllowed(
+                                    lastPoint,
+                                    firstPoint,
+                                    mode,
+                                    ignoreLotId,
+                                    ignoreBlockId
+                                )
+                            ) {
+                                @this.call(
+                                    'showMapNotification',
+                                    mode === 'block'
+                                        ? 'Cannot Close Block'
+                                        : 'Cannot Close Lot',
+                                    mode === 'block'
+                                        ? 'The closing edge would pass through an existing mapped block. Add or move a point before closing the shape.'
+                                        : 'The closing edge would leave the selected block or pass through an existing mapped lot. Add or move a point before closing the shape.',
+                                    'danger'
+                                );
+
+                                return;
+                            }
+                        }
+
+                        return originalFinishShape();
+                    };
+            }
+        }
+
+
+        function keepEstateEditedPolygonInAllowedArea(
+            polygon,
+            mode,
+            ignoreLotId = null,
+            ignoreBlockId = null,
+            containerId = null
+        )
+        {
+            if (
+                !polygon
+                ||
+                mode === 'boundary'
+            ) {
+                return;
+            }
+
+            let resetting =
+                false;
+
+            polygon.on(
+                'edit',
+                function()
+                {
+                    if (resetting) {
+                        return;
+                    }
+
+                    let valid =
+                        isPolygonInsideEstateBoundaryCoordinates(
+                            polygon
+                        );
+
+                    if (
+                        valid
+                        &&
+                        mode === 'block'
+                    ) {
+                        valid =
+                            !doesPolygonOverlapExistingBlock(
+                                polygon,
+                                ignoreBlockId
+                            );
+                    }
+
+                    if (
+                        valid
+                        &&
+                        mode === 'lot'
+                    ) {
+                        const coordinates =
+                            getPolygonCoordinates(
+                                polygon
+                            );
+
+                        valid =
+                            (
+                                isEstateInternalRoadDrawing()
+                                    ? !doesPolygonOverlapExistingBlock(polygon)
+                                    : !!findContainingEstateBlock(coordinates)
+                            )
+                            &&
+                            !doesPolygonOverlapExistingLot(
+                                polygon,
+                                ignoreLotId
+                            );
+                    }
+
+                    if (valid) {
+                        return;
+                    }
+
+                    if (
+                        !containerId
+                    ) {
+                        return;
+                    }
+
+                    resetting =
+                        true;
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | USE THE SAME BEHAVIOR AS "RESET POINTS"
+                    |--------------------------------------------------------------------------
+                    |
+                    | Instead of manually moving the polygon back and trying to
+                    | refresh Leaflet Draw's existing handles, rebuild the polygon
+                    | exactly the same way as pressing Reset Points.
+                    |
+                    */
+
+                    setTimeout(
+                        function()
+                        {
+                            restoreEstateModalMiniMapOriginalPolygon(
+                                containerId
+                            );
+                        },
+                        0
+                    );
+                }
+            );
+        }
+
+        function restrictEstateDrawerToBoundary(
+            drawer,
+            mode
+        )
+        {
+            if (
+                !drawer
+                ||
+                mode === 'boundary'
+                ||
+                typeof drawer.addVertex !==
+                    'function'
+            ) {
+                return;
+            }
+
+            const getMappedAreas =
+                function()
+                {
+                    if (
+                        mode === 'block'
+                    ) {
+                        return (
+                            window.estateGISBlocks
+                            || []
+                        );
+                    }
+
+                    if (
+                        mode === 'lot'
+                    ) {
+                        return (
+                            window.estateGISLots
+                            || []
+                        );
+                    }
+
+                    return [];
+                };
+
+            const getMappedPolygonPoints =
+                function(item)
+                {
+                    if (
+                        !Array.isArray(
+                            item?.geo_coords
+                        )
+                        ||
+                        item.geo_coords.length < 3
+                    ) {
+                        return [];
+                    }
+
+                    return item.geo_coords.map(
+                        point =>
+                            L.latLng(
+                                point[0],
+                                point[1]
+                            )
+                    );
+                };
+
+            const segmentCrossesMappedArea =
+                function(start, end)
+                {
+                    if (
+                        !start
+                        ||
+                        !end
+                    ) {
+                        return false;
+                    }
+
+                    const mappedAreas =
+                        getMappedAreas();
+
+                    for (
+                        const item of mappedAreas
+                    ) {
+                        const points =
+                            getMappedPolygonPoints(
+                                item
+                            );
+
+                        if (
+                            points.length < 3
+                        ) {
+                            continue;
+                        }
+
+                        if (
+                            pointInsidePolygon(
+                                end,
+                                points
+                            )
+                        ) {
+                            return true;
+                        }
+
+                        for (
+                            let i = 0;
+                            i < points.length;
+                            i++
+                        ) {
+                            const edgeStart =
+                                points[i];
+
+                            const edgeEnd =
+                                points[
+                                    (i + 1)
+                                    %
+                                    points.length
+                                ];
+
+                            if (
+                                segmentsIntersect(
+                                    start,
+                                    end,
+                                    edgeStart,
+                                    edgeEnd
+                                )
+                            ) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                };
+
+            const showRejectedPointError =
+                function(isClosing = false)
+                {
+                    @this.call(
+                        'showMapNotification',
+                        isClosing
+                            ? 'Cannot Close Area'
+                            : 'Point Not Allowed',
+                        isClosing
+                            ? (
+                                mode === 'block'
+                                    ? 'The closing edge crosses an existing mapped block. Add another point or choose a different path.'
+                                    : 'The closing edge crosses an existing mapped lot. Add another point or choose a different path.'
+                            )
+                            : (
+                                mode === 'block'
+                                    ? 'This edge would cross an existing mapped block. Choose another point.'
+                                    : 'This edge would cross an existing mapped lot. Choose another point.'
+                            ),
+                        'danger'
+                    );
+                };
+
+            const originalAddVertex =
+                drawer.addVertex.bind(
+                    drawer
+                );
+
+            drawer.addVertex =
+                function(latlng)
+                {
+                    if (
+                        !isEstatePointInsideSubdivisionBoundary(
+                            latlng
+                        )
+                    ) {
+                        @this.call(
+                            'showMapNotification',
+                            'Point Not Allowed',
+                            'Choose a point inside the subdivision boundary.',
+                            'danger'
+                        );
+
+                        return;
+                    }
+
+                    const markers =
+                        drawer._markers || [];
+
+                    const previousPoint =
+                        markers.length
+                            ? markers[
+                                markers.length - 1
+                            ].getLatLng()
+                            : null;
+
+                    if (
+                        previousPoint
+                        &&
+                        segmentCrossesMappedArea(
+                            previousPoint,
+                            latlng
+                        )
+                    ) {
+                        showRejectedPointError();
+
+                        return;
+                    }
+
+                    return originalAddVertex(
+                        latlng
+                    );
+                };
+
+            if (
+                typeof drawer.completeShape ===
+                    'function'
+            ) {
+                const originalCompleteShape =
+                    drawer.completeShape.bind(
+                        drawer
+                    );
+
+                drawer.completeShape =
+                    function()
+                    {
+                        const markers =
+                            drawer._markers || [];
+
+                        if (
+                            markers.length >= 3
+                        ) {
+                            const lastPoint =
+                                markers[
+                                    markers.length - 1
+                                ].getLatLng();
+
+                            const firstPoint =
+                                markers[0]
+                                    .getLatLng();
+
+                            if (
+                                segmentCrossesMappedArea(
+                                    lastPoint,
+                                    firstPoint
+                                )
+                            ) {
+                                showRejectedPointError(
+                                    true
+                                );
+
+                                return;
+                            }
+                        }
+
+                        return originalCompleteShape();
+                    };
+            }
+        }
 
 
         function initEstateLeafletMap()
@@ -2146,17 +3512,41 @@
                 {
                     zoomControl: true,
                     minZoom: 18,
-                    maxZoom: 20,
+                    maxZoom: 22,
                 }
             );
 
             window.estateLeafletMap = map;
 
-            L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                maxZoom: 22,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                attribution: '© Google',
-            }).addTo(map);
+            const baseLayers =
+                buildEstateBaseLayers();
+
+            baseLayers.default.addTo(
+                map
+            );
+
+            window.estateSelectedBaseLayer =
+                window.estateSelectedBaseLayer
+                || 'Satellite';
+
+            L.control.layers(
+                baseLayers.layers,
+                null,
+                {
+                    position: 'bottomleft'
+                }
+            ).addTo(
+                map
+            );
+
+            map.on(
+                'baselayerchange',
+                function(event)
+                {
+                    window.estateSelectedBaseLayer =
+                        event.name;
+                }
+            );
 
             let boundary = null;
 
@@ -2182,6 +3572,13 @@
 
             window.estateBoundaryLayer =
                 boundary;
+
+            window.estateBoundaryClickMask =
+                boundary
+                    ? addEstateBoundaryInteractionMask(
+                        map
+                    )
+                    : null;
 
 
             const blockLayer =
@@ -2313,6 +3710,11 @@
                                 onChange:
                                     function(updatedCoordinates)
                                     {
+                                        updateEstateCoordinateField(
+                                            'estate-create-lot-coords',
+                                            updatedCoordinates
+                                        );
+
                                         @this.set(
                                             'newGeoCoords',
                                             updatedCoordinates
@@ -2410,7 +3812,6 @@
                             permanent: true,
                             className: 'estate-block-label',
                             opacity: 1,
-                            offset: [0, 0],
                         }
                     );
 
@@ -2418,38 +3819,19 @@
                         'add',
                         function()
                         {
-                            const bounds =
-                                polygon.getBounds();
-
-                            const center =
-                                typeof polygon.getCenter ===
-                                    'function'
-                                    ? polygon.getCenter()
-                                    : bounds.getCenter();
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | POSITION LABEL NEAR BOTTOM, BUT INSIDE BLOCK
-                            |--------------------------------------------------------------------------
-                            */
-
-                            const labelPosition =
-                                L.latLng(
-                                    center.lat -
-                                    (
-                                        center.lat -
-                                        bounds.getSouth()
-                                    ) * 0.65,
-
-                                    center.lng
+                            const bottomCenter =
+                                getEstateBlockBottomCenter(
+                                    polygon
                                 );
 
+                            if (!bottomCenter) {
+                                return;
+                            }
 
                             polygon
                                 .getTooltip()
                                 ?.setLatLng(
-                                    labelPosition
+                                    bottomCenter
                                 );
                         }
                     );
@@ -2550,12 +3932,12 @@
                             {
                                 color:
                                     isInternalRoad
-                                        ? '#ebebeb'
+                                        ? '#ffffff'
                                         : color,
 
                                 fillColor:
                                     isInternalRoad
-                                        ? '#ebebeb'
+                                        ? '#ffffff'
                                         : color,
 
                                 weight: 2,
@@ -3095,6 +4477,212 @@
             return bounds.getCenter();
         }
 
+        function getEstateBlockBottomCenter(
+            polygon
+        )
+        {
+            if (!polygon) {
+                return null;
+            }
+
+            const points =
+                polygon.getLatLngs()[0];
+
+            if (
+                !Array.isArray(points)
+                ||
+                points.length < 3
+            ) {
+                return null;
+            }
+
+
+            const bounds =
+                polygon.getBounds();
+
+            if (
+                !bounds
+                ||
+                !bounds.isValid()
+            ) {
+                return null;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | POSITION SLIGHTLY ABOVE THE BOTTOM
+            |--------------------------------------------------------------------------
+            |
+            | 0.15 = 15% above the bottom edge.
+            |
+            | This keeps the name visually at the bottom,
+            | but prevents it from sitting directly on the polygon border.
+            |
+            */
+
+            const south =
+                bounds.getSouth();
+
+            const north =
+                bounds.getNorth();
+
+            const targetLat =
+                south +
+                (
+                    north - south
+                ) * 0.15;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | FIND ALL HORIZONTAL INTERSECTIONS
+            |--------------------------------------------------------------------------
+            */
+
+            const intersections = [];
+
+
+            for (
+                let i = 0;
+                i < points.length;
+                i++
+            ) {
+                const a =
+                    points[i];
+
+                const b =
+                    points[
+                        (i + 1)
+                        %
+                        points.length
+                    ];
+
+
+                if (
+                    (
+                        a.lat <= targetLat
+                        &&
+                        b.lat > targetLat
+                    )
+                    ||
+                    (
+                        b.lat <= targetLat
+                        &&
+                        a.lat > targetLat
+                    )
+                ) {
+                    const ratio =
+                        (
+                            targetLat -
+                            a.lat
+                        )
+                        /
+                        (
+                            b.lat -
+                            a.lat
+                        );
+
+
+                    const lng =
+                        a.lng +
+                        (
+                            b.lng -
+                            a.lng
+                        ) * ratio;
+
+
+                    intersections.push(
+                        lng
+                    );
+                }
+            }
+
+
+            intersections.sort(
+                function(a, b)
+                {
+                    return a - b;
+                }
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | FIND THE WIDEST INTERIOR SECTION
+            |--------------------------------------------------------------------------
+            |
+            | Intersections appear in pairs:
+            |
+            | outside | inside | outside | inside
+            |
+            */
+
+            let bestLeft =
+                null;
+
+            let bestRight =
+                null;
+
+            let bestWidth =
+                -Infinity;
+
+
+            for (
+                let i = 0;
+                i + 1 < intersections.length;
+                i += 2
+            ) {
+                const left =
+                    intersections[i];
+
+                const right =
+                    intersections[i + 1];
+
+                const width =
+                    right - left;
+
+
+                if (
+                    width >
+                    bestWidth
+                ) {
+                    bestWidth =
+                        width;
+
+                    bestLeft =
+                        left;
+
+                    bestRight =
+                        right;
+                }
+            }
+
+
+            if (
+                bestLeft !== null
+                &&
+                bestRight !== null
+            ) {
+                return L.latLng(
+                    targetLat,
+                    (
+                        bestLeft +
+                        bestRight
+                    ) / 2
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | FALLBACK
+            |--------------------------------------------------------------------------
+            */
+
+            return bounds.getCenter();
+        }
+
         function getEstateLotLabelCenter(
             polygon
         )
@@ -3332,46 +4920,7 @@
             polygon
         )
         {
-            const pixelSize =
-                getEstatePolygonPixelSize(
-                    polygon
-                );
-
-            const smallestSide =
-                Math.min(
-                    pixelSize.width,
-                    pixelSize.height
-                );
-
-
-            if (
-                !Number.isFinite(
-                    smallestSide
-                )
-                ||
-                smallestSide <= 0
-            ) {
-                return 0;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Dynamic font size
-            |--------------------------------------------------------------------------
-            |
-            | Small block on screen  -> small text
-            | Large block on screen  -> larger text
-            |
-            */
-
-            return Math.max(
-                7,
-                Math.min(
-                    18,
-                    smallestSide / 12
-                )
-            );
+            return 9;
         }
 
         function updateEstateBlockLabelSizes()
@@ -4050,12 +5599,20 @@
                 ).trim();
 
 
-            const status =
+            const rawStatus =
                 (
                     lot.status || ''
                 )
                     .toLowerCase()
                     .trim();
+
+            const isSold =
+                rawStatus === 'sold';
+
+            const status =
+                isSold
+                    ? 'sold'
+                    : rawStatus;
 
 
             const hidePriceAndStatus =
@@ -4245,14 +5802,12 @@
                                             />
                                         </svg>
 
-                                        ${propertyType !== 'Internal Road' ? `
-                                            <span>
-                                                ${escapeEstateHTML(
-                                                    lot.lot_area ?? '-'
-                                                )}
-                                                sqm
-                                            </span>
-                                        ` : ''}
+                                        <span>
+                                            ${escapeEstateHTML(
+                                                lot.lot_area ?? '-'
+                                            )}
+                                            sqm
+                                        </span>
 
                                     </span>
 
@@ -4908,6 +6463,45 @@
         }
 
 
+        function updateEstateCoordinateField(
+            inputId,
+            coordinates
+        )
+        {
+            const input =
+                document.getElementById(
+                    inputId
+                );
+
+            if (!input) {
+                return;
+            }
+
+            input.value =
+                JSON.stringify(
+                    coordinates || []
+                );
+
+            input.dispatchEvent(
+                new Event(
+                    'input',
+                    {
+                        bubbles: true,
+                    }
+                )
+            );
+
+            input.dispatchEvent(
+                new Event(
+                    'change',
+                    {
+                        bubbles: true,
+                    }
+                )
+            );
+        }
+
+
         function startEstateBoundaryMapping()
         {
             @this.set(
@@ -4927,6 +6521,11 @@
                         onChange:
                             function(updatedCoordinates)
                             {
+                                updateEstateCoordinateField(
+                                    'estate-create-boundary-coords',
+                                    updatedCoordinates
+                                );
+
                                 @this.set(
                                     'newBoundaryGeoCoords',
                                     updatedCoordinates
@@ -4967,6 +6566,11 @@
                         onChange:
                             function(updatedCoordinates)
                             {
+                                updateEstateCoordinateField(
+                                    'estate-create-block-coords',
+                                    updatedCoordinates
+                                );
+
                                 @this.set(
                                     'newBlockGeoCoords',
                                     updatedCoordinates
@@ -5043,12 +6647,28 @@
                 );
 
 
+                window.estateActiveLotTypeInputId =
+                    'estate-create-lot-type';
+
+                const mainMapState =
+                    getEstateMainMapState();
+
                 initEstateCreateDrawingMap(
                     'estate-create-mini-map',
                     {
+                        mode: 'lot',
+
+                        initialView:
+                            mainMapState,
+
                         onChange:
                             function(updatedCoordinates)
                             {
+                                updateEstateCoordinateField(
+                                    'estate-create-lot-coords',
+                                    updatedCoordinates
+                                );
+
                                 @this.set(
                                     'newGeoCoords',
                                     updatedCoordinates
@@ -5154,6 +6774,641 @@
 
 
 
+        function getEstateModalLotOverlayScale(
+            map,
+            polygon
+        )
+        {
+            if (
+                !map
+                ||
+                !polygon
+                ||
+                !map._loaded
+            ) {
+                return 0;
+            }
+
+
+            const bounds =
+                polygon.getBounds();
+
+
+            if (
+                !bounds
+                ||
+                !bounds.isValid()
+            ) {
+                return 0;
+            }
+
+
+            const northWest =
+                map.latLngToContainerPoint(
+                    bounds.getNorthWest()
+                );
+
+
+            const southEast =
+                map.latLngToContainerPoint(
+                    bounds.getSouthEast()
+                );
+
+
+            const width =
+                Math.abs(
+                    southEast.x -
+                    northWest.x
+                );
+
+
+            const height =
+                Math.abs(
+                    southEast.y -
+                    northWest.y
+                );
+
+
+            const smallestSide =
+                Math.min(
+                    width,
+                    height
+                );
+
+
+            if (
+                !Number.isFinite(
+                    smallestSide
+                )
+                ||
+                smallestSide < 8
+            ) {
+                return 0;
+            }
+
+
+            return Math.min(
+                1,
+                smallestSide / 100
+            );
+        }
+
+
+        function buildEstateModalLotNumberIcon(
+            lotNumber,
+            scale
+        )
+        {
+            const safeScale =
+                Math.max(
+                    0,
+                    scale || 0
+                );
+
+
+            const width =
+                Math.max(
+                    1,
+                    42 * safeScale
+                );
+
+
+            const height =
+                Math.max(
+                    1,
+                    16 * safeScale
+                );
+
+
+            const fontSize =
+                Math.max(
+                    1,
+                    10 * safeScale
+                );
+
+
+            return L.divIcon({
+                className:
+                    'estate-lot-number-label',
+
+                html: `
+                    <div
+                        class="estate-lot-number-inner"
+                        style="
+                            width:${width}px;
+                            height:${height}px;
+                            font-size:${fontSize}px;
+                        "
+                    >
+                        ${escapeEstateHTML(
+                            lotNumber
+                        )}
+                    </div>
+                `,
+
+                iconSize: [
+                    width,
+                    height,
+                ],
+
+                iconAnchor: [
+                    width,
+                    0,
+                ],
+            });
+        }
+
+
+        function buildEstateModalLotAreaIcon(
+            lotArea,
+            scale
+        )
+        {
+            const safeScale =
+                Math.max(
+                    0,
+                    scale || 0
+                );
+
+
+            const width =
+                Math.max(
+                    1,
+                    52 * safeScale
+                );
+
+
+            const height =
+                Math.max(
+                    1,
+                    16 * safeScale
+                );
+
+
+            const fontSize =
+                Math.max(
+                    1,
+                    10 * safeScale
+                );
+
+
+            return L.divIcon({
+                className:
+                    'estate-lot-area-label',
+
+                html: `
+                    <div
+                        class="estate-lot-area-inner"
+                        style="
+                            width:${width}px;
+                            height:${height}px;
+                            font-size:${fontSize}px;
+                        "
+                    >
+                        ${escapeEstateHTML(
+                            Math.round(
+                                Number(
+                                    lotArea
+                                )
+                            )
+                        )}
+                    </div>
+                `,
+
+                iconSize: [
+                    width,
+                    height,
+                ],
+
+                iconAnchor: [
+                    width / 2,
+                    height / 2,
+                ],
+            });
+        }
+
+
+        function renderModalEstateLots(
+            map,
+            ignoreLotId = null,
+            lotMappedAreaClicks = false
+        )
+        {
+            const existingLots =
+                window.estateGISLots || [];
+
+
+            const overlayItems = [];
+
+
+            existingLots.forEach(
+                function(lot)
+                {
+                    if (
+                        !Array.isArray(
+                            lot.geo_coords
+                        )
+                        ||
+                        lot.geo_coords.length < 3
+                    ) {
+                        return;
+                    }
+
+
+                    if (
+                        ignoreLotId
+                        &&
+                        Number(lot.id) ===
+                        Number(ignoreLotId)
+                    ) {
+                        return;
+                    }
+
+
+                    const color =
+                        getEstateLotColor(
+                            lot
+                        );
+
+
+                    const isInternalRoad =
+                        (
+                            lot.type || ''
+                        )
+                            .trim()
+                            .toLowerCase()
+                        === 'internal road';
+
+
+                    const mappedLot =
+                        L.polygon(
+                            lot.geo_coords,
+                            {
+                                color:
+                                    isInternalRoad
+                                        ? '#ffffff'
+                                        : color,
+
+                                fillColor:
+                                    isInternalRoad
+                                        ? '#ffffff'
+                                        : color,
+
+                                weight: 2,
+
+                                fillOpacity:
+                                    isInternalRoad
+                                        ? 0.04
+                                        : 0.45,
+
+                                dashArray:
+                                    isInternalRoad
+                                        ? '10 5 2 5'
+                                        : null,
+
+                                interactive:
+                                    lotMappedAreaClicks,
+                                bubblingMouseEvents:
+                                    !lotMappedAreaClicks,
+                                className:
+                                    lotMappedAreaClicks
+                                        ? 'estate-map-not-allowed-area'
+                                        : '',
+                            }
+                        ).addTo(
+                            map
+                        );
+
+                    if (
+                        lotMappedAreaClicks
+                    ) {
+                        stopEstateMappedAreaClicks(
+                            mappedLot
+                        );
+                    }
+
+
+                    const scale =
+                        getEstateModalLotOverlayScale(
+                            map,
+                            mappedLot
+                        );
+
+
+                    let lotNumberMarker = null;
+                    let lotAreaMarker = null;
+
+
+                    if (
+                        lot.lot_number !== null
+                        &&
+                        lot.lot_number !== undefined
+                    ) {
+                        lotNumberMarker =
+                            L.marker(
+                                getEstatePolygonTopRight(
+                                    mappedLot
+                                ),
+                                {
+                                    interactive: false,
+
+                                    opacity:
+                                        scale > 0
+                                            ? 1
+                                            : 0,
+
+                                    icon:
+                                        buildEstateModalLotNumberIcon(
+                                            lot.lot_number,
+                                            scale
+                                        ),
+                                }
+                            ).addTo(
+                                map
+                            );
+                    }
+
+
+                    if (
+                        lot.lot_area !== null
+                        &&
+                        lot.lot_area !== undefined
+                    ) {
+                        lotAreaMarker =
+                            L.marker(
+                                getEstatePolygonCenter(
+                                    mappedLot
+                                ),
+                                {
+                                    interactive: false,
+
+                                    opacity:
+                                        scale > 0
+                                            ? 1
+                                            : 0,
+
+                                    icon:
+                                        buildEstateModalLotAreaIcon(
+                                            lot.lot_area,
+                                            scale
+                                        ),
+                                }
+                            ).addTo(
+                                map
+                            );
+                    }
+
+
+                    overlayItems.push({
+                        polygon: mappedLot,
+                        lotNumberMarker:
+                            lotNumberMarker,
+                        lotAreaMarker:
+                            lotAreaMarker,
+                        lotNumber:
+                            lot.lot_number,
+                        lotArea:
+                            lot.lot_area,
+                    });
+                }
+            );
+
+
+            const updateModalLotDetails =
+                function()
+                {
+                    overlayItems.forEach(
+                        function(item)
+                        {
+                            const scale =
+                                getEstateModalLotOverlayScale(
+                                    map,
+                                    item.polygon
+                                );
+
+
+                            if (
+                                item.lotNumberMarker
+                            ) {
+                                item
+                                    .lotNumberMarker
+                                    .setLatLng(
+                                        getEstatePolygonTopRight(
+                                            item.polygon
+                                        )
+                                    );
+
+
+                                item
+                                    .lotNumberMarker
+                                    .setOpacity(
+                                        scale > 0
+                                            ? 1
+                                            : 0
+                                    );
+
+
+                                item
+                                    .lotNumberMarker
+                                    .setIcon(
+                                        buildEstateModalLotNumberIcon(
+                                            item.lotNumber,
+                                            scale
+                                        )
+                                    );
+                            }
+
+
+                            if (
+                                item.lotAreaMarker
+                            ) {
+                                item
+                                    .lotAreaMarker
+                                    .setLatLng(
+                                        getEstatePolygonCenter(
+                                            item.polygon
+                                        )
+                                    );
+
+
+                                item
+                                    .lotAreaMarker
+                                    .setOpacity(
+                                        scale > 0
+                                            ? 1
+                                            : 0
+                                    );
+
+
+                                item
+                                    .lotAreaMarker
+                                    .setIcon(
+                                        buildEstateModalLotAreaIcon(
+                                            item.lotArea,
+                                            scale
+                                        )
+                                    );
+                            }
+                        }
+                    );
+                };
+
+
+            map.on(
+                'zoom zoomend resize',
+                updateModalLotDetails
+            );
+
+
+            setTimeout(
+                updateModalLotDetails,
+                50
+            );
+        }
+
+
+        function isEstateModalCursorPointAllowed(
+            latlng,
+            mode,
+            ignoreLotId = null,
+            ignoreBlockId = null
+        )
+        {
+            if (
+                !latlng
+                ||
+                mode === 'boundary'
+            ) {
+                return true;
+            }
+
+            if (
+                !isEstatePointInsideSubdivisionBoundary(
+                    latlng
+                )
+            ) {
+                return false;
+            }
+
+            if (
+                mode === 'block'
+            ) {
+                return !isEstatePointInsideExistingBlock(
+                    latlng,
+                    ignoreBlockId
+                );
+            }
+
+            if (
+                mode === 'lot'
+            ) {
+                if (
+                    isEstateInternalRoadDrawing()
+                ) {
+                    return (
+                        !isEstatePointInsideAnyBlock(
+                            latlng
+                        )
+                        &&
+                        !isEstatePointInsideExistingLot(
+                            latlng,
+                            ignoreLotId
+                        )
+                    );
+                }
+
+                return (
+                    isEstatePointInsideAnyBlock(
+                        latlng
+                    )
+                    &&
+                    !isEstatePointInsideExistingLot(
+                        latlng,
+                        ignoreLotId
+                    )
+                );
+            }
+
+            return true;
+        }
+
+
+        function enableEstateModalAllowedAreaCursor(
+            map,
+            mode,
+            ignoreLotId = null,
+            ignoreBlockId = null
+        )
+        {
+            if (
+                !map
+                ||
+                mode === 'boundary'
+            ) {
+                return;
+            }
+
+            const container =
+                map.getContainer();
+
+            if (!container) {
+                return;
+            }
+
+            const updateCursor =
+                function(event)
+                {
+                    const target =
+                        event.target;
+
+                    if (
+                        target?.closest?.(
+                            '.leaflet-control'
+                        )
+                    ) {
+                        container.classList.remove(
+                            'estate-map-cursor-not-allowed'
+                        );
+
+                        return;
+                    }
+
+                    const latlng =
+                        map.mouseEventToLatLng(
+                            event
+                        );
+
+                    const allowed =
+                        isEstateModalCursorPointAllowed(
+                            latlng,
+                            mode,
+                            ignoreLotId,
+                            ignoreBlockId
+                        );
+
+                    container.classList.toggle(
+                        'estate-map-cursor-not-allowed',
+                        !allowed
+                    );
+                };
+
+            container.addEventListener(
+                'mousemove',
+                updateCursor
+            );
+
+            container.addEventListener(
+                'mouseleave',
+                function()
+                {
+                    container.classList.remove(
+                        'estate-map-cursor-not-allowed'
+                    );
+                }
+            );
+        }
+
+
         function initEstateCreateDrawingMap(
             containerId,
             opts
@@ -5196,29 +7451,25 @@
                             {
                                 zoomControl: true,
                                 minZoom: 18,
-                                maxZoom: 20,
+                                maxZoom: 22,
                                 attributionControl: false,
                             }
                         );
 
 
-                    L.tileLayer(
-                        'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                        {
-                            maxZoom: 22,
-                            subdomains: [
-                                'mt0',
-                                'mt1',
-                                'mt2',
-                                'mt3',
-                            ],
-                        }
-                    ).addTo(
+                    addEstateSelectedBaseLayerToMap(
                         map
                     );
 
                     const mode =
                         opts.mode || 'lot';
+
+                    enableEstateModalAllowedAreaCursor(
+                        map,
+                        mode,
+                        null,
+                        null
+                    );
 
                     let modalBoundary = null;
 
@@ -5247,51 +7498,32 @@
 
                     if (
                         mode !== 'boundary'
+                        &&
+                        modalBoundary
                     ) {
-                        renderModalEstateBlocks(
+                        addEstateBoundaryInteractionMask(
                             map
                         );
                     }
 
-                    const existingLots =
-                        window.estateGISLots || [];
+                    if (
+                        mode !== 'boundary'
+                    ) {
+                        renderModalEstateBlocks(
+                            map,
+                            null,
+                            mode === 'block'
+                        );
+                    }
 
-
-                    if (mode === 'lot') {
-                    existingLots.forEach(
-                        function(lot)
-                        {
-                            if (
-                                !Array.isArray(
-                                    lot.geo_coords
-                                )
-                                ||
-                                lot.geo_coords.length < 3
-                            ) {
-                                return;
-                            }
-
-
-                            const color =
-                                getEstateLotColor(
-                                    lot
-                                );
-
-
-                            L.polygon(
-                                lot.geo_coords,
-                                {
-                                    color: color,
-                                    fillColor: color,
-                                    weight: 2,
-                                    fillOpacity: 0.45,
-                                    interactive: false,
-                                }
-                            ).addTo(
-                                map
-                            );
-                        }
-                    );
+                    if (
+                        mode !== 'boundary'
+                    ) {
+                        renderModalEstateLots(
+                            map,
+                            null,
+                            mode === 'lot'
+                        );
                     }
 
                     const drawingLayer =
@@ -5311,6 +7543,7 @@
                         initialCoords: [],
                         onChange: opts.onChange,
                         ignoreLotId: null,
+                        ignoreBlockId: null,
                         isCreateDrawingMap: true,
                         mode: mode,
                     };
@@ -5364,6 +7597,13 @@
                                         },
                                     }
                                 );
+
+                            restrictEstateDrawerToMappedAreas(
+                                entry.drawer,
+                                mode,
+                                entry.ignoreLotId,
+                                entry.ignoreBlockId
+                            );
 
 
                             entry.drawer.enable();
@@ -5419,6 +7659,28 @@
                                 enableDrawer();
 
                                 return;
+                            }
+
+
+                            if (mode === 'lot') {
+                                const coordinates = getPolygonCoordinates(polygon);
+                                const internalRoad = isEstateInternalRoadDrawing();
+                                const validBlockPlacement = internalRoad
+                                    ? !doesPolygonOverlapExistingBlock(polygon)
+                                    : !!findContainingEstateBlock(coordinates);
+
+                                if (!validBlockPlacement) {
+                                    @this.call(
+                                        'showMapNotification',
+                                        internalRoad ? 'Internal Road Inside Block' : 'Lot Outside Block',
+                                        internalRoad
+                                            ? 'Internal Road must be completely outside every mapped block.'
+                                            : 'Lot must be completely inside one mapped block.',
+                                        'danger'
+                                    );
+                                    enableDrawer();
+                                    return;
+                                }
                             }
 
 
@@ -5555,7 +7817,23 @@
                     );
 
 
-                    if (modalBoundary) {
+                    if (
+                        opts.initialView?.center
+                        &&
+                        Number.isFinite(
+                            opts.initialView?.zoom
+                        )
+                    ) {
+                        map.setView(
+                            opts.initialView.center,
+                            opts.initialView.zoom,
+                            {
+                                animate: false,
+                            }
+                        );
+                    } else if (
+                        modalBoundary
+                    ) {
                         map.fitBounds(
                             modalBoundary.getBounds(),
                             {
@@ -5580,8 +7858,23 @@
                                 true
                             );
 
-
-                            if (modalBoundary) {
+                            if (
+                                opts.initialView?.center
+                                &&
+                                Number.isFinite(
+                                    opts.initialView?.zoom
+                                )
+                            ) {
+                                map.setView(
+                                    opts.initialView.center,
+                                    opts.initialView.zoom,
+                                    {
+                                        animate: false,
+                                    }
+                                );
+                            } else if (
+                                modalBoundary
+                            ) {
                                 map.fitBounds(
                                     modalBoundary.getBounds(),
                                     {
@@ -5597,7 +7890,6 @@
                                     18
                                 );
                             }
-
 
                             enableDrawer();
                         }
@@ -5724,6 +8016,13 @@
                     }
                 );
 
+            restrictEstateDrawerToMappedAreas(
+                entry.drawer,
+                entry.mode,
+                entry.ignoreLotId,
+                entry.ignoreBlockId
+            );
+
 
             entry.drawer.enable();
         }
@@ -5820,15 +8119,21 @@
                             {
                                 zoomControl: true,
                                 minZoom: 18,
-                                maxZoom: 20,
+                                maxZoom: 22,
                                 attributionControl: false,
                             }
                         );
 
-                    L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                        maxZoom: 22,
-                        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                    }).addTo(map);
+                    addEstateSelectedBaseLayerToMap(
+                        map
+                    );
+
+                    enableEstateModalAllowedAreaCursor(
+                        map,
+                        mode,
+                        opts.ignoreLotId,
+                        opts.ignoreBlockId
+                    );
 
                     let modalBoundary = null;
 
@@ -5857,57 +8162,24 @@
 
                     if (
                         mode !== 'boundary'
+                        &&
+                        modalBoundary
                     ) {
-                        renderModalEstateBlocks(
-                            map,
-                            opts.ignoreBlockId
+                        addEstateBoundaryInteractionMask(
+                            map
                         );
                     }
 
-                    const existingLots =
-                        window.estateGISLots || [];
+                    renderModalEstateBlocks(
+                        map,
+                        opts.ignoreBlockId,
+                        mode === 'block'
+                    );
 
-
-                    existingLots.forEach(
-                        function(lot)
-                        {
-                            if (
-                                !Array.isArray(
-                                    lot.geo_coords
-                                )
-                                ||
-                                lot.geo_coords.length < 3
-                            ) {
-                                return;
-                            }
-
-                            if (
-                                opts.ignoreLotId
-                                &&
-                                Number(lot.id) ===
-                                Number(opts.ignoreLotId)
-                            ) {
-                                return;
-                            }
-
-
-                            const color =
-                                getEstateLotColor(
-                                    lot
-                                );
-
-
-                            L.polygon(
-                                lot.geo_coords,
-                                {
-                                    color: color,
-                                    fillColor: color,
-                                    weight: 2,
-                                    fillOpacity: 0.45,
-                                    interactive: false,
-                                }
-                            ).addTo(map);
-                        }
+                    renderModalEstateLots(
+                        map,
+                        opts.ignoreLotId,
+                        mode === 'lot'
                     );
 
                     const polygon =
@@ -5937,19 +8209,43 @@
 
                     polygon.editing.enable();
 
-                    map.fitBounds(
-                        (
-                            modalBoundary
-                                ? modalBoundary
-                                : polygon
-                        ).getBounds(),
-                        {
-                            padding: [
-                                20,
-                                20
-                            ],
-                        }
+                    keepEstateEditedPolygonInAllowedArea(
+                        polygon,
+                        mode,
+                        opts.ignoreLotId,
+                        opts.ignoreBlockId,
+                        containerId
                     );
+
+                    if (
+                        opts.initialView?.center
+                        &&
+                        Number.isFinite(
+                            opts.initialView?.zoom
+                        )
+                    ) {
+                        map.setView(
+                            opts.initialView.center,
+                            opts.initialView.zoom,
+                            {
+                                animate: false,
+                            }
+                        );
+                    } else {
+                        map.fitBounds(
+                            (
+                                modalBoundary
+                                    ? modalBoundary
+                                    : polygon
+                            ).getBounds(),
+                            {
+                                padding: [
+                                    20,
+                                    20
+                                ],
+                            }
+                        );
+                    }
 
                     const syncCoordinates =
                         function()
@@ -6036,6 +8332,8 @@
                         ignoreLotId: opts.ignoreLotId,
                         ignoreBlockId: opts.ignoreBlockId,
                         mode: mode,
+                        drawer: null,
+                        redrawCreatedHandler: null,
                     };
 
                     requestAnimationFrame(
@@ -6149,6 +8447,15 @@
             }
 
             if (entry?.map) {
+                if (
+                    entry.redrawCreatedHandler
+                ) {
+                    entry.map.off(
+                        L.Draw.Event.CREATED,
+                        entry.redrawCreatedHandler
+                    );
+                }
+
                 entry.map.off();
                 entry.map.remove();
             }
@@ -6172,7 +8479,7 @@
         }
 
 
-        function resetEstateModalMiniMap(
+        function restoreEstateModalMiniMapOriginalPolygon(
             containerId
         )
         {
@@ -6316,6 +8623,14 @@
 
             polygon.editing.enable();
 
+            keepEstateEditedPolygonInAllowedArea(
+                polygon,
+                mode,
+                entry.ignoreLotId,
+                entry.ignoreBlockId,
+                containerId
+            );
+
 
             /*
             |--------------------------------------------------------------------------
@@ -6445,6 +8760,473 @@
             }
         }
 
+        function enableEstateEditRedrawDrawer(
+            containerId
+        )
+        {
+            const entry =
+                window.estateModalMiniMaps[
+                    containerId
+                ];
+
+            if (
+                !entry
+                ||
+                !entry.map
+            ) {
+                return;
+            }
+
+            if (
+                entry.drawer
+            ) {
+                try {
+                    entry.drawer.disable();
+                } catch (error) {
+                    //
+                }
+            }
+
+            const mode =
+                entry.mode || 'lot';
+
+            entry.drawer =
+                new L.Draw.Polygon(
+                    entry.map,
+                    {
+                        allowIntersection: false,
+                        showArea: true,
+
+                        shapeOptions: {
+                            color:
+                                mode === 'boundary'
+                                    ? '#2563eb'
+                                    : (
+                                        mode === 'block'
+                                            ? '#9333ea'
+                                            : '#f59e0b'
+                                    ),
+
+                            weight: 4,
+
+                            fillColor:
+                                mode === 'boundary'
+                                    ? '#3b82f6'
+                                    : (
+                                        mode === 'block'
+                                            ? '#a855f7'
+                                            : '#fbbf24'
+                                    ),
+
+                            fillOpacity: 0.30,
+                        },
+                    }
+                );
+
+            restrictEstateDrawerToMappedAreas(
+                entry.drawer,
+                mode,
+                entry.ignoreLotId,
+                entry.ignoreBlockId
+            );
+
+            entry.drawer.enable();
+        }
+
+
+        function attachEstateRedrawnEditPolygon(
+            containerId,
+            polygon
+        )
+        {
+            const entry =
+                window.estateModalMiniMaps[
+                    containerId
+                ];
+
+            if (
+                !entry
+                ||
+                !entry.map
+                ||
+                !polygon
+            ) {
+                return false;
+            }
+
+            const mode =
+                entry.mode || 'lot';
+
+            if (
+                mode !== 'boundary'
+                &&
+                !isPolygonInsideEstateBoundaryCoordinates(
+                    polygon
+                )
+            ) {
+                @this.call(
+                    'showMapNotification',
+                    'Outside Subdivision Boundary',
+                    mode === 'block'
+                        ? 'Block must be fully inside the subdivision boundary.'
+                        : 'Lot must be fully inside the subdivision boundary.',
+                    'danger'
+                );
+
+                return false;
+            }
+
+            if (
+                mode === 'block'
+                &&
+                doesPolygonOverlapExistingBlock(
+                    polygon,
+                    entry.ignoreBlockId
+                )
+            ) {
+                @this.call(
+                    'showMapNotification',
+                    'Block Area Already Mapped',
+                    'This area overlaps an already mapped block.',
+                    'danger'
+                );
+
+                return false;
+            }
+
+            if (
+                mode === 'lot'
+            ) {
+                const coordinates =
+                    getPolygonCoordinates(
+                        polygon
+                    );
+
+                const internalRoad =
+                    isEstateInternalRoadDrawing();
+
+                const validBlockPlacement =
+                    internalRoad
+                        ? !doesPolygonOverlapExistingBlock(
+                            polygon
+                        )
+                        : !!findContainingEstateBlock(
+                            coordinates
+                        );
+
+                if (
+                    !validBlockPlacement
+                ) {
+                    @this.call(
+                        'showMapNotification',
+                        internalRoad
+                            ? 'Internal Road Inside Block'
+                            : 'Lot Outside Block',
+                        internalRoad
+                            ? 'Internal Road must be completely outside every mapped block.'
+                            : 'Lot must be completely inside one mapped block.',
+                        'danger'
+                    );
+
+                    return false;
+                }
+
+                if (
+                    doesPolygonOverlapExistingLot(
+                        polygon,
+                        entry.ignoreLotId
+                    )
+                ) {
+                    @this.call(
+                        'showMapNotification',
+                        'Lot Area Already Mapped',
+                        'This area overlaps an already mapped lot.',
+                        'danger'
+                    );
+
+                    return false;
+                }
+            }
+
+            polygon.setStyle({
+                color:
+                    mode === 'boundary'
+                        ? '#2563eb'
+                        : (
+                            mode === 'block'
+                                ? '#9333ea'
+                                : '#f59e0b'
+                        ),
+
+                weight: 4,
+
+                fillColor:
+                    mode === 'boundary'
+                        ? '#3b82f6'
+                        : (
+                            mode === 'block'
+                                ? '#a855f7'
+                                : '#fbbf24'
+                        ),
+
+                fillOpacity: 0.30,
+            });
+
+            polygon.addTo(
+                entry.map
+            );
+
+            polygon.editing.enable();
+
+            keepEstateEditedPolygonInAllowedArea(
+                polygon,
+                mode,
+                entry.ignoreLotId,
+                entry.ignoreBlockId,
+                containerId
+            );
+
+            const syncCoordinates =
+                function()
+                {
+                    if (
+                        mode !== 'boundary'
+                        &&
+                        !isPolygonInsideEstateBoundaryCoordinates(
+                            polygon
+                        )
+                    ) {
+                        @this.call(
+                            'showMapNotification',
+                            'Outside Subdivision Boundary',
+                            mode === 'block'
+                                ? 'Block must remain inside the subdivision boundary.'
+                                : 'Lot must remain inside the subdivision boundary.',
+                            'danger'
+                        );
+                    } else if (
+                        mode === 'block'
+                        &&
+                        doesPolygonOverlapExistingBlock(
+                            polygon,
+                            entry.ignoreBlockId
+                        )
+                    ) {
+                        @this.call(
+                            'showMapNotification',
+                            'Block Area Already Mapped',
+                            'This area overlaps an already mapped block.',
+                            'danger'
+                        );
+                    } else if (
+                        mode === 'lot'
+                        &&
+                        doesPolygonOverlapExistingLot(
+                            polygon,
+                            entry.ignoreLotId
+                        )
+                    ) {
+                        @this.call(
+                            'showMapNotification',
+                            'Lot Area Already Mapped',
+                            'This area overlaps an already mapped lot.',
+                            'danger'
+                        );
+                    }
+
+                    const coordinates =
+                        getPolygonCoordinates(
+                            polygon
+                        );
+
+                    if (
+                        typeof entry.onChange ===
+                        'function'
+                    ) {
+                        entry.onChange(
+                            coordinates
+                        );
+                    }
+                };
+
+            polygon.on(
+                'edit',
+                syncCoordinates
+            );
+
+            entry.polygon =
+                polygon;
+
+            entry.drawer =
+                null;
+
+            syncCoordinates();
+
+            return true;
+        }
+
+
+        function resetEstateModalMiniMap(
+            containerId
+        )
+        {
+            const entry =
+                window.estateModalMiniMaps[
+                    containerId
+                ];
+
+            if (
+                !entry
+                ||
+                !entry.map
+            ) {
+                return;
+            }
+
+            const map =
+                entry.map;
+
+            if (
+                entry.drawer
+            ) {
+                try {
+                    entry.drawer.disable();
+                } catch (error) {
+                    //
+                }
+
+                entry.drawer =
+                    null;
+            }
+
+            if (
+                entry.polygon
+            ) {
+                entry.polygon.off();
+
+                if (
+                    entry.polygon.editing
+                    &&
+                    entry.polygon.editing.enabled()
+                ) {
+                    entry.polygon.editing.disable();
+                }
+
+                if (
+                    entry.polygon.editing
+                    &&
+                    entry.polygon.editing._markerGroup
+                ) {
+                    try {
+                        entry.polygon.editing
+                            ._markerGroup
+                            .clearLayers();
+
+                        map.removeLayer(
+                            entry.polygon.editing
+                                ._markerGroup
+                        );
+                    } catch (error) {
+                        //
+                    }
+                }
+
+                if (
+                    map.hasLayer(
+                        entry.polygon
+                    )
+                ) {
+                    map.removeLayer(
+                        entry.polygon
+                    );
+                }
+            }
+
+            entry.polygon =
+                null;
+
+            if (
+                typeof entry.onChange ===
+                'function'
+            ) {
+                entry.onChange(
+                    []
+                );
+            }
+
+            if (
+                entry.redrawCreatedHandler
+            ) {
+                map.off(
+                    L.Draw.Event.CREATED,
+                    entry.redrawCreatedHandler
+                );
+            }
+
+            const createdHandler =
+                function(event)
+                {
+                    const currentEntry =
+                        window.estateModalMiniMaps[
+                            containerId
+                        ];
+
+                    if (
+                        !currentEntry
+                        ||
+                        !currentEntry.drawer
+                    ) {
+                        return;
+                    }
+
+                    const polygon =
+                        event.layer;
+
+                    const accepted =
+                        attachEstateRedrawnEditPolygon(
+                            containerId,
+                            polygon
+                        );
+
+                    if (
+                        accepted
+                    ) {
+                        map.off(
+                            L.Draw.Event.CREATED,
+                            createdHandler
+                        );
+
+                        currentEntry.redrawCreatedHandler =
+                            null;
+
+                        return;
+                    }
+
+                    setTimeout(
+                        function()
+                        {
+                            enableEstateEditRedrawDrawer(
+                                containerId
+                            );
+                        },
+                        0
+                    );
+                };
+
+            entry.redrawCreatedHandler =
+                createdHandler;
+
+            map.on(
+                L.Draw.Event.CREATED,
+                createdHandler
+            );
+
+            enableEstateEditRedrawDrawer(
+                containerId
+            );
+        }
+
+
         function resetEstateModalMapView(
             containerId
         )
@@ -6520,6 +9302,11 @@
                         onChange:
                             function(coordinates)
                             {
+                                updateEstateCoordinateField(
+                                    'estate-edit-boundary-coords',
+                                    coordinates
+                                );
+
                                 @this.set(
                                     'editBoundaryGeoCoords',
                                     coordinates
@@ -6555,6 +9342,11 @@
                         onChange:
                             function(coordinates)
                             {
+                                updateEstateCoordinateField(
+                                    'estate-edit-block-coords',
+                                    coordinates
+                                );
+
                                 @this.set(
                                     'editBlockGeoCoords',
                                     coordinates
@@ -6648,15 +9440,32 @@
                 );
 
 
+                window.estateActiveLotTypeInputId =
+                    'estate-edit-lot-type';
+
+                const mainMapState =
+                    getEstateMainMapState();
+
                 initEstateModalMiniMap(
                     'estate-edit-mini-map',
                     coords,
                     {
-                        ignoreLotId: lotId,
+                        mode: 'lot',
+
+                        ignoreLotId:
+                            lotId,
+
+                        initialView:
+                            mainMapState,
 
                         onChange:
                             function(coordinates)
                             {
+                                updateEstateCoordinateField(
+                                    'estate-edit-lot-coords',
+                                    coordinates
+                                );
+
                                 @this.set(
                                     'editGeoCoords',
                                     coordinates
@@ -6797,7 +9606,8 @@
 
         function renderModalEstateBlocks(
             map,
-            ignoreBlockId = null
+            ignoreBlockId = null,
+            blockMappedAreaClicks = false
         )
         {
             const blocks =
@@ -6825,17 +9635,66 @@
                         return;
                     }
 
-                    L.polygon(
-                        block.geo_coords,
+                    const mappedBlockPolygon =
+                        L.polygon(
+                            block.geo_coords,
+                            {
+                                color: '#9333ea',
+                                weight: 2,
+                                dashArray: '7 5',
+                                fillColor: '#a855f7',
+                                fillOpacity: 0.03,
+                                interactive:
+                                    blockMappedAreaClicks,
+                                bubblingMouseEvents:
+                                    !blockMappedAreaClicks,
+                                className:
+                                    blockMappedAreaClicks
+                                        ? 'estate-map-not-allowed-area'
+                                        : '',
+                            }
+                        );
+                    
+                    mappedBlockPolygon.bindTooltip(
+                        block.name ?? 'Block',
                         {
-                            color: '#9333ea',
-                            weight: 2,
-                            dashArray: '7 5',
-                            fillColor: '#a855f7',
-                            fillOpacity: 0.03,
-                            interactive: false,
+                            direction: 'center',
+                            permanent: true,
+                            className: 'estate-block-label estate-block-label-modal',
+                            opacity: 1,
                         }
-                    ).addTo(
+                    );
+
+                    mappedBlockPolygon.on(
+                        'add',
+                        function()
+                        {
+                            const bottomCenter =
+                                getEstateBlockBottomCenter(
+                                    mappedBlockPolygon
+                                );
+
+                            if (!bottomCenter) {
+                                return;
+                            }
+
+                            mappedBlockPolygon
+                                .getTooltip()
+                                ?.setLatLng(
+                                    bottomCenter
+                                );
+                        }
+                    );
+
+                    if (
+                        blockMappedAreaClicks
+                    ) {
+                        stopEstateMappedAreaClicks(
+                            mappedBlockPolygon
+                        );
+                    }
+
+                    mappedBlockPolygon.addTo(
                         map
                     );
                 }
@@ -7298,6 +10157,260 @@
                 .replaceAll('"', '\\"');
         }
 
+        function toggleEstateMapFullscreen(
+            containerId,
+            button
+        ) {
+            const container =
+                document.getElementById(
+                    containerId
+                );
+
+            if (!container) {
+                return;
+            }
+
+            const mapElement =
+                container.querySelector(
+                    '.leaflet-container'
+                );
+
+            let map = null;
+
+            if (mapElement) {
+                const entries =
+                    window.estateModalMiniMaps || {};
+
+                for (
+                    const entry of Object.values(entries)
+                ) {
+                    if (
+                        entry?.map
+                        &&
+                        entry.map.getContainer() ===
+                            mapElement
+                    ) {
+                        map = entry.map;
+
+                        break;
+                    }
+                }
+            }
+
+            if (!document.fullscreenElement) {
+
+                container
+                    .requestFullscreen()
+                    .then(
+                        function()
+                        {
+                            if (button) {
+                                button.innerHTML = '⛶';
+                            }
+
+                            setTimeout(
+                                function()
+                                {
+                                    if (!map) {
+                                        return;
+                                    }
+
+                                    map.invalidateSize(
+                                        true
+                                    );
+
+                                    map.setView(
+                                        map.getCenter(),
+                                        map.getZoom(),
+                                        {
+                                            animate: false,
+                                        }
+                                    );
+                                },
+                                150
+                            );
+
+                            setTimeout(
+                                function()
+                                {
+                                    map?.invalidateSize(
+                                        true
+                                    );
+                                },
+                                400
+                            );
+                        }
+                    )
+                    .catch(
+                        function(error)
+                        {
+                            console.error(
+                                'Fullscreen error:',
+                                error
+                            );
+                        }
+                    );
+
+                return;
+            }
+
+            document
+                .exitFullscreen()
+                .then(
+                    function()
+                    {
+                        if (button) {
+                            button.innerHTML = '⛶';
+                        }
+
+                        setTimeout(
+                            function()
+                            {
+                                map?.invalidateSize(
+                                    true
+                                );
+                            },
+                            150
+                        );
+                    }
+                );
+        }
+
+        document.addEventListener(
+            'fullscreenchange',
+            function () {
+
+                const fullscreenElement =
+                    document.fullscreenElement;
+
+                if (!fullscreenElement) {
+                    return;
+                }
+
+                const mapContainer =
+                    fullscreenElement.querySelector(
+                        '.leaflet-container'
+                    );
+
+                if (!mapContainer) {
+                    return;
+                }
+
+                const entries = window.estateModalMiniMaps || {};
+
+                Object.values(entries).forEach(
+                    function (entry) {
+
+                        if (entry?.map && entry.map.getContainer() === mapContainer) {
+
+                            setTimeout(() => {
+
+                                entry.map.invalidateSize(
+                                    true
+                                );
+
+                            }, 100);
+
+                            setTimeout(() => {
+
+                                entry.map.invalidateSize(
+                                    true
+                                );
+
+                            }, 500);
+                        }
+                    }
+                );
+            }
+        );
+
+        function buildEstateBaseLayers()
+        {
+            const satellite = L.tileLayer(
+                'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                {
+                    maxZoom: 22,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google',
+                }
+            );
+
+            const hybrid = L.tileLayer(
+                'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                {
+                    maxZoom: 22,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google',
+                }
+            );
+
+            const roadmap = L.tileLayer(
+                'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                {
+                    maxZoom: 22,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google',
+                }
+            );
+
+            const terrain = L.tileLayer(
+                'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+                {
+                    maxZoom: 22,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google',
+                }
+            );
+
+            return {
+                layers: {
+                    'Satellite': satellite,
+                    'Hybrid': hybrid,
+                    'Roadmap': roadmap,
+                    'Terrain': terrain,
+                },
+                default: satellite,
+            };
+        }
+
+        function getEstateMainMapState()
+        {
+            const map =
+                window.estateLeafletMap;
+
+            if (!map) {
+                return null;
+            }
+
+            return {
+                center: map.getCenter(),
+                zoom: map.getZoom(),
+                baseLayer: window.estateSelectedBaseLayer || 'Satellite',
+            };
+        }
+
+        function addEstateSelectedBaseLayerToMap(
+            map
+        )
+        {
+            const baseLayers =
+                buildEstateBaseLayers();
+
+            const selected =
+                window.estateSelectedBaseLayer
+                || 'Satellite';
+
+            const layer =
+                baseLayers.layers[selected]
+                || baseLayers.default;
+
+            layer.addTo(
+                map
+            );
+
+            return baseLayers;
+        }
+
         // document.addEventListener(
         //     'click',
         //     function()
@@ -7385,9 +10498,24 @@
                                 typeof layer.setStyle ===
                                 'function'
                             ) {
+                                const isInternalRoad =
+                                    (
+                                        layer.estateLotType
+                                        ??
+                                        layer.estateLot?.type
+                                        ??
+                                        ''
+                                    )
+                                        .trim()
+                                        .toLowerCase()
+                                    === 'internal road';
+
                                 layer.setStyle({
                                     opacity: 1,
-                                    fillOpacity: 0.50,
+                                    fillOpacity:
+                                        isInternalRoad
+                                            ? 0.04
+                                            : 0.50,
                                 });
                             }
                         }

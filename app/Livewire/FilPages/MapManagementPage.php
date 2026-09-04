@@ -144,9 +144,7 @@ class MapManagementPage extends Component
         $this->lots = $this->map?->lots ?? [];
 
         // $this->houseModels = HouseModel::all();
-        $this->houseModels = HouseModel::with([
-            'virtualTour.scenes.hotspots'
-        ])->get();
+        $this->refreshHouseModels();
 
         $this->generateLotCounts();
     }
@@ -321,25 +319,65 @@ class MapManagementPage extends Component
 
     public function deleteModelHouse($id)
     {
-        $model = HouseModel::findOrFail($id);
+        $model = HouseModel::find($id);
 
-        if ($model->image) {
-            Storage::disk('public')->delete($model->image);
+        /*
+        |--------------------------------------------------------------------------
+        | ALREADY DELETED BY ANOTHER USER
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $model) {
+
+            $this->refreshHouseModels();
+
+            Notification::make()
+                ->title('Already Removed')
+                ->body(
+                    'This model house was already removed by another admin or staff member.'
+                )
+                ->warning()
+                ->send();
+
+            return;
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | DELETE IMAGE
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $model->image &&
+            Storage::disk('public')->exists($model->image)
+        ) {
+            Storage::disk('public')->delete(
+                $model->image
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | DELETE MODEL
+        |--------------------------------------------------------------------------
+        */
 
         $model->delete();
 
-        $this->houseModels = HouseModel::latest()->get();
+        /*
+        |--------------------------------------------------------------------------
+        | REFRESH LIST
+        |--------------------------------------------------------------------------
+        */
+
+        $this->refreshHouseModels();
 
         Notification::make()
             ->title('Deleted!')
             ->body('Model house removed successfully.')
             ->success()
             ->send();
-
-        $this->dispatch('reload');
-
-        return redirect()->back();
     }
 
     public function deleteModelHouseConfirmation($id, $modelName){
@@ -1730,6 +1768,15 @@ class MapManagementPage extends Component
             ->toArray();
 
         $this->lotCounts = array_merge($this->lotCounts, $counts);
+    }
+
+    public function refreshHouseModels(): void
+    {
+        $this->houseModels = HouseModel::with([
+            'virtualTour.scenes.hotspots'
+        ])
+            ->latest()
+            ->get();
     }
 
     public function reloadWeb(){

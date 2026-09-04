@@ -41,6 +41,26 @@ Route::get('/contact-page', ContactPage::class)->name('user.contact');
 Route::get('/properties-page', PropertiesPage::class)->name('user.properties');
 Route::get('/terms-&-conditions', PagesTermsAndCondition::class)->name('user.terms');
 
+Route::get('/home', function () {
+
+    if (!auth()->check()) {
+        return redirect()->route('user.home');
+    }
+
+    $user = auth()->user();
+
+    if ($user->role === 'admin' || $user->role === 'staff') {
+        return redirect('/ev-admin');
+    }
+
+    if ($user->role === 'agent') {
+        return redirect()->route('agent.dashboard');
+    }
+
+    return redirect()->route('user.home');
+
+})->name('home');
+
 Route::middleware('guest')->group(function () {
     Route::get('/register', RegisterPage::class)->name('register');
     Route::get('/login', LoginPage::class)->name('login');

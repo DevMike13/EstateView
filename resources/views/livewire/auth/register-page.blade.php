@@ -65,7 +65,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-input label="First name" placeholder="Ex: Juan" class="py-3 -mt-1" wire:model.blur="firstName" />
+                                                <x-input label="First name" placeholder="Ex: Juan" class="py-3 -mt-1" maxlength="50" wire:model.blur="firstName" />
                                             </div>
                                         </div>
                                     </div>
@@ -73,7 +73,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-input label="Middle name" placeholder="Ex: Reyes" class="py-3 -mt-1" wire:model.blur="middleName" />
+                                                <x-input label="Middle name" placeholder="Ex: Reyes" class="py-3 -mt-1" maxlength="50" wire:model.blur="middleName" />
                                             </div>
                                         </div>
                                     </div>
@@ -83,7 +83,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-input label="Last name" placeholder="Ex: Dela Cruz" class="py-3 -mt-1" wire:model.blur="lastName" />
+                                                <x-input label="Last name" placeholder="Ex: Dela Cruz" class="py-3 -mt-1" maxlength="50" wire:model.blur="lastName" />
                                             </div>
                                         </div>
                                     </div>
@@ -91,7 +91,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-input label="Suffix" placeholder="Ex: Jr., Sr., III" class="py-3 -mt-1" wire:model.blur="suffix" />
+                                                <x-input label="Suffix" placeholder="Ex: Jr., Sr., III" class="py-3 -mt-1" maxlength="5" wire:model.blur="suffix" />
                                             </div>
                                         </div>
                                     </div>
@@ -102,6 +102,7 @@
                                         label="Agent"
                                         placeholder="Enter Professional Agent ID (optional)"
                                         class="py-3"
+                                        maxlength="50"
                                         wire:model.blur="agentProfessionalId"
                                     />
 
@@ -236,7 +237,7 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-input label="Email" placeholder="ex: johndoe@gmai.com" class="py-3 -mt-1" wire:model.live.debounce.300ms="email" />
+                                                <x-input label="Email" placeholder="ex: johndoe@gmai.com" class="py-3 -mt-1" maxlength="50" wire:model.live.debounce.300ms="email" />
                                             </div>
                                         </div>
                                     </div>
@@ -254,7 +255,42 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative">
-                                                <x-inputs.password label="Password" placeholder="Enter your password" class="py-3 -mt-1" wire:model.live.debounce.300ms="password" />
+                                                <x-inputs.password
+                                                    label="Password"
+                                                    placeholder="Enter your password"
+                                                    class="py-3 -mt-1"
+                                                    minlength="8"
+                                                    maxlength="20"
+                                                    wire:model.live.debounce.300ms="password"
+                                                />
+                                                <div class="mt-2 space-y-1 text-sm">
+
+                                                    <div class="flex items-center gap-2 {{ strlen($password ?? '') >= 8 && strlen($password ?? '') <= 20 ? 'text-green-600' : 'text-red-500' }}">
+                                                        <span>{{ strlen($password ?? '') >= 8 && strlen($password ?? '') <= 20 ? '✓' : '✕' }}</span>
+                                                        <span>Must be 8-20 characters</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-2 {{ preg_match('/[0-9]/', $password ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                                                        <span>{{ preg_match('/[0-9]/', $password ?? '') ? '✓' : '✕' }}</span>
+                                                        <span>At least one number</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-2 {{ preg_match('/[A-Z]/', $password ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                                                        <span>{{ preg_match('/[A-Z]/', $password ?? '') ? '✓' : '✕' }}</span>
+                                                        <span>At least one capital letter</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-2 {{ preg_match('/[a-z]/', $password ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                                                        <span>{{ preg_match('/[a-z]/', $password ?? '') ? '✓' : '✕' }}</span>
+                                                        <span>At least one lowercase letter</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-2 {{ preg_match('/[^A-Za-z0-9]/', $password ?? '') ? 'text-green-600' : 'text-red-500' }}">
+                                                        <span>{{ preg_match('/[^A-Za-z0-9]/', $password ?? '') ? '✓' : '✕' }}</span>
+                                                        <span>At least one special character</span>
+                                                    </div>
+
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -262,7 +298,14 @@
                                         <div>
                                             <label for="hs-trailing-icon" class="block text-sm font-medium mb-2 dark:text-white"></label>
                                             <div class="relative whitespace-nowrap">
-                                                <x-inputs.password label="Confirm Password" placeholder="Confirm password" class="py-3 -mt-1" wire:model.live.debounce.300ms="confirmPassword" />
+                                                <x-inputs.password
+                                                    label="Confirm Password"
+                                                    placeholder="Confirm password"
+                                                    class="py-3 -mt-1"
+                                                    minlength="8"
+                                                    maxlength="20"
+                                                    wire:model.live.debounce.300ms="confirmPassword"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -321,8 +364,8 @@
                 <label for="terms" class="text-sm text-gray-500">
                     I agree to the 
                     <a href="#" x-on:click="$openModal('termsModal');" class="underline text-[#101727]">Terms and Conditions</a> 
-                    and 
-                    <a href="#" class="underline text-[#101727]">Privacy Policy</a>
+                    {{-- and 
+                    <a href="#" class="underline text-[#101727]">Privacy Policy</a> --}}
                 </label>
             </div>
         </div>

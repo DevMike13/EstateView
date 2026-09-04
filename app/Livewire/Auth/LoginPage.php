@@ -38,6 +38,7 @@ class LoginPage extends Component
         | CHECK IF ACCOUNT IS VERIFIED
         |--------------------------------------------------------------------------
         */
+
         if (auth()->user()->is_verified == 0) {
             auth()->logout();
 
@@ -53,9 +54,8 @@ class LoginPage extends Component
         |--------------------------------------------------------------------------
         | CHECK IF ACCOUNT IS ACTIVE
         |--------------------------------------------------------------------------
-        | Applies to ALL user roles:
-        | admin, staff, agent, client, etc.
         */
+
         if (!auth()->user()->is_active) {
             auth()->logout();
 
@@ -67,34 +67,68 @@ class LoginPage extends Component
             return;
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | REDIRECT ADMIN
+        | REGENERATE SESSION
         |--------------------------------------------------------------------------
         */
-        if (auth()->user()->role === 'admin') {
+
+        request()->session()->regenerate();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | NORMALIZE ROLE
+        |--------------------------------------------------------------------------
+        */
+
+        $role = strtolower(
+            trim(
+                auth()->user()->role
+            )
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | REDIRECT ADMIN / STAFF
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $role === 'admin'
+            ||
+            $role === 'staff'
+        ) {
             return redirect()->route(
                 'filament.ev-admin.pages.dashboard'
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | REDIRECT STAFF
-        |--------------------------------------------------------------------------
-        */
-        if (auth()->user()->role === 'staff') {
-            return redirect()->route(
-                'filament.ev-admin.pages.dashboard'
-            );
-        }
 
         /*
         |--------------------------------------------------------------------------
-        | OTHER ROLES
+        | REDIRECT AGENT
         |--------------------------------------------------------------------------
         */
-        return redirect()->intended();
+
+        if ($role === 'agent') {
+            return redirect()->route(
+                'agent.dashboard'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CLIENT / USER
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()->route(
+            'user.home'
+        );
     }
 
     public function render()

@@ -14,6 +14,10 @@ class CustomNotification extends Component
 
     public function getNotificationsProperty()
     {
+        if (! auth()->check()) {
+            return collect();
+        }
+
         return auth()->user()
             ->notifications()
             ->latest()
@@ -23,6 +27,10 @@ class CustomNotification extends Component
 
     public function markAsRead($notificationId)
     {
+        if (! auth()->check()) {
+            return collect();
+        }
+
         auth()->user()
             ->notifications()
             ->updateExistingPivot($notificationId, [
@@ -34,6 +42,10 @@ class CustomNotification extends Component
 
     public function deleteNotification($notificationId)
     {
+        if (! auth()->check()) {
+            return collect();
+        }
+
         auth()->user()
             ->notifications()
             ->detach($notificationId);
@@ -41,6 +53,10 @@ class CustomNotification extends Component
 
     public function markAllRead()
     {
+        if (! auth()->check()) {
+            return collect();
+        }
+        
         auth()->user()
             ->notifications()
             ->wherePivotNull('read_at')

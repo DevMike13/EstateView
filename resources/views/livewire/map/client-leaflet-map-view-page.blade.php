@@ -33,15 +33,18 @@
 
         .client-estate-block-label {
             background: transparent !important;
-            color: #374151 !important;
+            color: #d9dde7 !important;
             border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             padding: 0 !important;
-            font-size: 10px !important;
-            font-weight: 500 !important;
+
+            font-size: 9px !important;
+            font-weight: 700 !important;
             line-height: 1 !important;
+
             white-space: nowrap;
+            text-transform: uppercase;
         }
 
         .client-estate-block-label::before {
@@ -393,8 +396,29 @@
         }
 
         .client-estate-popup-panorama {
-            height: 180px;
+            display: block;
+            position: relative;
+            width: 100%;
+            height: 180px !important;
+            min-height: 180px;
             background: #e5e7eb;
+            overflow: hidden;
+        }
+
+        .client-estate-popup-panorama.pnlm-container {
+            width: 100% !important;
+            height: 180px !important;
+        }
+
+        .client-estate-popup-panorama .pnlm-render-container {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .client-estate-popup-panorama canvas {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
         }
 
         .client-estate-popup-close {
@@ -628,7 +652,8 @@
             }
 
             .client-estate-popup-panorama {
-                height: 150px;
+                height: 150px !important;
+                min-height: 150px;
             }
 
             .client-estate-popup-body {
@@ -783,7 +808,7 @@
         </div>
 
         {{-- MAP LEGEND --}}
-        @if(!empty($typeColors))
+        {{-- @if(!empty($typeColors))
             <div class="mb-6">
 
                 <div class="mb-3">
@@ -858,7 +883,7 @@
                                     "
                                 >
                                     {{ $type }}
-                                </div>
+                                </div> --}}
 
                                 {{-- @if(isset($lotCounts[$type]))
                                     <div class="text-[11px] text-gray-400 mt-1">
@@ -867,7 +892,7 @@
                                     </div>
                                 @endif --}}
 
-                            </div>
+                            {{-- </div>
 
                         </div>
 
@@ -876,7 +901,7 @@
                 </div>
 
             </div>
-        @endif
+        @endif --}}
 
 
         {{-- LEAFLET MAP --}}
@@ -1064,6 +1089,7 @@
             <div
                 id="client-estate-custom-tooltip"
                 class="client-estate-custom-tooltip"
+                wire:ignore
             >
 
                 <div
@@ -1090,6 +1116,9 @@
 
         window.clientEstateGISBlocks =
             @json($leafletBlocks);
+
+        window.clientEstateCurrentUserRole =
+            @json(auth()->user()?->role);
 
         if (
             window.clientEstateLeafletMap &&
@@ -1162,7 +1191,7 @@
         |--------------------------------------------------------------------------
         */
 
-        const clientEstateSubdivisionBoundary =
+        window.clientEstateSubdivisionBoundary =
             @json(isset($map) ? ($map?->boundary_geo_coords ?? []) : []);
 
 
@@ -1172,7 +1201,7 @@
         |--------------------------------------------------------------------------
         */
 
-        const clientEstateLotColors = {
+        window.clientEstateLotColors = {
             "Playground & Community Amenities":
                 "#f2b879",
 
@@ -1240,7 +1269,7 @@
                     {
                         zoomControl: true,
                         minZoom: 18,
-                        maxZoom: 20,
+                        maxZoom: 22,
                     }
                 );
 
@@ -1273,14 +1302,14 @@
 
             if (
                 Array.isArray(
-                    clientEstateSubdivisionBoundary
+                    window.clientEstateSubdivisionBoundary
                 )
                 &&
-                clientEstateSubdivisionBoundary.length >= 3
+                window.clientEstateSubdivisionBoundary.length >= 3
             ) {
                 boundary =
                     L.polygon(
-                        clientEstateSubdivisionBoundary,
+                        window.clientEstateSubdivisionBoundary,
                         {
                             color: '#2563eb',
                             weight: 4,
@@ -1497,30 +1526,19 @@
                         'add',
                         function()
                         {
-                            const bounds =
-                                polygon.getBounds();
-
-                            const center =
-                                typeof polygon.getCenter ===
-                                    'function'
-                                    ? polygon.getCenter()
-                                    : bounds.getCenter();
-
-                            const labelPosition =
-                                L.latLng(
-                                    center.lat -
-                                    (
-                                        center.lat -
-                                        bounds.getSouth()
-                                    ) * 0.65,
-
-                                    center.lng
+                            const bottomCenter =
+                                getClientEstateBlockBottomCenter(
+                                    polygon
                                 );
+
+                            if (!bottomCenter) {
+                                return;
+                            }
 
                             polygon
                                 .getTooltip()
                                 ?.setLatLng(
-                                    labelPosition
+                                    bottomCenter
                                 );
                         }
                     );
@@ -2226,15 +2244,173 @@
             if (
                 status === 'sold'
             ) {
-                return clientEstateLotColors[
+                return window.clientEstateLotColors[
                     'Sold'
                 ];
             }
 
 
-            return clientEstateLotColors[
+            return window.clientEstateLotColors[
                 lot.type
             ] ?? '#0096ff';
+        }
+
+        function getClientEstateBlockBottomCenter(
+            polygon
+        )
+        {
+            if (!polygon) {
+                return null;
+            }
+
+            const points =
+                polygon.getLatLngs()[0];
+
+            if (
+                !Array.isArray(points)
+                ||
+                points.length < 3
+            ) {
+                return null;
+            }
+
+            const bounds =
+                polygon.getBounds();
+
+            if (
+                !bounds
+                ||
+                !bounds.isValid()
+            ) {
+                return null;
+            }
+
+            const south =
+                bounds.getSouth();
+
+            const north =
+                bounds.getNorth();
+
+            const targetLat =
+                south +
+                (
+                    north - south
+                ) * 0.15;
+
+            const intersections = [];
+
+            for (
+                let i = 0;
+                i < points.length;
+                i++
+            ) {
+                const a =
+                    points[i];
+
+                const b =
+                    points[
+                        (i + 1)
+                        %
+                        points.length
+                    ];
+
+                if (
+                    (
+                        a.lat <= targetLat
+                        &&
+                        b.lat > targetLat
+                    )
+                    ||
+                    (
+                        b.lat <= targetLat
+                        &&
+                        a.lat > targetLat
+                    )
+                ) {
+                    const ratio =
+                        (
+                            targetLat -
+                            a.lat
+                        )
+                        /
+                        (
+                            b.lat -
+                            a.lat
+                        );
+
+                    const lng =
+                        a.lng +
+                        (
+                            b.lng -
+                            a.lng
+                        ) * ratio;
+
+                    intersections.push(
+                        lng
+                    );
+                }
+            }
+
+            intersections.sort(
+                function(a, b)
+                {
+                    return a - b;
+                }
+            );
+
+            let bestLeft =
+                null;
+
+            let bestRight =
+                null;
+
+            let bestWidth =
+                -Infinity;
+
+            for (
+                let i = 0;
+                i + 1 < intersections.length;
+                i += 2
+            ) {
+                const left =
+                    intersections[i];
+
+                const right =
+                    intersections[i + 1];
+
+                const width =
+                    right - left;
+
+                if (
+                    width >
+                    bestWidth
+                ) {
+                    bestWidth =
+                        width;
+
+                    bestLeft =
+                        left;
+
+                    bestRight =
+                        right;
+                }
+            }
+
+            if (
+                bestLeft !== null
+                &&
+                bestRight !== null
+            ) {
+                return L.latLng(
+                    targetLat,
+                    (
+                        bestLeft +
+                        bestRight
+                    ) / 2
+                );
+            }
+
+            return bounds.getCenter();
         }
 
         function getClientEstatePolygonCenter(
@@ -2387,34 +2563,7 @@
             polygon
         )
         {
-            const pixelSize =
-                getClientEstatePolygonPixelSize(
-                    polygon
-                );
-
-            const smallestSide =
-                Math.min(
-                    pixelSize.width,
-                    pixelSize.height
-                );
-
-            if (
-                !Number.isFinite(
-                    smallestSide
-                )
-                ||
-                smallestSide <= 0
-            ) {
-                return 0;
-            }
-
-            return Math.max(
-                7,
-                Math.min(
-                    18,
-                    smallestSide / 12
-                )
-            );
+            return 9;
         }
 
 
@@ -3161,10 +3310,21 @@
                 showModel;
 
 
+            const currentUserRole =
+                (
+                    window.clientEstateCurrentUserRole
+                    || ''
+                )
+                    .toLowerCase()
+                    .trim();
+
+
             const canReserve =
                 status === 'available'
                 &&
-                !isNonReservable;
+                !isNonReservable
+                &&
+                currentUserRole !== 'agent';
 
 
             const price =
@@ -3958,16 +4118,13 @@
             lot
         )
         {
-            const container =
-                document.getElementById(
-                    `client-estate-pano-${lot.id}`
-                );
+            const containerId =
+                `client-estate-pano-${lot.id}`;
 
 
             if (
-                !container ||
                 !lot.image ||
-                typeof pannellum ===
+                typeof window.pannellum ===
                     'undefined'
             ) {
                 return;
@@ -3987,16 +4144,22 @@
                     );
                 }
 
-
                 window.clientEstatePanoramaViewer =
                     null;
             }
 
 
-            requestAnimationFrame(
+            setTimeout(
                 function()
                 {
+                    const container =
+                        document.getElementById(
+                            containerId
+                        );
+
+
                     if (
+                        !container ||
                         !document.body.contains(
                             container
                         )
@@ -4005,25 +4168,77 @@
                     }
 
 
-                    window
-                        .clientEstatePanoramaViewer =
-                        pannellum.viewer(
-                            container,
+                    container.style.width =
+                        '100%';
+
+                    container.style.height =
+                        '180px';
+
+                    container.style.position =
+                        'relative';
+
+                    container.style.overflow =
+                        'hidden';
+
+
+                    try {
+                        window
+                            .clientEstatePanoramaViewer =
+                            window.pannellum.viewer(
+                                container,
+                                {
+                                    type:
+                                        'equirectangular',
+
+                                    panorama:
+                                        lot.image,
+
+                                    autoLoad:
+                                        true,
+
+                                    showControls:
+                                        false,
+
+                                    showFullscreenCtrl:
+                                        false,
+
+                                    showZoomCtrl:
+                                        false,
+
+                                    mouseZoom:
+                                        true,
+                                }
+                            );
+
+
+                        setTimeout(
+                            function()
                             {
-                                type:
-                                    'equirectangular',
-
-                                panorama:
-                                    lot.image,
-
-                                autoLoad:
-                                    true,
-
-                                showControls:
-                                    false,
-                            }
+                                if (
+                                    window
+                                        .clientEstatePanoramaViewer
+                                ) {
+                                    try {
+                                        window
+                                            .clientEstatePanoramaViewer
+                                            .resize();
+                                    } catch (error) {
+                                        console.log(
+                                            error
+                                        );
+                                    }
+                                }
+                            },
+                            100
                         );
-                }
+                    } catch (error) {
+                        console.error(
+                            'Client panorama error:',
+                            error
+                        );
+                    }
+                },
+                100
             );
         }
 

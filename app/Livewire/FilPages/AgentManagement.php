@@ -20,6 +20,7 @@ use Livewire\WithFileUploads;
 use Spatie\LivewireFilepond\WithFilePond;
 use App\Mail\CommissionPaidMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Crypt;
 
 class AgentManagement extends Component
 {
@@ -873,13 +874,13 @@ class AgentManagement extends Component
             'name' => [
                 'required',
                 'string',
-                'max:255',
+                'max:50',
             ],
 
             'email' => [
                 'required',
                 'email',
-                'max:255',
+                'max:50',
                 'unique:users,email',
             ],
 
@@ -893,6 +894,11 @@ class AgentManagement extends Component
                 'required',
                 'string',
                 'min:8',
+                'max:20',
+                'regex:/[a-z]/',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
             ],
 
             'is_active' => [
@@ -917,7 +923,7 @@ class AgentManagement extends Component
             'realEstateLicenseNumber' => [
                 'nullable',
                 'string',
-                'max:100',
+                'max:50',
                 'unique:user_infos,real_estate_license_number',
             ],
         ]);
@@ -1016,13 +1022,13 @@ class AgentManagement extends Component
             'editName' => [
                 'required',
                 'string',
-                'max:255',
+                'max:50',
             ],
 
             'editEmail' => [
                 'required',
                 'email',
-                'max:255',
+                'max:50',
                 Rule::unique('users', 'email')
                     ->ignore($this->selectedAgentMember),
             ],
@@ -1042,6 +1048,11 @@ class AgentManagement extends Component
                 'nullable',
                 'string',
                 'min:8',
+                'max:20',
+                'regex:/[a-z]/',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
             ],
 
             'editCommissionPercentage' => [
@@ -1064,7 +1075,7 @@ class AgentManagement extends Component
             'editRealEstateLicenseNumber' => [
                 'nullable',
                 'string',
-                'max:100',
+                'max:50',
                 Rule::unique(
                     'user_infos',
                     'real_estate_license_number'
@@ -1073,8 +1084,177 @@ class AgentManagement extends Component
         ]);
 
         $user = User::query()
+            ->with('info')
             ->where('role', 'agent')
             ->findOrFail($this->selectedAgentMember);
+
+        /*
+        |--------------------------------------------------------------------------
+        | STORE OLD VALUES
+        |--------------------------------------------------------------------------
+        */
+
+        $oldName = $user->name;
+        $oldEmail = $user->email;
+        $oldStatus = (bool) $user->is_active;
+
+        $oldPhone = $user->info?->phone;
+        $oldCommission = $user->info?->commission_percentage;
+        $oldProfessionalId = $user->info?->professional_agent_id;
+        $oldLicenseNumber = $user->info?->real_estate_license_number;
+
+        /*
+        |--------------------------------------------------------------------------
+        | NORMALIZE NEW VALUES
+        |--------------------------------------------------------------------------
+        */
+
+        $newPhone = $this->normalizePhilippinePhone(
+            $validated['editPhone']
+        );
+
+        $newCommission =
+            $validated['editCommissionPercentage'] ?? null;
+
+        $newProfessionalId =
+            $validated['editProfessionalAgentId'] ?: null;
+
+        $newLicenseNumber =
+            $validated['editRealEstateLicenseNumber'] ?: null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | BUILD CHANGES
+        |--------------------------------------------------------------------------
+        */
+
+        $changes = [];
+
+        if ($oldName !== $validated['editName']) {
+            $changes['name'] = [
+                'label' => 'Full Name',
+                'old' => $oldName,
+                'new' => $validated['editName'],
+            ];
+        }
+
+        if ($oldEmail !== $validated['editEmail']) {
+            $changes['email'] = [
+                'label' => 'Email Address',
+                'old' => $oldEmail,
+                'new' => $validated['editEmail'],
+            ];
+        }
+
+        if ($oldPhone !== $newPhone) {
+            $changes['phone'] = [
+                'label' => 'Phone Number',
+                'old' => $oldPhone,
+                'new' => $newPhone,
+            ];
+        }
+
+        if (
+            (string) $oldCommission
+            !== (string) $newCommission
+        ) {
+            $changes['commission_percentage'] = [
+                'label' => 'Commission Rate',
+                'old' => filled($oldCommission)
+                    ? $oldCommission . '%'
+                    : null,
+                'new' => filled($newCommission)
+                    ? $newCommission . '%'
+                    : null,
+            ];
+        }
+
+        if ($oldProfessionalId !== $newProfessionalId) {
+            $changes['professional_agent_id'] = [
+                'label' => 'Professional Agent ID',
+                'old' => $oldProfessionalId,
+                'new' => $newProfessionalId,
+            ];
+        }
+
+        if ($oldLicenseNumber !== $newLicenseNumber) {
+            $changes['real_estate_license_number'] = [
+                'label' => 'Real Estate License Number',
+                'old' => $oldLicenseNumber,
+                'new' => $newLicenseNumber,
+            ];
+        }
+
+        if (
+            $oldStatus
+            !== (bool) $validated['edit_is_active']
+        ) {
+            $changes['is_active'] = [
+                'label' => 'Account Status',
+                'old' => $oldStatus
+                    ? 'Active'
+                    : 'Inactive',
+                'new' => $validated['edit_is_active']
+                    ? 'Active'
+                    : 'Inactive',
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PASSWORD CHECK
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            ! empty($validated['editPassword']) &&
+            Hash::check($validated['editPassword'], $user->password)
+        ) {
+            $this->addError(
+                'editPassword',
+                'The new password must be different from the current password.'
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PASSWORD CHANGE
+        |--------------------------------------------------------------------------
+        |
+        | Never store actual password values inside the notification.
+        |
+        */
+
+        $passwordChanged = false;
+
+        if (! empty($validated['editPassword'])) {
+            $passwordChanged = true;
+
+            $changes['password'] = [
+                'label' => 'Password',
+                'old' => null,
+                'new' => Crypt::encryptString($validated['editPassword']),
+                'is_encrypted' => true,
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | DETECT DEACTIVATION
+        |--------------------------------------------------------------------------
+        */
+
+        $wasDeactivated =
+            $oldStatus === true
+            && (bool) $validated['edit_is_active'] === false;
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE USER
+        |--------------------------------------------------------------------------
+        */
 
         $userData = [
             'name' => $validated['editName'],
@@ -1082,62 +1262,122 @@ class AgentManagement extends Component
             'is_active' => $validated['edit_is_active'],
         ];
 
-        $passwordChanged = false;
-
-        if (! empty($validated['editPassword'])) {
+        if ($passwordChanged) {
             $userData['password'] = Hash::make(
                 $validated['editPassword']
             );
 
-            // Invalidate "Remember Me" login
             $userData['remember_token'] = null;
-
-            $passwordChanged = true;
-        }
-
-        $user->update($userData);
-
-        // Force logout the agent from all active sessions
-        // ONLY when the admin changed their password.
-        if ($passwordChanged) {
-            DB::table('sessions')
-                ->where('user_id', $user->id)
-                ->delete();
         }
 
         $user->update($userData);
 
         /*
-         * updateOrCreate also works if an older agent does not yet
-         * have a UserInfo record.
-         */
+        |--------------------------------------------------------------------------
+        | FORCE LOGOUT
+        |--------------------------------------------------------------------------
+        */
+
+        if ($passwordChanged || $wasDeactivated) {
+            DB::table('sessions')
+                ->where('user_id', $user->id)
+                ->delete();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE USER INFO
+        |--------------------------------------------------------------------------
+        */
+
         $user->info()->updateOrCreate(
             [
                 'user_id' => $user->id,
             ],
             [
-                'phone' => $this->normalizePhilippinePhone(
-                    $validated['editPhone']
-                ),
+                'phone' => $newPhone,
 
                 'commission_percentage' =>
-                    $validated['editCommissionPercentage'] ?? null,
+                    $newCommission,
 
                 'professional_agent_id' =>
-                    $validated['editProfessionalAgentId'] ?: null,
+                    $newProfessionalId,
 
                 'real_estate_license_number' =>
-                    $validated['editRealEstateLicenseNumber'] ?: null,
+                    $newLicenseNumber,
             ]
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | NOTIFY THE AGENT
+        |--------------------------------------------------------------------------
+        */
+
+        if (! empty($changes)) {
+
+            $changedFields = collect($changes)
+                ->pluck('label')
+                ->map(fn ($label) => strtolower($label))
+                ->values();
+
+            if ($changedFields->count() === 1) {
+
+                $changesText = $changedFields->first();
+
+            } elseif ($changedFields->count() === 2) {
+
+                $changesText = $changedFields->implode(' and ');
+
+            } else {
+
+                $lastField = $changedFields->pop();
+
+                $changesText =
+                    $changedFields->implode(', ')
+                    . ', and '
+                    . $lastField;
+            }
+
+            $actorName = auth()->user()->name;
+
+            $notification = SystemNotification::create([
+                'title' => 'Account Information Updated',
+
+                'message' =>
+                    "{$actorName} has made changes to your {$changesText}.",
+
+                'type' => 'agent_account_updated_by_staff',
+
+                'url' => route('client.account'),
+
+                'data' => [
+                    'agent_id' => $user->id,
+                    'agent_name' => $user->name,
+                    'changes' => $changes,
+                    'updated_by' => auth()->id(),
+                    'updated_by_name' => $actorName,
+                ],
+
+                'created_by' => auth()->id(),
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | SEND ONLY TO THE INTENDED AGENT
+            |--------------------------------------------------------------------------
+            */
+
+            $notification->users()->attach([
+                $user->id,
+            ]);
+        }
 
         Notification::make()
             ->title('Updated!')
             ->body('Agent member updated successfully.')
             ->success()
             ->send();
-
-        // $this->loadAgents();
 
         $this->reloadWeb();
     }

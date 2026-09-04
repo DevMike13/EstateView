@@ -11,12 +11,25 @@ class HomePage extends Component
 {
     public function mount()
     {
+        if (!auth()->check()) {
+            return;
+        }
+
+        $user = auth()->user();
+
         if (
-            auth()->check() &&
-            in_array(auth()->user()->role, ['admin', 'staff'])
+            $user->role === 'admin'
+            ||
+            $user->role === 'staff'
         ) {
             return redirect()->route(
                 'filament.ev-admin.pages.dashboard'
+            );
+        }
+
+        if ($user->role === 'agent') {
+            return redirect()->route(
+                'agent.dashboard'
             );
         }
     }

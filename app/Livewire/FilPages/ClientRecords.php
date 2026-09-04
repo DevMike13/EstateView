@@ -11,6 +11,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use WireUi\Traits\Actions;
 use App\Models\PHBarangays;
+use App\Models\Notification as SystemNotification;
+use Illuminate\Support\Facades\DB;
 
 class ClientRecords extends Component
 {
@@ -216,28 +218,185 @@ class ClientRecords extends Component
             'editForm.reservation_status' => 'nullable|string|max:255',
         ]);
 
-        $this->selectedClient->update([
-            'name' => $this->editForm['last_name'] . ', ' . $this->editForm['first_name'],
+        $actor = auth()->user();
+
+        $client = $this->selectedClient;
+
+        $info = $client->info;
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK IF EMAIL CHANGED
+        |--------------------------------------------------------------------------
+        */
+
+        $emailChanged =
+            strtolower(trim($client->email))
+            !==
+            strtolower(trim($this->editForm['email']));
+
+        /*
+        |--------------------------------------------------------------------------
+        | COLLECT ALL PROFILE CHANGES INTO ONE DIFF
+        |--------------------------------------------------------------------------
+        */
+
+        $diff = [];
+
+        $fields = [
+            'email' => [
+                'label' => 'Email Address',
+                'old' => $client->email,
+                'new' => $this->editForm['email'],
+            ],
+
+            'first_name' => [
+                'label' => 'First Name',
+                'old' => $info?->first_name,
+                'new' => $this->editForm['first_name'],
+            ],
+
+            'middle_name' => [
+                'label' => 'Middle Name',
+                'old' => $info?->middle_name,
+                'new' => $this->editForm['middle_name'],
+            ],
+
+            'last_name' => [
+                'label' => 'Last Name',
+                'old' => $info?->last_name,
+                'new' => $this->editForm['last_name'],
+            ],
+
+            'suffix' => [
+                'label' => 'Suffix',
+                'old' => $info?->suffix,
+                'new' => $this->editForm['suffix'],
+            ],
+
+            'phone' => [
+                'label' => 'Phone Number',
+                'old' => $info?->phone,
+                'new' => $this->editForm['phone'],
+            ],
+
+            'region' => [
+                'label' => 'Region',
+                'old' => $info?->region,
+                'new' => $this->editForm['region'],
+            ],
+
+            'province' => [
+                'label' => 'Province',
+                'old' => $info?->province,
+                'new' => $this->editForm['province'],
+            ],
+
+            'municipality' => [
+                'label' => 'Municipality',
+                'old' => $info?->municipality,
+                'new' => $this->editForm['municipality'],
+            ],
+
+            'barangay' => [
+                'label' => 'Barangay',
+                'old' => $info?->barangay,
+                'new' => $this->editForm['barangay'],
+            ],
+        ];
+
+        foreach ($fields as $key => $field) {
+
+            $old = $field['old'];
+            $new = $field['new'];
+
+            /*
+            * Normalize null / empty string so they don't create
+            * unnecessary changes.
+            */
+            $oldNormalized = filled($old) ? trim((string) $old) : '';
+            $newNormalized = filled($new) ? trim((string) $new) : '';
+
+            if ($oldNormalized === $newNormalized) {
+                continue;
+            }
+
+            $diff[$key] = [
+                'label' => $field['label'],
+                'old' => $old,
+                'new' => $new,
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE USERS TABLE WITHOUT FIRING USER OBSERVER
+        |--------------------------------------------------------------------------
+        */
+
+        $client->updateQuietly([
+            'name' =>
+                $this->editForm['last_name']
+                . ', '
+                . $this->editForm['first_name'],
+
             'email' => $this->editForm['email'],
+
+            /*
+            * Also invalidate any remember-me login.
+            */
+            'remember_token' => $emailChanged
+                ? null
+                : $client->remember_token,
         ]);
 
-        $this->selectedClient->info()->updateOrCreate(
-            ['user_id' => $this->selectedClient->id],
-            [
-                'first_name' => $this->editForm['first_name'],
-                'middle_name' => $this->editForm['middle_name'],
-                'last_name' => $this->editForm['last_name'],
-                'suffix' => $this->editForm['suffix'],
-                'phone' => $this->editForm['phone'],
-                'region' => $this->editForm['region'],
-                'province' => $this->editForm['province'],
-                'municipality' => $this->editForm['municipality'],
-                'barangay' => $this->editForm['barangay'],
-                'state' => $this->editForm['state'],
-            ]
-        );
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE USER INFO WITHOUT FIRING USERINFO OBSERVER
+        |--------------------------------------------------------------------------
+        */
 
-        $account = $this->selectedClient
+        $userInfo = $client->info()->firstOrNew([
+            'user_id' => $client->id,
+        ]);
+
+        $userInfo->fill([
+            'first_name' => $this->editForm['first_name'],
+            'middle_name' => $this->editForm['middle_name'],
+            'last_name' => $this->editForm['last_name'],
+            'suffix' => $this->editForm['suffix'],
+            'phone' => $this->editForm['phone'],
+            'region' => $this->editForm['region'],
+            'province' => $this->editForm['province'],
+            'municipality' => $this->editForm['municipality'],
+            'barangay' => $this->editForm['barangay'],
+            'state' => $this->editForm['state'],
+        ]);
+
+        $userInfo->saveQuietly();
+
+        /*
+        |--------------------------------------------------------------------------
+        | FORCE CLIENT LOGOUT IF EMAIL CHANGED
+        |--------------------------------------------------------------------------
+        |
+        | Remove every active login session belonging to this client.
+        |
+        */
+
+        if ($emailChanged) {
+            DB::table('sessions')
+                ->where('user_id', $client->id)
+                ->delete();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE RESERVATION / PURCHASE ACCOUNT
+        |--------------------------------------------------------------------------
+        */
+
+        $account = $client
             ->purchaseAccounts()
             ->with('reservation')
             ->first();
@@ -257,12 +416,85 @@ class ClientRecords extends Component
             ]);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE ONE COMBINED CLIENT NOTIFICATION
+        |--------------------------------------------------------------------------
+        */
+
+        if (! empty($diff)) {
+
+            $changedFields = collect($diff)
+                ->pluck('label')
+                ->map(fn ($label) => strtolower($label))
+                ->values();
+
+            if ($changedFields->count() === 1) {
+
+                $changesText = $changedFields->first();
+
+            } elseif ($changedFields->count() === 2) {
+
+                $changesText = $changedFields->implode(' and ');
+
+            } else {
+
+                $lastField = $changedFields->pop();
+
+                $changesText =
+                    $changedFields->implode(', ')
+                    . ', and '
+                    . $lastField;
+            }
+
+            $notification = SystemNotification::create([
+                'title' => 'Account Information Updated',
+
+                'message' =>
+                    "{$actor->name} has made changes to your {$changesText}.",
+
+                'type' => 'client_account_updated_by_staff',
+
+                'url' => route('client.account'),
+
+                'data' => [
+                    'user_id' => $client->id,
+                    'user_name' => $client->name,
+                    'user_email' => $client->email,
+                    'role' => $client->role,
+
+                    'changes' => $diff,
+
+                    'updated_by' => $actor->id,
+                    'updated_by_name' => $actor->name,
+                ],
+
+                'created_by' => $actor->id,
+            ]);
+
+            /*
+            * Only notify the affected client.
+            */
+            $notification->users()->attach([
+                $client->id,
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN / STAFF SUCCESS TOAST
+        |--------------------------------------------------------------------------
+        */
+
         Notification::make()
             ->title('Client Updated Successfully')
             ->success()
             ->send();
 
-        $this->dispatch('closeModal', name: 'editClientModal');
+        $this->dispatch(
+            'closeModal',
+            name: 'editClientModal'
+        );
     }
 
     public function confirmDeleteClient($clientId)

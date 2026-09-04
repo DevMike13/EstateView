@@ -134,7 +134,11 @@
                     <div class="flex items-center">
                         @if(
                             $notification->url &&
-                            $notification->type !== 'client_personal_info_updated'
+                            ! in_array($notification->type, [
+                                'client_personal_info_updated',
+                                'client_account_updated',
+                                'agent_profile_updated',
+                            ])
                         )
                             <a
                                 href="{{ $notification->url }}"
@@ -161,7 +165,11 @@
                         @endif
 
                         @if(
-                            $notification->type === 'client_personal_info_updated'
+                            in_array($notification->type, [
+                                'client_personal_info_updated',
+                                'client_account_updated',
+                                'agent_profile_updated',
+                            ])
                             && !empty($data['changes'])
                         )
                             <button
@@ -194,7 +202,11 @@
                         @endif
                     </div>
                     @if(
-                        $notification->type === 'client_personal_info_updated'
+                        in_array($notification->type, [
+                            'client_personal_info_updated',
+                            'client_account_updated',
+                            'agent_profile_updated',
+                        ])
                         && !empty($data['changes'])
                     )
                         <div
@@ -208,7 +220,7 @@
                                 x-show="showChanges"
                                 x-transition
                                 @click.stop
-                                class="bg-white rounded-lg shadow-xl w-full max-w-sm p-5"
+                                class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-5"
                             >
                                 {{-- HEADER --}}
                                 <div class="flex justify-between items-center mb-4 border-b pb-3">

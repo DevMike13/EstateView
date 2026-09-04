@@ -5,8 +5,14 @@
         aria-label="Global Navigation"
     >
         {{-- Logo --}}
+        @php
+            $logoRoute = auth()->check() && auth()->user()->role === 'agent'
+                ? route('agent.dashboard')
+                : route('user.home');
+        @endphp
+
         <a
-            href="{{ route('user.home') }}"
+            href="{{ $logoRoute }}"
             wire:navigate
             @click="mobileMenuOpen = false"
             class="flex items-center gap-3 text-lg font-bold text-[#2b2b31] lg:text-3xl"

@@ -25,13 +25,13 @@
             <div class="w-full flex flex-col justify-center items-center">
                 <div class="space-y-6 w-[90%] md:w-full">
                     <div class="relative">
-                        <x-input icon="user" label="Email Address" placeholder="Enter email" wire:model="email" class="py-3"/>
+                        <x-input icon="user" label="Email Address" placeholder="Enter email" max-length="50" wire:model="email" class="py-3"/>
                         <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-2 peer-disabled:opacity-50 peer-disabled:pointer-events-none">
                         </div>
                     </div>
                     
                     <div class="relative">
-                        <x-inputs.password icon="key" label="Password" placeholder="Enter password" class="py-3" wire:model="password"/>
+                        <x-inputs.password icon="key" label="Password" placeholder="Enter password" max-length="8" class="py-3" wire:model="password"/>
                         <div class="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-2 peer-disabled:opacity-50 peer-disabled:pointer-events-none">
                         </div>
                     </div>

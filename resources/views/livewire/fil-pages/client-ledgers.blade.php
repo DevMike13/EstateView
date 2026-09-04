@@ -31,12 +31,14 @@
                     wire:model.live="statusFilter"
                     wire:key="status-filter-{{ $statusFilter ?: 'empty' }}"
                     :options="[
-                        
-                        ['id' => 'active', 'name' => 'Active'],
-                        ['id' => 'downpayment_pending', 'name' => 'Downpayment Pending'],
-                        ['id' => 'bank_processing', 'name' => 'Bank Processing'],
-                        ['id' => 'fully_paid', 'name' => 'Fully Paid'],
-                        // ['id' => 'cancelled', 'name' => 'Cancelled'],
+                        [
+                            'id' => 'downpayment_pending',
+                            'name' => 'Downpayment Pending'
+                        ],
+                        [
+                            'id' => 'fully_paid',
+                            'name' => 'Fully Paid'
+                        ],
                     ]"
                     option-label="name"
                     option-value="id"
@@ -103,12 +105,14 @@
         </div>
 
         @php
-            $highlightStatus = $statusFilter ?: ($statusTab ?: 'active');
+            $highlightStatus =
+                $statusFilter
+                ?: ($statusTab ?: 'downpayment_pending');
         @endphp
 
         <div class="mb-5 flex flex-wrap items-center gap-2 rounded-xl border bg-white p-1.5 shadow-sm">
 
-            <button
+            {{-- <button
                 type="button"
                 wire:click="setStatusTab('active')"
                 class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
@@ -118,7 +122,7 @@
                     }}"
             >
                 Active
-            </button>
+            </button> --}}
 
             <button
                 type="button"
@@ -132,7 +136,7 @@
                 Downpayment Pending
             </button>
 
-            <button
+            {{-- <button
                 type="button"
                 wire:click="setStatusTab('bank_processing')"
                 class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition
@@ -142,7 +146,7 @@
                     }}"
             >
                 Bank Processing
-            </button>
+            </button> --}}
 
             <button
                 type="button"
@@ -408,7 +412,7 @@
 
                             <div
                                 x-show="billingTab === 'unpaid'"
-                                class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2"
+                                class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 items-start"
                             >
 
                                 @forelse(
@@ -462,7 +466,20 @@
                                     @endphp
 
 
-                                    <div class="bg-white rounded-xl shadow-sm border p-4">
+                                    <div
+                                        class="
+                                            bg-white
+                                            rounded-xl
+                                            shadow-sm
+                                            border
+                                            p-4
+                                            max-h-[600px]
+                                            overflow-y-auto
+                                            [scrollbar-width:none]
+                                            [-ms-overflow-style:none]
+                                            [&::-webkit-scrollbar]:hidden
+                                        "
+                                    >
 
                                         {{-- BILLING HEADER --}}
                                         <div class="flex items-start justify-between gap-3 mb-3">
@@ -640,9 +657,17 @@
                                         {{-- PENDING PAYMENT --}}
                                         @if($pendingPayment)
 
-                                            <div class="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+                                            <div
+                                                x-data="{ paymentReviewOpen: false }"
+                                                class="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 p-4"
+                                            >
 
-                                                <div class="flex items-start justify-between gap-3">
+                                                {{-- COLLAPSIBLE HEADER --}}
+                                                <button
+                                                    type="button"
+                                                    x-on:click="paymentReviewOpen = !paymentReviewOpen"
+                                                    class="flex w-full items-start justify-between gap-3 text-left"
+                                                >
 
                                                     <div>
 
@@ -662,91 +687,113 @@
 
                                                     </div>
 
-                                                    <span class="rounded-full bg-white px-3 py-1 text-xs font-medium text-violet-700 shadow-sm">
-                                                        Pending
-                                                    </span>
+                                                    <div class="flex items-center gap-2">
 
-                                                </div>
+                                                        <span class="rounded-full bg-white px-3 py-1 text-xs font-medium text-violet-700 shadow-sm">
+                                                            Pending
+                                                        </span>
+
+                                                        <x-icon
+                                                            name="chevron-down"
+                                                            class="h-5 w-5 text-violet-500 transition-transform"
+                                                            x-bind:class="
+                                                                paymentReviewOpen
+                                                                    ? 'rotate-180'
+                                                                    : ''
+                                                            "
+                                                        />
+
+                                                    </div>
+
+                                                </button>
 
 
-                                                <div class="mt-4 bg-white rounded-xl p-4 space-y-3 text-sm">
+                                                {{-- COLLAPSIBLE CONTENT --}}
+                                                <div
+                                                    x-show="paymentReviewOpen"
+                                                    x-collapse
+                                                >
 
-                                                    <div class="grid grid-cols-2 gap-3">
+                                                    <div class="mt-4 bg-white rounded-xl p-4 space-y-3 text-sm">
 
-                                                        <div>
-                                                            <div class="text-gray-400 text-xs">
-                                                                Amount
+                                                        <div class="grid grid-cols-2 gap-3">
+
+                                                            <div>
+                                                                <div class="text-gray-400 text-xs">
+                                                                    Amount
+                                                                </div>
+
+                                                                <div class="font-semibold text-gray-900">
+                                                                    ₱{{ number_format(
+                                                                        $pendingPayment->amount,
+                                                                        2
+                                                                    ) }}
+                                                                </div>
                                                             </div>
 
-                                                            <div class="font-semibold text-gray-900">
-                                                                ₱{{ number_format(
-                                                                    $pendingPayment->amount,
-                                                                    2
-                                                                ) }}
+
+                                                            <div>
+                                                                <div class="text-gray-400 text-xs">
+                                                                    Method
+                                                                </div>
+
+                                                                <div class="font-semibold text-gray-900">
+                                                                    {{ Str::headline(
+                                                                        $pendingPayment->payment_method
+                                                                    ) }}
+                                                                </div>
                                                             </div>
+
                                                         </div>
 
 
-                                                        <div>
+                                                        <div class="border-t pt-3">
+
                                                             <div class="text-gray-400 text-xs">
-                                                                Method
+                                                                Reference Number
                                                             </div>
 
-                                                            <div class="font-semibold text-gray-900">
-                                                                {{ Str::headline(
-                                                                    $pendingPayment->payment_method
-                                                                ) }}
+                                                            <div class="font-semibold text-gray-900 break-all mt-1">
+                                                                {{ $pendingPayment->reference_no ?? 'N/A' }}
                                                             </div>
+
                                                         </div>
 
                                                     </div>
 
 
-                                                    <div class="border-t pt-3">
+                                                    <div class="mt-4 space-y-3">
 
-                                                        <div class="text-gray-400 text-xs">
-                                                            Reference Number
-                                                        </div>
+                                                        @if($pendingPayment->proof_of_payment)
 
-                                                        <div class="font-semibold text-gray-900 break-all mt-1">
-                                                            {{ $pendingPayment->reference_no ?? 'N/A' }}
-                                                        </div>
+                                                            <a
+                                                                href="{{ asset(
+                                                                    'storage/' .
+                                                                    $pendingPayment->proof_of_payment
+                                                                ) }}"
+                                                                target="_blank"
+                                                                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-medium text-violet-700 hover:text-violet-900"
+                                                            >
+                                                                <x-icon
+                                                                    name="arrow-top-right-on-square"
+                                                                    class="h-4 w-4"
+                                                                />
 
-                                                    </div>
+                                                                View Client Proof
+                                                            </a>
 
-                                                </div>
+                                                        @else
+
+                                                            <div class="text-center text-sm text-gray-400">
+                                                                No proof uploaded
+                                                            </div>
+
+                                                        @endif
 
 
-                                                <div class="mt-4 space-y-3">
-
-                                                    @if($pendingPayment->proof_of_payment)
-
-                                                        <a
-                                                            href="{{ asset(
-                                                                'storage/' .
-                                                                $pendingPayment->proof_of_payment
-                                                            ) }}"
-                                                            target="_blank"
-                                                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-medium text-violet-700 hover:text-violet-900"
-                                                        >
-                                                            <x-icon
-                                                                name="arrow-top-right-on-square"
-                                                                class="h-4 w-4"
-                                                            />
-
-                                                            View Client Proof
-                                                        </a>
-
-                                                    @else
-
-                                                        <div class="text-center text-sm text-gray-400">
-                                                            No proof uploaded
-                                                        </div>
-
-                                                    @endif
-
-                                                    {{-- ADMIN RECEIPT --}}
+                                                        {{-- ADMIN RECEIPT --}}
                                                         <div>
+
                                                             <label
                                                                 class="mb-2 block text-xs font-semibold
                                                                     {{ $errors->has('approvalReceipts.' . $pendingPayment->id)
@@ -770,28 +817,34 @@
                                                             />
 
                                                             @error('approvalReceipts.' . $pendingPayment->id)
+
                                                                 <p class="mt-1 text-xs text-red-500">
                                                                     {{ $message }}
                                                                 </p>
+
                                                             @enderror
+
                                                         </div>
 
-                                                    <div class="grid grid-cols-2 gap-2">
 
-                                                        <x-button
-                                                            label="Reject"
-                                                            icon="x-mark"
-                                                            wire:click="rejectBillingPaymentConfirmation({{ $pendingPayment->id }})"
-                                                            class="w-full border border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-700"
-                                                        />
+                                                        <div class="grid grid-cols-2 gap-2">
+
+                                                            <x-button
+                                                                label="Reject"
+                                                                icon="x-mark"
+                                                                wire:click="rejectBillingPaymentConfirmation({{ $pendingPayment->id }})"
+                                                                class="w-full border border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-700"
+                                                            />
 
 
-                                                        <x-button
-                                                            label="Approve"
-                                                            icon="check"
-                                                            wire:click="approveBillingPaymentConfirmation({{ $pendingPayment->id }})"
-                                                            class="w-full bg-[#101727] text-white"
-                                                        />
+                                                            <x-button
+                                                                label="Approve"
+                                                                icon="check"
+                                                                wire:click="approveBillingPaymentConfirmation({{ $pendingPayment->id }})"
+                                                                class="w-full bg-[#101727] text-white"
+                                                            />
+
+                                                        </div>
 
                                                     </div>
 
@@ -1505,6 +1558,7 @@
                         $event.target.value = cleaned;
                         $wire.set('officeReferenceNo', cleaned);
                     "
+                    maxlength="50"
                 />
             </div>
 
@@ -1527,8 +1581,8 @@
             <div class="mt-4">
                 <x-input
                     label="Description"
-                    placeholder="Example: Office cash payment"
                     wire:model="paymentDescription"
+                    readonly
                 />
             </div>
 
@@ -1556,11 +1610,14 @@
                 label="Status"
                 wire:model="accountStatus"
                 :options="[
-                    ['id' => 'active', 'name' => 'Active'],
-                    ['id' => 'downpayment_pending', 'name' => 'Downpayment Pending'],
-                    ['id' => 'bank_processing', 'name' => 'Bank Processing'],
-                    ['id' => 'fully_paid', 'name' => 'Fully Paid'],
-                    ['id' => 'cancelled', 'name' => 'Cancelled'],
+                    [
+                        'id' => 'downpayment_pending',
+                        'name' => 'Downpayment Pending'
+                    ],
+                    [
+                        'id' => 'fully_paid',
+                        'name' => 'Fully Paid'
+                    ],
                 ]"
                 option-label="name"
                 option-value="id"
@@ -1604,5 +1661,16 @@
             }, 500);
         });
     </script>
+@endif
+@if(session()->has('office_payment_success'))
+    <div
+        x-data
+        x-init="
+            setTimeout(() => {
+                $wire.showOfficePaymentSuccess();
+            }, 300);
+        "
+        class="hidden"
+    ></div>
 @endif
 </div>

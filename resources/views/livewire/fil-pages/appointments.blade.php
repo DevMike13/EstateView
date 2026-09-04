@@ -436,7 +436,7 @@
         <!-- End Tab Content -->
     </div>
 
-    <div class="w-full max-w-4xl mx-auto p-4 bg-[#f9fafc] rounded-xl shadow">
+    <div class="w-full mx-auto p-4 bg-[#f9fafc] rounded-xl shadow">
         {{-- HEADER --}}
         <div class="flex justify-between items-center mb-4">
             <x-button.circle
@@ -636,16 +636,43 @@
                             label="Appointment Type"
                             placeholder="Choose appointment type"
                             :options="[
-                                'Property Tripping',
-                                'Loan Consultation',
-                                'Reservation Assistance',
-                                'Payment Discussion',
-                                'General Inquiry'
+                                'Property Document Consultation',
+                                'House and Lot Document Processing',
+                                'Contract to Sell Processing',
+                                'Deed of Sale Preparation',
+                                'Land Title Processing',
+                                'Transfer of Land and House Title'
                             ]"
                             wire:model="setAppointmentType"
                         />
 
                         @error('setAppointmentType')
+                            <p class="mt-1 text-xs text-red-500">
+                                {{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
+                    {{-- TIME SLOT --}}
+                    <div class="mt-4">
+                        <x-select
+                            label="Select Time"
+                            placeholder="Choose an available time slot"
+                            :options="$this->setAppointmentTimeSlots"
+                            wire:model="setAppointmentTime"
+                        />
+
+                        @if($setAppointmentDate && count($this->setAppointmentTimeSlots))
+                            <p class="mt-1 text-[11px] text-gray-400">
+                                Booked and already-passed time slots are automatically hidden.
+                            </p>
+                        @elseif($setAppointmentDate)
+                            <p class="mt-1 text-xs text-orange-600">
+                                No available time slots for this date.
+                            </p>
+                        @endif
+
+                        @error('setAppointmentTime')
                             <p class="mt-1 text-xs text-red-500">
                                 {{ $message }}
                             </p>
@@ -675,32 +702,6 @@
                         </textarea>
 
                         @error('setAppointmentNotes')
-                            <p class="mt-1 text-xs text-red-500">
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-
-                    {{-- TIME SLOT --}}
-                    <div class="mt-4">
-                        <x-select
-                            label="Select Time"
-                            placeholder="Choose an available time slot"
-                            :options="$this->setAppointmentTimeSlots"
-                            wire:model="setAppointmentTime"
-                        />
-
-                        @if($setAppointmentDate && count($this->setAppointmentTimeSlots))
-                            <p class="mt-1 text-[11px] text-gray-400">
-                                Booked and already-passed time slots are automatically hidden.
-                            </p>
-                        @elseif($setAppointmentDate)
-                            <p class="mt-1 text-xs text-orange-600">
-                                No available time slots for this date.
-                            </p>
-                        @endif
-
-                        @error('setAppointmentTime')
                             <p class="mt-1 text-xs text-red-500">
                                 {{ $message }}
                             </p>

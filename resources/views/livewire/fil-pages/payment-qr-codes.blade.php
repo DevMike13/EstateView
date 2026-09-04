@@ -19,13 +19,23 @@
                     option-value="id"
                 />
 
-                <x-input label="Account Name" wire:model.defer="account_name" />
+                <x-input
+                    label="Account Name"
+                    wire:model.defer="account_name"
+                    maxlength="50"
+                    oninput="
+                        this.value = this.value
+                            .replace(/[^A-Za-z ]/g, '')
+                            .slice(0, 50)
+                    "
+                />
                 <x-input
                     type="text"
                     inputmode="numeric"
                     pattern="[0-9]*"
                     label="Account Number"
                     wire:model.defer="account_number"
+                    maxlength="50"
                     oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                 />
 
@@ -124,6 +134,12 @@
                     <x-input
                         label="Account Name"
                         wire:model.defer="edit_account_name"
+                        maxlength="50"
+                        oninput="
+                            this.value = this.value
+                                .replace(/[^A-Za-z ]/g, '')
+                                .slice(0, 50)
+                        "
                     />
 
                     <x-input
@@ -132,7 +148,12 @@
                         type="text"
                         inputmode="numeric"
                         pattern="[0-9]*"
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                        maxlength="50"
+                        oninput="
+                            this.value = this.value
+                                .replace(/[^0-9]/g, '')
+                                .slice(0, 50)
+                        "
                     />
 
                     @if($edit_existing_qr_image)
@@ -141,10 +162,41 @@
                                 Current QR Image
                             </label>
 
-                            <img
-                                src="{{ asset('storage/' . $edit_existing_qr_image) }}"
-                                class="mt-2 h-48 w-full object-contain rounded-lg border"
-                            >
+                            <div class="relative mt-2">
+                                <img
+                                    src="{{ asset('storage/' . $edit_existing_qr_image) }}"
+                                    class="h-48 w-full object-contain rounded-lg border"
+                                >
+
+                                <button
+                                    type="button"
+                                    wire:click="removeExistingQrImage"
+                                    class="
+                                        absolute top-2 right-2
+                                        flex h-7 w-7 items-center justify-center
+                                        rounded-full
+                                        bg-red-600 text-white
+                                        shadow
+                                        hover:bg-red-700
+                                        transition
+                                    "
+                                    title="Remove QR image"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.5"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M18 6 6 18"/>
+                                        <path d="m6 6 12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     @endif
 

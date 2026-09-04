@@ -943,10 +943,49 @@
                         {{ Str::headline($this->selectedQrCode->payment_method) }} QR Code
                     </div>
 
-                    <img
-                        src="{{ asset('storage/' . $this->selectedQrCode->qr_image) }}"
-                        class="mx-auto h-64 w-full object-contain rounded-lg border bg-white"
+                    <a
+                        href="{{ asset('storage/' . $this->selectedQrCode->qr_image) }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="relative block"
                     >
+                        <img
+                            src="{{ asset('storage/' . $this->selectedQrCode->qr_image) }}"
+                            class="mx-auto h-64 w-full object-contain rounded-lg border bg-white"
+                            alt="{{ Str::headline($this->selectedQrCode->payment_method) }} QR Code"
+                        >
+
+                        <div
+                            class="
+                                absolute
+                                top-2
+                                right-2
+                                flex
+                                items-center
+                                justify-center
+                                w-8
+                                h-8
+                                text-gray-700
+                            "
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="w-4 h-4"
+                            >
+                                <path d="M15 3h6v6"/>
+                                <path d="M10 14 21 3"/>
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                            </svg>
+                        </div>
+                    </a>
 
                     <div class="mt-3 text-sm text-gray-700">
                         {{ $this->selectedQrCode->account_name }}
@@ -971,6 +1010,7 @@
                     pattern="[0-9]*"
                     oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                     required
+                    maxlength="50"
                 />
             </div>
 
@@ -1013,5 +1053,16 @@
 
         </x-card>
 
-    </x-modal>      
+    </x-modal>  
+    @if(session()->has('reservation_payment_success'))
+        <div
+            x-data
+            x-init="
+                setTimeout(() => {
+                    $wire.showReservationPaymentSuccess();
+                }, 300);
+            "
+            class="hidden"
+        ></div>
+    @endif    
 </div>

@@ -119,16 +119,20 @@ class Appointments extends Component
             ->with([
                 'info',
                 'purchaseAccounts.ledgers',
-                'purchaseAccounts.billings' => function ($query) {
-                    $query->where('status', '!=', 'cancelled');
-                },
+                'purchaseAccounts.billings',
             ])
             ->get()
             ->filter(function ($user) {
+
                 return $user->purchaseAccounts->contains(
                     function ($account) {
 
-                        // CASH PAYMENT
+                        /*
+                        |--------------------------------------------------------------------------
+                        | CASH PAYMENT
+                        |--------------------------------------------------------------------------
+                        */
+
                         if (
                             strtolower(
                                 trim((string) $account->payment_scheme)
@@ -137,25 +141,44 @@ class Appointments extends Component
                             return true;
                         }
 
-                        // OTHER PAYMENT SCHEMES
+                        /*
+                        |--------------------------------------------------------------------------
+                        | MUST HAVE LEDGER
+                        |--------------------------------------------------------------------------
+                        */
+
                         if ($account->ledgers->isEmpty()) {
                             return false;
                         }
 
-                        $billings = $account->billings;
+                        /*
+                        |--------------------------------------------------------------------------
+                        | CHECK 50% OF BILLING SCHEDULE
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $billings = $account->billings
+                            ->where('status', '!=', 'cancelled');
 
                         if ($billings->isEmpty()) {
                             return false;
                         }
 
-                        $totalDue = (float) $billings->sum('amount_due');
-                        $totalPaid = (float) $billings->sum('amount_paid');
+                        $totalBills =
+                            $billings->count();
 
-                        if ($totalDue <= 0) {
+                        $paidBills =
+                            $billings
+                                ->where('status', 'paid')
+                                ->count();
+
+                        if ($totalBills <= 0) {
                             return false;
                         }
 
-                        return ($totalPaid / $totalDue) >= 0.50;
+                        return (
+                            $paidBills / $totalBills
+                        ) >= 0.50;
                     }
                 );
             })
@@ -186,7 +209,12 @@ class Appointments extends Component
         return $user->purchaseAccounts->contains(
             function ($account) {
 
-                // CASH PAYMENT
+                /*
+                |--------------------------------------------------------------------------
+                | CASH PAYMENT
+                |--------------------------------------------------------------------------
+                */
+
                 if (
                     strtolower(
                         trim((string) $account->payment_scheme)
@@ -195,10 +223,21 @@ class Appointments extends Component
                     return true;
                 }
 
-                // OTHER PAYMENT SCHEMES
+                /*
+                |--------------------------------------------------------------------------
+                | MUST HAVE LEDGER
+                |--------------------------------------------------------------------------
+                */
+
                 if ($account->ledgers->isEmpty()) {
                     return false;
                 }
+
+                /*
+                |--------------------------------------------------------------------------
+                | CHECK 50% OF BILLING SCHEDULE
+                |--------------------------------------------------------------------------
+                */
 
                 $billings = $account->billings
                     ->where('status', '!=', 'cancelled');
@@ -207,18 +246,24 @@ class Appointments extends Component
                     return false;
                 }
 
-                $totalDue = (float) $billings->sum('amount_due');
-                $totalPaid = (float) $billings->sum('amount_paid');
+                $totalBills =
+                    $billings->count();
 
-                if ($totalDue <= 0) {
+                $paidBills =
+                    $billings
+                        ->where('status', 'paid')
+                        ->count();
+
+                if ($totalBills <= 0) {
                     return false;
                 }
 
-                return ($totalPaid / $totalDue) >= 0.50;
+                return (
+                    $paidBills / $totalBills
+                ) >= 0.50;
             }
         );
     }
-
     /*
     |--------------------------------------------------------------------------
     | BASE TIME SLOTS
@@ -441,7 +486,7 @@ class Appointments extends Component
             'setAppointmentType' => [
                 'required',
                 'string',
-                'in:Property Tripping,Loan Consultation,Reservation Assistance,Payment Discussion,General Inquiry',
+                'in:Property Document Consultation,House and Lot Document Processing,Contract to Sell Processing,Deed of Sale Preparation,Land Title Processing,Transfer of Land and House Title',
             ],
 
             'setAppointmentNotes' => [

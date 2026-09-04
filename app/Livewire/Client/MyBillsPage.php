@@ -110,11 +110,29 @@ class MyBillsPage extends Component
 
     /*
     |--------------------------------------------------------------------------
+    | Show Payment Success After Reload
+    |--------------------------------------------------------------------------
+    */
+
+    public function showPaymentSubmissionSuccess(): void
+    {
+        if (! session()->pull('my_bills_payment_success')) {
+            return;
+        }
+
+        $this->notification()->success(
+            'Payment Submitted',
+            'Your payment proof is now waiting for admin verification.'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Submit Client Payment
     |--------------------------------------------------------------------------
     */
 
-    public function submitPayment(): void
+    public function submitPayment()
     {
         $this->validate([
             'billingId' => [
@@ -302,14 +320,13 @@ class MyBillsPage extends Component
             'proofOfPayment',
         ]);
 
-        $this->dispatch(
-            'close-modal',
-            name: 'payBill'
+        session()->put(
+            'my_bills_payment_success',
+            true
         );
 
-        $this->notification()->success(
-            'Payment Submitted',
-            'Your payment proof is now waiting for admin verification.'
+        return redirect()->to(
+            request()->header('Referer')
         );
     }
 

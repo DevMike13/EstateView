@@ -129,6 +129,10 @@ class ReservationPage extends Component
                 )
             );
         }
+
+        if (session()->has('reservation_payment_success')) {
+            $this->activeTab = 'reservation_fee_submitted';
+        }
     }
 
 
@@ -867,6 +871,21 @@ class ReservationPage extends Component
     }
 
 
+    public function showReservationPaymentSuccess()
+    {
+        if (! session()->pull(
+            'reservation_payment_success'
+        )) {
+            return;
+        }
+
+        $this->notification()->success(
+            'Payment Submitted',
+            'Your reservation fee payment is now waiting for admin verification.'
+        );
+    }
+
+
     public function submitReservationPayment()
     {
         $this->validate([
@@ -948,20 +967,16 @@ class ReservationPage extends Component
         ]);
 
 
-        $this->notification()->success(
-            'Payment Submitted',
-            'Your reservation fee payment is now waiting for admin verification.'
+        session()->put(
+            'reservation_payment_success',
+            true
         );
 
 
-        $this->dispatch(
-            'close-modal',
-            name: 'reservationPayment'
+        return redirect()->to(
+            request()->header('Referer')
+                ?? url()->current()
         );
-
-
-        $this->activeTab =
-            'reservation_fee_submitted';
     }
 
     public function confirmCancelReservation($reservationId)

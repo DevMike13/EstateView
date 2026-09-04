@@ -748,6 +748,28 @@
 
                             @endif
 
+                            {{-- Verified By --}}
+                            @if(
+                                $latestPayment->status === 'verified'
+                                && $latestPayment->verifier
+                            )
+
+                                <div>
+
+                                    <div class="text-gray-500">
+                                        Verified By
+                                    </div>
+
+                                    <div class="font-semibold">
+
+                                        {{ $latestPayment->verifier->name }}
+
+                                    </div>
+
+                                </div>
+
+                            @endif
+
 
                             {{-- Base amount snapshot --}}
                             @if(! is_null($latestPayment->base_amount))

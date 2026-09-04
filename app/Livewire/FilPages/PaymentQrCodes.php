@@ -27,6 +27,7 @@ class PaymentQrCodes extends Component
     public $edit_qr_image;
     public $edit_existing_qr_image;
     public $edit_is_active = true;
+    public bool $remove_existing_qr_image = false;
 
     public function save()
     {
@@ -75,7 +76,15 @@ class PaymentQrCodes extends Component
         $this->edit_is_active = (bool) $qr->is_active;
         $this->edit_qr_image = null;
 
+        $this->remove_existing_qr_image = false;
+
         $this->dispatch('openModal', name: 'editQrCodeModal');
+    }
+
+    public function removeExistingQrImage(): void
+    {
+        $this->edit_existing_qr_image = null;
+        $this->remove_existing_qr_image = true;
     }
 
     public function update()
@@ -91,6 +100,45 @@ class PaymentQrCodes extends Component
         $qr = PaymentQrCode::findOrFail($this->editId);
 
         $path = $qr->qr_image;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Remove current QR image
+        |--------------------------------------------------------------------------
+        */
+
+        if ($this->remove_existing_qr_image) {
+
+            if (
+                $qr->qr_image &&
+                Storage::disk('public')->exists($qr->qr_image)
+            ) {
+                Storage::disk('public')->delete($qr->qr_image);
+            }
+
+            $path = null;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Replace with new QR image
+        |--------------------------------------------------------------------------
+        */
+
+        if ($this->edit_qr_image) {
+
+            if (
+                $qr->qr_image &&
+                Storage::disk('public')->exists($qr->qr_image)
+            ) {
+                Storage::disk('public')->delete($qr->qr_image);
+            }
+
+            $path = $this->edit_qr_image->store(
+                'payment-qr-codes',
+                'public'
+            );
+        }
 
         if ($this->edit_qr_image) {
             if ($qr->qr_image && Storage::disk('public')->exists($qr->qr_image)) {
@@ -116,6 +164,7 @@ class PaymentQrCodes extends Component
             'edit_qr_image',
             'edit_existing_qr_image',
             'edit_is_active',
+            'remove_existing_qr_image',
         ]);
 
         Notification::make()

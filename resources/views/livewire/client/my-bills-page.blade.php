@@ -567,6 +567,7 @@
                         pattern="[0-9]*"
                         oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                         required
+                        maxlength="50"
                     />
 
                 </div>
@@ -682,4 +683,15 @@
         </x-modal>
 
     </div>
+    @if(session()->has('my_bills_payment_success'))
+        <div
+            x-data
+            x-init="
+                setTimeout(() => {
+                    $wire.showPaymentSubmissionSuccess();
+                }, 300);
+            "
+            class="hidden"
+        ></div>
+    @endif
 </main>

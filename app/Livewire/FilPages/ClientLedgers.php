@@ -28,8 +28,8 @@ class ClientLedgers extends Component
     // #[Url(except: '')]
     public $statusFilter = '';
 
-    #[Url(except: 'active')]
-    public $statusTab = 'active';
+    #[Url(except: 'downpayment_pending')]
+    public $statusTab = 'downpayment_pending';
 
     #[Url]
     public $highlight = null;
@@ -68,7 +68,7 @@ class ClientLedgers extends Component
         $this->dueDate = now()->addMonth()->format('Y-m-d');
 
         if ($this->statusTab === '' || $this->statusTab === null) {
-            $this->statusTab = 'active';
+            $this->statusTab = 'downpayment_pending';
         }
     }
 
@@ -80,6 +80,21 @@ class ClientLedgers extends Component
         $this->statusFilter = '';
 
         $this->syncingTab = false;
+    }
+
+    public function showOfficePaymentSuccess(): void
+    {
+        if (! session()->pull('office_payment_success')) {
+            return;
+        }
+
+        Notification::make()
+            ->title('Payment Recorded')
+            ->body(
+                'The office payment was recorded successfully.'
+            )
+            ->success()
+            ->send();
     }
 
     public function updatedStatusFilter($value): void
@@ -195,7 +210,7 @@ class ClientLedgers extends Component
                 $status =
                     $remainingBalance <= 0
                         ? 'fully_paid'
-                        : 'active';
+                        : 'downpayment_pending';
             }
 
             /*
@@ -272,7 +287,7 @@ class ClientLedgers extends Component
                 $status =
                     $remainingBalance <= 0
                         ? 'fully_paid'
-                        : 'active';
+                        : 'downpayment_pending';
             }
 
             /*
@@ -1134,18 +1149,14 @@ class ClientLedgers extends Component
             'officeProofOfPayment',
         ]);
 
-        $this->dispatch(
-            'close-modal',
-            name: 'recordPayment'
+        session()->put(
+            'office_payment_success',
+            true
         );
 
-        Notification::make()
-            ->title('Payment Recorded')
-            ->body(
-                'The office payment was recorded successfully.'
-            )
-            ->success()
-            ->send();
+        return redirect()->to(
+            request()->header('Referer')
+        );
     }
 
     public function approveBillingPaymentConfirmation($paymentId)
@@ -1657,7 +1668,7 @@ public function rejectBillingPaymentConfirmation($paymentId)
     {
         $this->search = '';
         $this->statusFilter = '';
-        $this->statusTab = 'active';
+        $this->statusTab = 'downpayment_pending';
         $this->paymentSchemeFilter = '';
         $this->paymentReviewFilter = '';
     }
@@ -1694,11 +1705,62 @@ public function rejectBillingPaymentConfirmation($paymentId)
             ->when(
                 $this->statusFilter,
                 function ($query) {
-                    $query->where('status', $this->statusFilter);
+
+                    if ($this->statusFilter === 'downpayment_pending') {
+                        $query->whereIn(
+                            'status',
+                            [
+                                'active',
+                                'downpayment_pending',
+                                'bank_processing',
+                            ]
+                        );
+
+                        return;
+                    }
+
+                    if ($this->statusFilter === 'fully_paid') {
+                        $query->where(
+                            'status',
+                            'fully_paid'
+                        );
+
+                        return;
+                    }
+
+                    $query->where(
+                        'status',
+                        $this->statusFilter
+                    );
                 },
                 function ($query) {
-                    // no explicit dropdown filter chosen, use the quick tab instead
-                    $query->where('status', $this->statusTab);
+
+                    if ($this->statusTab === 'downpayment_pending') {
+                        $query->whereIn(
+                            'status',
+                            [
+                                'active',
+                                'downpayment_pending',
+                                'bank_processing',
+                            ]
+                        );
+
+                        return;
+                    }
+
+                    if ($this->statusTab === 'fully_paid') {
+                        $query->where(
+                            'status',
+                            'fully_paid'
+                        );
+
+                        return;
+                    }
+
+                    $query->where(
+                        'status',
+                        $this->statusTab
+                    );
                 }
             )
 

@@ -185,14 +185,26 @@
                 </div>
 
                 <div
-                    x-data="{ openAccount: {{ $highlight ?? 'null' }}, activeStatus: 'all' }"
+                    x-data="{
+                        openAccount: {{ $highlight ?? 'null' }},
+                        activeStatus: 'all',
+
+                        readyCount: {{ $this->accounts->where('commission_status', 'ready')->count() }},
+                        pendingCount: {{ $this->accounts->where('commission_status', 'pending')->count() }},
+                        paidCount: {{ $this->accounts->where('commission_status', 'paid')->count() }}
+                    }"
                 >
                     {{-- Status Tabs --}}
                     <div class="mb-4 flex flex-wrap gap-2">
+
                         <button
                             type="button"
                             x-on:click="activeStatus = 'all'"
-                            x-bind:class="activeStatus === 'all' ? 'bg-gray-900 text-white' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'"
+                            x-bind:class="
+                                activeStatus === 'all'
+                                    ? 'bg-gray-900 text-white'
+                                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                            "
                             class="rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
                         >
                             All
@@ -201,7 +213,11 @@
                         <button
                             type="button"
                             x-on:click="activeStatus = 'unpaid'"
-                            x-bind:class="activeStatus === 'unpaid' ? 'bg-red-600 text-white' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'"
+                            x-bind:class="
+                                activeStatus === 'unpaid'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                            "
                             class="rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
                         >
                             Unpaid
@@ -209,17 +225,12 @@
 
                         <button
                             type="button"
-                            x-on:click="activeStatus = 'ready'"
-                            x-bind:class="activeStatus === 'ready' ? 'bg-emerald-600 text-white' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'"
-                            class="rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
-                        >
-                            Ready
-                        </button>
-
-                        <button
-                            type="button"
                             x-on:click="activeStatus = 'pending'"
-                            x-bind:class="activeStatus === 'pending' ? 'bg-amber-600 text-white' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'"
+                            x-bind:class="
+                                activeStatus === 'pending'
+                                    ? 'bg-amber-600 text-white'
+                                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                            "
                             class="rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
                         >
                             Pending
@@ -228,7 +239,11 @@
                         <button
                             type="button"
                             x-on:click="activeStatus = 'paid'"
-                            x-bind:class="activeStatus === 'paid' ? 'bg-green-600 text-white' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'"
+                            x-bind:class="
+                                activeStatus === 'paid'
+                                    ? 'bg-green-600 text-white'
+                                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                            "
                             class="rounded-full px-4 py-1.5 text-xs font-medium transition-colors"
                         >
                             Paid
@@ -246,11 +261,100 @@
                         "
                         class="space-y-3"
                     >
+                    {{-- CLIENTS WITHOUT PURCHASE ACCOUNT / LOT --}}
+                    @foreach($this->clientsWithoutAccounts as $client)
+
+                        <div
+                            wire:key="commission-client-no-account-{{ $client->id }}"
+                            x-show="activeStatus === 'all'"
+                            x-cloak
+                            class="bg-white shadow-sm"
+                        >
+                            <div
+                                class="w-full border-l-4 border-transparent p-5"
+                            >
+                                <div class="flex items-start justify-between gap-3">
+
+                                    {{-- CLIENT --}}
+                                    <div class="min-w-0">
+
+                                        <p class="truncate font-medium text-gray-900">
+                                            {{ $client->name }}
+                                        </p>
+
+                                        <p class="mt-0.5 truncate text-xs text-gray-500">
+                                            No assigned lot
+                                        </p>
+
+                                        <p class="mt-1 text-[11px] text-gray-400">
+                                            No purchase account yet
+                                        </p>
+
+                                    </div>
+
+                                    {{-- STATUS --}}
+                                    <div class="flex shrink-0 items-center gap-3">
+
+                                        <span
+                                            class="mt-0.5 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500"
+                                        >
+                                            Pending
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                                {{-- COMMISSION INFO --}}
+                                <div class="mt-3 flex flex-wrap items-center gap-4">
+
+                                    <div class="flex items-center gap-1 text-xs text-gray-400">
+
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="24"
+                                            height="24"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            class="h-3 w-3"
+                                        >
+                                            <line x1="19" x2="5" y1="5" y2="19"></line>
+                                            <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                                            <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                                        </svg>
+
+                                        Commission starts once a property is purchased
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    @endforeach
                         @forelse($this->accounts as $account)
 
                             <div
                                 wire:key="commission-account-wrapper-{{ $account->id }}"
-                                x-show="activeStatus === 'all' || activeStatus === '{{ $account->commission_status }}'"
+                               x-show="
+                                    activeStatus === 'all'
+                                    || (
+                                        activeStatus === 'unpaid'
+                                        && '{{ $account->commission_status }}' === 'ready'
+                                    )
+                                    || (
+                                        activeStatus === 'pending'
+                                        && '{{ $account->commission_status }}' === 'pending'
+                                    )
+                                    || (
+                                        activeStatus === 'paid'
+                                        && '{{ $account->commission_status }}' === 'paid'
+                                    )
+                                "
                                 class="bg-white shadow-sm"
                             >
 
@@ -982,7 +1086,53 @@
                                 </div>
                             </div>
                         @empty
-                            <div class="rounded-xl border-2 border-dashed border-gray-200 bg-white p-8 text-center">
+
+                            @if($this->clientsWithoutAccounts->isEmpty())
+
+                                <div
+                                    x-show="activeStatus === 'all'"
+                                    x-cloak
+                                    class="rounded-xl border-2 border-dashed border-gray-200 bg-white p-8 text-center"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="mx-auto h-9 w-9 text-gray-300"
+                                    >
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    </svg>
+
+                                    <p class="mt-3 text-sm font-medium text-gray-700">
+                                        No assigned clients
+                                    </p>
+
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Clients who selected you as their agent will appear here.
+                                    </p>
+                                </div>
+
+                            @endif
+
+                        @endforelse
+                        {{-- EMPTY STATE FOR COMMISSION TABS --}}
+
+                        {{-- Unpaid / Ready for Request --}}
+                        <div
+                            x-show="activeStatus === 'unpaid' && readyCount === 0"
+                            x-cloak
+                            class="rounded-xl border-2 border-dashed border-gray-200 bg-white p-10 text-center"
+                        >
+                            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     width="24"
@@ -993,23 +1143,90 @@
                                     stroke-width="2"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                    class="mx-auto h-9 w-9 text-gray-300"
+                                    class="h-6 w-6 text-gray-400"
                                 >
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    <rect width="20" height="14" x="2" y="5" rx="2"></rect>
+                                    <line x1="2" x2="22" y1="10" y2="10"></line>
                                 </svg>
-
-                                <p class="mt-3 text-sm font-medium text-gray-700">
-                                    No assigned clients
-                                </p>
-
-                                <p class="mt-1 text-xs text-gray-500">
-                                    Clients who selected you as their agent will appear here.
-                                </p>
                             </div>
-                        @endforelse
+
+                            <p class="mt-4 text-sm font-medium text-gray-700">
+                                No unpaid commissions yet
+                            </p>
+
+                            <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-gray-500">
+                                Commissions that are ready for request will appear here once
+                                your clients complete the required payments.
+                            </p>
+                        </div>
+
+
+                        {{-- Pending --}}
+                        <div
+                            x-show="activeStatus === 'pending' && pendingCount === 0"
+                            x-cloak
+                            class="rounded-xl border-2 border-dashed border-gray-200 bg-white p-10 text-center"
+                        >
+                            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    class="h-6 w-6 text-amber-500"
+                                >
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+
+                            <p class="mt-4 text-sm font-medium text-gray-700">
+                                No pending commissions
+                            </p>
+
+                            <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-gray-500">
+                                Commission requests waiting for admin payment will appear here.
+                            </p>
+                        </div>
+
+
+                        {{-- Paid --}}
+                        <div
+                            x-show="activeStatus === 'paid' && paidCount === 0"
+                            x-cloak
+                            class="rounded-xl border-2 border-dashed border-gray-200 bg-white p-10 text-center"
+                        >
+                            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-50">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    class="h-6 w-6 text-green-500"
+                                >
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="m9 12 2 2 4-4"></path>
+                                </svg>
+                            </div>
+
+                            <p class="mt-4 text-sm font-medium text-gray-700">
+                                No paid commissions yet
+                            </p>
+
+                            <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-gray-500">
+                                Commissions released and paid by the admin will appear here.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1027,22 +1244,34 @@
 
             <div class="space-y-4">
 
-                <x-input
+                {{-- <x-input
                     label="Label"
                     placeholder="Example: Primary BDO Account"
                     wire:model.defer="qrLabel"
-                />
+                /> --}}
 
                 <x-input
                     label="Bank or Wallet"
                     placeholder="Example: BDO, BPI, GCash"
                     wire:model.defer="qrProviderName"
+                    maxlength="50"
+                    oninput="
+                        this.value = this.value
+                            .replace(/[^A-Za-z ]/g, '')
+                            .slice(0, 50)
+                    "
                 />
 
                 <x-input
                     label="Account Name"
                     placeholder="Enter the registered account name"
                     wire:model.defer="qrAccountName"
+                    maxlength="50"
+                    oninput="
+                        this.value = this.value
+                            .replace(/[^A-Za-z ]/g, '')
+                            .slice(0, 50)
+                    "
                 />
 
                 <x-input
@@ -1052,7 +1281,12 @@
                     type="text"
                     inputmode="numeric"
                     pattern="[0-9]*"
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    maxlength="50"
+                    oninput="
+                        this.value = this.value
+                            .replace(/[^0-9]/g, '')
+                            .slice(0, 50)
+                    "
                 />
 
                 <div>
@@ -1060,51 +1294,84 @@
                         QR Code Image
                     </label>
 
-                    <input
-                        type="file"
+                    <x-filepond::upload
                         wire:model="qrImage"
-                        accept="image/jpeg,image/png,image/webp"
-                        class="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-600"
-                    >
+                        :accepted-file-types="[
+                            'image/jpeg',
+                            'image/png',
+                            'image/webp'
+                        ]"
+                    />
 
                     @error('qrImage')
-                        <p class="mt-1 text-xs text-red-500">
+                        <p class="mt-1 text-sm text-red-500">
                             {{ $message }}
                         </p>
                     @enderror
 
-                    <div wire:loading wire:target="qrImage">
-                        <p class="mt-2 text-xs text-blue-600">
-                            Uploading image...
-                        </p>
-                    </div>
-
-                    @if($qrImage)
+                    {{-- @if($qrImage)
                         <img
                             src="{{ $qrImage->temporaryUrl() }}"
                             alt="QR preview"
                             class="mt-3 h-44 w-full rounded-xl border object-contain"
                         >
-                    @endif
+                    @endif --}}
                 </div>
 
-                <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3">
-                    <input
-                        type="checkbox"
-                        wire:model.defer="qrIsPrimary"
-                        class="rounded border-gray-300"
-                    >
+                @if($this->qrCodes->isEmpty())
 
-                    <div>
-                        <p class="text-sm font-medium text-gray-800">
-                            Set as primary QR code
-                        </p>
+                    {{-- First QR is automatically primary --}}
+                    <div class="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="mt-0.5 h-5 w-5 shrink-0 text-blue-600"
+                        >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
 
-                        <p class="text-xs text-gray-500">
-                            Admin will see this payment option first.
-                        </p>
+                        <div>
+                            <p class="text-sm font-medium text-blue-900">
+                                This will be your primary QR code
+                            </p>
+
+                            <p class="mt-0.5 text-xs leading-relaxed text-blue-700">
+                                As this is your first payment QR code, it will automatically be designated as your primary account for commission payouts.
+                            </p>
+                        </div>
                     </div>
-                </label>
+
+                @else
+
+                    {{-- Agent already has QR codes, allow choosing primary --}}
+                    <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3">
+                        <input
+                            type="checkbox"
+                            wire:model.defer="qrIsPrimary"
+                            class="rounded border-gray-300"
+                        >
+
+                        <div>
+                            <p class="text-sm font-medium text-gray-800">
+                                Set as primary QR code
+                            </p>
+
+                            <p class="text-xs text-gray-500">
+                                Admin will use this as your default account for commission payouts.
+                            </p>
+                        </div>
+                    </label>
+
+                @endif
             </div>
 
             <x-slot name="footer">
@@ -1137,19 +1404,31 @@
 
             <div class="space-y-4">
 
-                <x-input
+                {{-- <x-input
                     label="Label"
                     wire:model.defer="editQrLabel"
-                />
+                /> --}}
 
                 <x-input
                     label="Bank or Wallet"
                     wire:model.defer="editQrProviderName"
+                    maxlength="50"
+                    oninput="
+                        this.value = this.value
+                            .replace(/[^A-Za-z ]/g, '')
+                            .slice(0, 50)
+                    "
                 />
 
                 <x-input
                     label="Account Name"
                     wire:model.defer="editQrAccountName"
+                    maxlength="50"
+                    oninput="
+                        this.value = this.value
+                            .replace(/[^A-Za-z ]/g, '')
+                            .slice(0, 50)
+                    "
                 />
 
                 <x-input
@@ -1158,7 +1437,12 @@
                     type="text"
                     inputmode="numeric"
                     pattern="[0-9]*"
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    maxlength="50"
+                    oninput="
+                        this.value = this.value
+                            .replace(/[^0-9]/g, '')
+                            .slice(0, 50)
+                    "
                 />
 
                 <div>
@@ -1166,12 +1450,94 @@
                         Replace QR Code Image
                     </label>
 
-                    <input
-                        type="file"
+                    {{-- CURRENT / NEW QR IMAGE PREVIEW --}}
+                    @if($editQrImage)
+
+                        <div
+                            class="mb-3"
+                            wire:key="edit-qr-new-image-preview"
+                        >
+                            <div class="relative">
+                                <img
+                                    src="{{ $editQrImage->temporaryUrl() }}"
+                                    alt="New QR Code"
+                                    class="h-44 w-full rounded-xl border border-gray-200 object-contain"
+                                >
+
+                                <button
+                                    type="button"
+                                    wire:click="removeNewQrImagePreview"
+                                    class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md transition hover:bg-gray-100"
+                                    aria-label="Remove new QR image"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        class="h-4 w-4 text-gray-600"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M6 6l12 12M18 6L6 18"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                    @elseif($editQrImagePreview)
+
+                        <div
+                            x-data="{ hideCurrentQrImage: false }"
+                            x-show="!hideCurrentQrImage"
+                            class="mb-3"
+                            wire:key="edit-qr-current-image-preview"
+                        >
+                            <div class="relative">
+                                <img
+                                    src="{{ asset('storage/' . $editQrImagePreview) }}"
+                                    alt="Current QR Code"
+                                    class="h-44 w-full rounded-xl border border-gray-200 object-contain"
+                                >
+
+                                <button
+                                    type="button"
+                                    @click="hideCurrentQrImage = true"
+                                    class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md transition hover:bg-gray-100"
+                                    aria-label="Hide current QR image"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        class="h-4 w-4 text-gray-600"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M6 6l12 12M18 6L6 18"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                    @endif
+
+                    {{-- ONLY ONE FILEPOND --}}
+                    <x-filepond::upload
                         wire:model="editQrImage"
-                        accept="image/jpeg,image/png,image/webp"
-                        class="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-600"
-                    >
+                        :accepted-file-types="[
+                            'image/jpeg',
+                            'image/png',
+                            'image/webp'
+                        ]"
+                    />
 
                     <p class="mt-1 text-xs text-gray-500">
                         Leave empty to keep the current QR image.
@@ -1182,33 +1548,59 @@
                             {{ $message }}
                         </p>
                     @enderror
-
-                    @if($editQrImage)
-                        <img
-                            src="{{ $editQrImage->temporaryUrl() }}"
-                            alt="New QR preview"
-                            class="mt-3 h-44 w-full rounded-xl border object-contain"
-                        >
-                    @endif
                 </div>
+                @if($editQrIsPrimary)
 
-                <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3">
-                    <input
-                        type="checkbox"
-                        wire:model.defer="editQrIsPrimary"
-                        class="rounded border-gray-300"
-                    >
+                    <div class="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="mt-0.5 h-5 w-5 shrink-0 text-blue-600"
+                        >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
 
-                    <div>
-                        <p class="text-sm font-medium text-gray-800">
-                            Set as primary QR code
-                        </p>
+                        <div>
+                            <p class="text-sm font-medium text-blue-900">
+                                This is your current primary QR code
+                            </p>
 
-                        <p class="text-xs text-gray-500">
-                            This QR will be shown first to admin.
-                        </p>
+                            <p class="mt-0.5 text-xs leading-relaxed text-blue-700">
+                                To change your primary QR code, set another saved QR code as primary.
+                            </p>
+                        </div>
                     </div>
-                </label>
+
+                @else
+
+                    <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3">
+                        <input
+                            type="checkbox"
+                            wire:model.defer="editQrIsPrimary"
+                            class="rounded border-gray-300"
+                        >
+
+                        <div>
+                            <p class="text-sm font-medium text-gray-800">
+                                Set as primary QR code
+                            </p>
+
+                            <p class="text-xs text-gray-500">
+                                Admin will use this as your default account for commission payouts.
+                            </p>
+                        </div>
+                    </label>
+
+                @endif
             </div>
 
             <x-slot name="footer">
@@ -1229,5 +1621,27 @@
             </x-slot>
         </x-card>
     </x-modal>
+    @if(session()->has('qr_code_success'))
+        <div
+            x-data
+            x-init="
+                setTimeout(() => {
+                    $wire.showQrCodeSuccess();
+                }, 300);
+            "
+            class="hidden"
+        ></div>
+    @endif
 
+    @if(session()->has('qr_code_updated_success'))
+        <div
+            x-data
+            x-init="
+                setTimeout(() => {
+                    $wire.showQrCodeUpdatedSuccess();
+                }, 300);
+            "
+            class="hidden"
+        ></div>
+    @endif
 </div>

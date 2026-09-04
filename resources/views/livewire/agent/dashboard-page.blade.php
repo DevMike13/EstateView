@@ -45,8 +45,13 @@
                         </svg>
                         </div>
                     </div>
-                    <div class="text-3xl font-light text-gray-900 mb-2">₱{{ number_format($totalSales, 2) }}</div>
-                    <div class="text-sm text-gray-600 uppercase tracking-wide">Total Sales</div>
+                    <div class="text-3xl font-light text-gray-900 mb-2">
+                        ₱{{ number_format($commissionEarned, 2) }}
+                    </div>
+
+                    <div class="text-sm text-gray-600 uppercase tracking-wide">
+                        Commission Earned
+                    </div>
                     </div>
                     <div class="bg-white p-8 shadow-sm hover:shadow-md transition-shadow">
                     <div class="flex items-center justify-between mb-4">
@@ -57,8 +62,13 @@
                         </svg>
                         </div>
                     </div>
-                    <div class="text-3xl font-light text-gray-900 mb-2">₱{{ number_format($monthlySales, 2) }}</div>
-                    <div class="text-sm text-gray-600 uppercase tracking-wide">This Month</div>
+                    <div class="text-3xl font-light text-gray-900 mb-2">
+                        ₱{{ number_format($commissionPending, 2) }}
+                    </div>
+
+                    <div class="text-sm text-gray-600 uppercase tracking-wide">
+                        Commission Pending
+                    </div>
                     </div>
                 </div>
                 </div>

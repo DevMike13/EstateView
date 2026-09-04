@@ -190,12 +190,23 @@
                                         $purchaseAccount?->lot?->name
                                         ?? 'No assigned lot';
 
-                                    $isPaid =
-                                        $purchaseAccount
-                                        && $purchaseAccount->status === 'fully_paid';
+                                    $commissionStatus = 'none';
+                                    $commissionStatusLabel = 'Pending';
 
-                                    $hasAccount =
-                                        ! is_null($purchaseAccount);
+                                    if ($purchaseAccount) {
+
+                                        $preparedAccount =
+                                            app(\App\Livewire\Agent\CommissionPage::class)
+                                                ->prepareAccountForDisplay(
+                                                    $purchaseAccount
+                                                );
+
+                                        $commissionStatus =
+                                            $preparedAccount->commission_status;
+
+                                        $commissionStatusLabel =
+                                            $preparedAccount->commission_status_label;
+                                    }
                                 @endphp
 
 
@@ -253,28 +264,44 @@
 
 
                                     {{-- STATUS --}}
-                                    @if($isPaid)
-
-                                        <span
-                                            class="shrink-0 rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-semibold text-green-600"
-                                        >
-                                            Paid
-                                        </span>
-
-                                    @elseif($hasAccount)
-
-                                        <span
-                                            class="shrink-0 rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-semibold text-red-600"
-                                        >
-                                            Unpaid
-                                        </span>
-
-                                    @else
+                                    @if(! $purchaseAccount)
 
                                         <span
                                             class="shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-500"
                                         >
                                             Pending
+                                        </span>
+
+                                    @elseif($commissionStatus === 'ready')
+
+                                        <span
+                                            class="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-600"
+                                        >
+                                            {{ $commissionStatusLabel }}
+                                        </span>
+
+                                    @elseif($commissionStatus === 'pending')
+
+                                        <span
+                                            class="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-600"
+                                        >
+                                            {{ $commissionStatusLabel }}
+                                        </span>
+
+                                    @elseif($commissionStatus === 'paid')
+
+                                        <span
+                                            class="shrink-0 rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-semibold text-green-600"
+                                        >
+                                            {{ $commissionStatusLabel }}
+                                        </span>
+
+                                    @else
+
+                                        <span
+                                            class="shrink-0 rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-semibold text-red-600"
+                                        >
+                                            {{ $commissionStatusLabel }}
                                         </span>
 
                                     @endif

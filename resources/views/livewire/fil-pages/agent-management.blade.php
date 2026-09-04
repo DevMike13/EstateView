@@ -1292,6 +1292,7 @@
                         inputmode="numeric"
                         pattern="[0-9]*"
                         oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                        maxlength="50"
                     />
 
                     {{-- Notes --}}

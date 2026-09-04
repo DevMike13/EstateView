@@ -16,11 +16,12 @@ use App\Models\AgentQrCode;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Url;
+use Spatie\LivewireFilepond\WithFilePond;
 
 #[Title('My Commissions')]
 class CommissionPage extends Component
 {
-    use Actions, WithFileUploads;
+    use Actions, WithFileUploads, WithFilePond;
 
     public string $search = '';
 
@@ -36,6 +37,7 @@ class CommissionPage extends Component
     public ?int $editingQrCodeId = null;
 
     public $editQrImage;
+    public $editQrImagePreview;
     public $editQrLabel;
     public $editQrProviderName;
     public $editQrAccountName;
@@ -44,6 +46,7 @@ class CommissionPage extends Component
 
     public bool $showCreateQrModal = false;
     public bool $showEditQrModal = false;
+
     #[Url]
     public ?int $highlight = null;
 
@@ -477,58 +480,83 @@ class CommissionPage extends Component
         if (empty($periods)) {
             return [
                 'status' => 'unpaid',
-                'label' => 'Awaiting Payment',
+                'label' => 'Client Still Paying',
             ];
         }
 
-        /*
-        * Periods are already in order (1, 2, 3...).
-        * Walk through them and stop at the first period
-        * that isn't fully paid yet — that's the client's
-        * current real-world status.
-        */
         foreach ($periods as $period) {
             $request = $period['request'];
 
+            /*
+            * No commission request yet.
+            */
             if (! $request) {
+
+                /*
+                * Client has completed the required payments,
+                * so the commission can now be requested.
+                */
                 if ($period['eligible']) {
                     return [
                         'status' => 'ready',
-                        'label' => 'Ready for Request',
+                        'label' => 'Unpaid',
                     ];
                 }
 
+                /*
+                * Client still needs to complete payments.
+                * This should only appear under the All tab.
+                */
                 return [
                     'status' => 'unpaid',
-                    'label' => 'To Be Paid by Client',
+                    'label' => 'Client Still Paying',
                 ];
             }
 
-            if ($request->status === 'pending') {
+            /*
+            * Agent already requested the commission.
+            * Waiting for admin processing/payment.
+            */
+            if (
+                in_array(
+                    $request->status,
+                    ['pending', 'approved']
+                )
+            ) {
                 return [
                     'status' => 'pending',
                     'label' => 'Pending',
                 ];
             }
 
-            // if ($request->status === 'approved') {
-            //     return [
-            //         'status' => 'approved',
-            //         'label' => 'Approved',
-            //     ];
-            // }
+            /*
+            * If rejected, allow the period to become
+            * requestable again once requirements are met.
+            */
+            if ($request->status === 'rejected') {
+                if ($period['all_paid']) {
+                    return [
+                        'status' => 'ready',
+                        'label' => 'Unpaid',
+                    ];
+                }
 
-            // if ($request->status === 'rejected') {
-            //     return [
-            //         'status' => 'rejected',
-            //         'label' => 'Rejected',
-            //     ];
-            // }
+                return [
+                    'status' => 'unpaid',
+                    'label' => 'Client Still Paying',
+                ];
+            }
 
-            // status === 'paid' -> keep checking the next period
+            /*
+            * status === paid
+            * Continue checking the next commission period.
+            */
         }
 
-        // Every period has a paid request.
+        /*
+        * Every commission period has already been paid
+        * by the administrator.
+        */
         return [
             'status' => 'paid',
             'label' => 'Paid',
@@ -873,7 +901,7 @@ class CommissionPage extends Component
             ->get();
     }
 
-    public function createQrCode(): void
+    public function createQrCode()
     {
         $validated = $this->validate([
             'qrLabel' => [
@@ -885,19 +913,22 @@ class CommissionPage extends Component
             'qrProviderName' => [
                 'required',
                 'string',
-                'max:100',
+                'max:50',
+                'regex:/^[A-Za-z ]+$/',
             ],
 
             'qrAccountName' => [
                 'required',
                 'string',
-                'max:150',
+                'max:50',
+                'regex:/^[A-Za-z ]+$/',
             ],
 
             'qrAccountNumber' => [
                 'nullable',
                 'string',
-                'max:100',
+                'max:50',
+                'regex:/^[0-9]+$/',
             ],
 
             'qrImage' => [
@@ -963,9 +994,14 @@ class CommissionPage extends Component
 
         $this->showCreateQrModal = false;
 
-        $this->notification()->success(
-            'QR Code Added',
-            'Your payment QR code was saved successfully.'
+        session()->put(
+            'qr_code_success',
+            true
+        );
+
+        return redirect()->to(
+            request()->header('Referer')
+                ?? url()->current()
         );
     }
 
@@ -995,12 +1031,22 @@ class CommissionPage extends Component
 
         $this->editQrImage = null;
 
+        $this->editQrImagePreview =
+            $qrCode->qr_image_path;
+
         $this->resetValidation();
 
         $this->showEditQrModal = true;
     }
 
-    public function updateQrCode(): void
+    public function removeNewQrImagePreview(): void
+    {
+        $this->resetFilePond('editQrImage');
+
+        $this->editQrImage = null;
+    }
+
+    public function updateQrCode()
     {
         if (! $this->editingQrCodeId) {
             return;
@@ -1016,19 +1062,22 @@ class CommissionPage extends Component
             'editQrProviderName' => [
                 'required',
                 'string',
-                'max:100',
+                'max:50',
+                'regex:/^[A-Za-z ]+$/',
             ],
 
             'editQrAccountName' => [
                 'required',
                 'string',
-                'max:150',
+                'max:50',
+                'regex:/^[A-Za-z ]+$/',
             ],
 
             'editQrAccountNumber' => [
                 'nullable',
                 'string',
-                'max:100',
+                'max:50',
+                'regex:/^[0-9]+$/',
             ],
 
             'editQrImage' => [
@@ -1102,19 +1151,21 @@ class CommissionPage extends Component
                 * is the only QR code.
                 */
                 'is_primary' =>
-                    $this->canRemovePrimaryStatus($qrCode)
-                        ? (bool) $validated['editQrIsPrimary']
-                        : true,
-            ]);
+                    $qrCode->is_primary
+                        ? true
+                        : (bool) $validated['editQrIsPrimary'],
+                            ]);
         });
 
         $this->resetEditQrForm();
 
         $this->showEditQrModal = false;
 
-        $this->notification()->success(
-            'QR Code Updated',
-            'Your payment QR code was updated successfully.'
+        session()->put('qr_code_updated_success', true);
+
+        return redirect()->to(
+            request()->header('Referer')
+                ?? route('agent.commission')
         );
     }
 
@@ -1245,6 +1296,7 @@ class CommissionPage extends Component
         $this->reset([
             'editingQrCodeId',
             'editQrImage',
+            'editQrImagePreview',
             'editQrLabel',
             'editQrProviderName',
             'editQrAccountName',
@@ -1253,6 +1305,101 @@ class CommissionPage extends Component
         ]);
 
         $this->resetValidation();
+    }
+
+    public function showQrCodeSuccess(): void
+    {
+        if (! session()->pull('qr_code_success')) {
+            return;
+        }
+
+        $this->notification()->success(
+            'QR Code Added',
+            'Your payment QR code was saved successfully.'
+        );
+    }
+
+    public function showQrCodeUpdatedSuccess(): void
+    {
+        if (! session()->pull('qr_code_updated_success')) {
+            return;
+        }
+
+        $this->notification()->success(
+            'QR Code Updated',
+            'Your payment QR code has been updated successfully.'
+        );
+    }
+
+    public function getClientsWithoutAccountsProperty(): Collection
+    {
+        $agentId = auth()->id();
+
+        return User::query()
+            ->with([
+                'info',
+                'purchaseAccounts.lot',
+            ])
+            ->where('role', 'user')
+            ->whereHas(
+                'info',
+                function ($query) use ($agentId) {
+                    $query->where(
+                        'agent_id',
+                        $agentId
+                    );
+                }
+            )
+            ->whereDoesntHave('purchaseAccounts')
+            ->when(
+                trim($this->search) !== '',
+                function ($query) {
+                    $search =
+                        '%'
+                        . trim($this->search)
+                        . '%';
+
+                    $query->where(
+                        function ($query) use ($search) {
+                            $query
+                                ->where(
+                                    'name',
+                                    'like',
+                                    $search
+                                )
+                                ->orWhere(
+                                    'email',
+                                    'like',
+                                    $search
+                                );
+                        }
+                    );
+                }
+            )
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function prepareAccountForDisplay(
+        PurchaseAccount $account
+    ): PurchaseAccount {
+        $account->loadMissing([
+            'user',
+            'lot',
+            'houseModel',
+            'reservation.agent.info',
+
+            'billings' => fn ($query) =>
+                $query
+                    ->orderBy('due_date')
+                    ->orderBy('id'),
+
+            'commissionRequests',
+        ]);
+
+        return $this->prepareAccountSummary(
+            $account
+        );
     }
 
     public function render()

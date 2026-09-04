@@ -4,7 +4,7 @@ namespace App\Livewire\Agent;
 
 use App\Models\LotReservation;
 use App\Models\Notification;
-use App\Models\PurchaseAccount;
+use App\Models\CommissionRequest;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -16,9 +16,9 @@ class DashboardPage extends Component
 
     public int $propertiesManaged = 0;
 
-    public float $totalSales = 0;
+    public float $commissionEarned = 0;
 
-    public float $monthlySales = 0;
+    public float $commissionPending = 0;
 
     public $recentActivities;
 
@@ -67,26 +67,43 @@ class DashboardPage extends Component
 
         /*
         |--------------------------------------------------------------------------
-        | Sales
+        | Commission
         |--------------------------------------------------------------------------
         |
-        | PurchaseAccount belongs to LotReservation through reservation_id.
-        | Replace "total_contract_price" if your actual amount column has a
-        | different name, such as total_price or contract_price.
+        | Shows the agent's actual commission amounts instead of the total
+        | contract price of properties.
         |
         */
-        $salesQuery = PurchaseAccount::query()
-            ->whereHas('reservation', function ($query) use ($agentId) {
-                $query->where('agent_id', $agentId);
-            });
+        $commissionQuery = CommissionRequest::query()
+            ->where('agent_id', $agentId);
 
-        $this->totalSales = (float) (clone $salesQuery)
-            ->sum('total_contract_price');
+        /*
+        |--------------------------------------------------------------------------
+        | Commission Earned
+        |--------------------------------------------------------------------------
+        |
+        | Total commission already paid by admin.
+        |
+        */
+        $this->commissionEarned = (float) (clone $commissionQuery)
+            ->where('status', 'paid')
+            ->sum('requested_amount');
 
-        $this->monthlySales = (float) (clone $salesQuery)
-            ->whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)
-            ->sum('total_contract_price');
+        /*
+        |--------------------------------------------------------------------------
+        | Commission Pending
+        |--------------------------------------------------------------------------
+        |
+        | Commission already requested by the agent but still waiting
+        | for admin processing/payment.
+        |
+        */
+        $this->commissionPending = (float) (clone $commissionQuery)
+            ->whereIn('status', [
+                'pending',
+                'approved',
+            ])
+            ->sum('requested_amount');
 
         /*
         |--------------------------------------------------------------------------

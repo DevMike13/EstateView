@@ -249,7 +249,7 @@
                   <path d="M8 17v-3"></path>
                 </svg>
                 <h3 class="text-lg text-gray-900 mb-2">View Reports</h3>
-                <p class="text-sm text-gray-600">Analytics and performance insights</p>
+                <p class="text-sm text-gray-600">Performance insights</p>
               </a>
             @endif
           </div>

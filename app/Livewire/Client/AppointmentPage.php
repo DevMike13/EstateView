@@ -25,7 +25,7 @@ class AppointmentPage extends Component
     public $notes;
     // public $name;
     // public $phone;
-    public $document;
+    public $documents = [];
 
     public $activeTab = 'pending';
 
@@ -93,11 +93,16 @@ class AppointmentPage extends Component
     public function rules(): array
     {
         return [
-            'document' => [
+            'documents' => [
                 'nullable',
+                'array',
+                'max:5',
+            ],
+
+            'documents.*' => [
                 'file',
-                'mimes:pdf,jpg,jpeg,png,doc,docx',
-                'max:10240',
+                'mimes:pdf,jpg,jpeg,png,webp,doc,docx',
+                'max:20480',
             ],
         ];
     }
@@ -105,11 +110,16 @@ class AppointmentPage extends Component
     public function validateUploadedFile()
     {
         $this->validate([
-            'document' => [
+            'documents' => [
                 'nullable',
+                'array',
+                'max:5',
+            ],
+
+            'documents.*' => [
                 'file',
-                'mimes:pdf,jpg,jpeg,png,doc,docx',
-                'max:10240',
+                'mimes:pdf,jpg,jpeg,png,webp,doc,docx',
+                'max:20480',
             ],
         ]);
 
@@ -518,11 +528,16 @@ class AppointmentPage extends Component
                 'max:2000',
             ],
 
-            'document' => [
+            'documents' => [
                 'nullable',
+                'array',
+                'max:5',
+            ],
+
+            'documents.*' => [
                 'file',
-                'mimes:pdf,jpg,jpeg,png,doc,docx',
-                'max:10240',
+                'mimes:pdf,jpg,jpeg,png,webp,doc,docx',
+                'max:20480',
             ],
         ]);
 
@@ -729,13 +744,15 @@ class AppointmentPage extends Component
         |--------------------------------------------------------------------------
         */
 
-        $documentPath = null;
+        $documentPaths = [];
 
-        if ($this->document) {
-            $documentPath = $this->document->store(
-                'appointment-documents',
-                'public'
-            );
+        if (! empty($this->documents)) {
+            foreach ($this->documents as $document) {
+                $documentPaths[] = $document->store(
+                    'appointment-documents',
+                    'public'
+                );
+            }
         }
 
         ClientAppointment::create([
@@ -761,8 +778,8 @@ class AppointmentPage extends Component
             'notes' =>
                 $this->notes,
 
-            'document_path' =>
-                $documentPath,
+            'document_paths' =>
+                $documentPaths,
 
             'status' =>
                 'pending',
@@ -824,11 +841,16 @@ class AppointmentPage extends Component
             // 'phone' => [
             //     'required',
             // ],
-            'document' => [
+            'documents' => [
                 'nullable',
+                'array',
+                'max:5',
+            ],
+
+            'documents.*' => [
                 'file',
-                'mimes:pdf,jpg,jpeg,png,doc,docx',
-                'max:10240',
+                'mimes:pdf,jpg,jpeg,png,webp,doc,docx',
+                'max:20480',
             ],
         ]);
 

@@ -340,15 +340,45 @@
             <x-card title="Edit Model House">
                 <div class="flex items-center gap-6">
                     @if($editImagePreview)
-                        <div class="shrink-0">
+                        <div
+                            x-data="{ hideCurrentImage: false }"
+                            x-show="!hideCurrentImage"
+                            class="shrink-0"
+                        >
                             <p class="text-sm font-medium text-gray-700 mb-2">
                                 Current Image
                             </p>
 
-                            <img
-                                src="{{ $editImagePreview }}"
-                                class="w-32 h-32 object-cover rounded-xl border border-gray-200 shadow-sm"
-                            >
+                            <div class="relative">
+                                <img
+                                    src="{{ $editImagePreview }}"
+                                    class="w-32 h-32 object-cover rounded-xl border border-gray-200 shadow-sm"
+                                >
+
+                                {{-- HIDE CURRENT IMAGE --}}
+                                <button
+                                    type="button"
+                                    @click="hideCurrentImage = true"
+                                    class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md transition hover:bg-gray-100"
+                                    aria-label="Hide current image"
+                                    title="Hide current image"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        class="h-4 w-4 text-gray-600"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M6 6l12 12M18 6L6 18"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     @endif
                     <div class="flex-1">

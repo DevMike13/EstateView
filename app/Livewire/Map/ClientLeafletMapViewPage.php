@@ -5,6 +5,7 @@ namespace App\Livewire\Map;
 use App\Models\Block;
 use App\Models\Lot;
 use App\Models\Map;
+use App\Models\LotReservation;
 use Livewire\Component;
 
 class ClientLeafletMapViewPage extends Component
@@ -45,6 +46,7 @@ class ClientLeafletMapViewPage extends Component
         $this->map = Map::with([
             'lots.user',
             'lots.houseModel',
+            'lots.reservations',
             'blocks',
         ])->first();
 
@@ -147,32 +149,196 @@ class ClientLeafletMapViewPage extends Component
         */
 
         $this->dispatch(
-            'refresh-client-leaflet-map'
+            'refresh-client-leaflet-map',
+            lots: $this->getClientLeafletLots()
         );
+    }
+
+
+    private function getClientLeafletLots(): array
+    {
+        $currentUserId =
+            auth()->id();
+
+
+        return collect(
+            $this->lots
+        )
+            ->map(
+                function ($lot) use ($currentUserId) {
+                    $belongsToCurrentUser =
+                        $currentUserId
+                        &&
+                        $lot->user_id
+                        &&
+                        (int) $lot->user_id ===
+                            (int) $currentUserId;
+
+
+                    return [
+                        'id' =>
+                            $lot->id,
+
+                        'name' =>
+                            $lot->name,
+
+                        'lot_number' =>
+                            $lot->lot_number,
+
+                        'geo_coords' =>
+                            $lot->geo_coords,
+
+                        'type' =>
+                            $lot->type,
+
+                        'block_id' =>
+                            $lot->block_id,
+
+                        'status' =>
+                            $lot->status,
+
+                        'has_ongoing_reservation' =>
+                            $lot->reservations
+                                ->whereIn(
+                                    'status',
+                                    [
+                                        'awaiting_reservation_fee',
+                                        'reservation_fee_submitted',
+                                        'approved',
+                                    ]
+                                )
+                                ->isNotEmpty(),
+
+                        'price' =>
+                            $lot->price,
+
+                        'lot_area' =>
+                            $lot->lot_area,
+
+                        'image' =>
+                            $lot->image
+                                ? asset(
+                                    'storage/' .
+                                    $lot->image
+                                )
+                                : null,
+
+                        'is_under_construction' =>
+                            (bool) $lot->is_under_construction,
+
+                        'user' =>
+                            $belongsToCurrentUser
+                            &&
+                            $lot->user
+                                ? [
+                                    'id' =>
+                                        $lot->user->id,
+
+                                    'name' =>
+                                        $lot->user->name,
+
+                                    'picture' =>
+                                        $lot->user->profile_picture
+                                            ? asset(
+                                                $lot->user->profile_picture
+                                            )
+                                            : null,
+                                ]
+                                : null,
+
+                        'belongs_to_current_user' =>
+                            (bool) $belongsToCurrentUser,
+
+                        'house_model' =>
+                            $lot->houseModel
+                                ? [
+                                    'id' =>
+                                        $lot->houseModel->id,
+
+                                    'name' =>
+                                        $lot->houseModel->model_name,
+
+                                    'image' =>
+                                        $lot->houseModel->image
+                                            ? asset(
+                                                'storage/' .
+                                                $lot->houseModel->image
+                                            )
+                                            : null,
+                                ]
+                                : null,
+                    ];
+                }
+            )
+            ->values()
+            ->toArray();
     }
 
 
     private function getLotVersion(): string
     {
-        return Lot::query()
-            ->orderBy(
-                'id'
-            )
-            ->get([
-                'id',
-                'updated_at',
-            ])
-            ->map(
-                fn ($lot) =>
-                    $lot->id
-                    . '-'
-                    . optional(
-                        $lot->updated_at
-                    )->timestamp
-            )
-            ->implode(
-                '|'
-            );
+        $lotVersion =
+            Lot::query()
+                ->orderBy(
+                    'id'
+                )
+                ->get([
+                    'id',
+                    'updated_at',
+                ])
+                ->map(
+                    fn ($lot) =>
+                        $lot->id
+                        . '-'
+                        . optional(
+                            $lot->updated_at
+                        )->timestamp
+                )
+                ->implode(
+                    '|'
+                );
+
+
+        $reservationVersion =
+            LotReservation::query()
+                ->whereIn(
+                    'status',
+                    [
+                        'awaiting_reservation_fee',
+                        'reservation_fee_submitted',
+                        'approved',
+                    ]
+                )
+                ->orderBy(
+                    'id'
+                )
+                ->get([
+                    'id',
+                    'lot_id',
+                    'status',
+                    'updated_at',
+                ])
+                ->map(
+                    fn ($reservation) =>
+                        $reservation->id
+                        . '-'
+                        . $reservation->lot_id
+                        . '-'
+                        . $reservation->status
+                        . '-'
+                        . optional(
+                            $reservation->updated_at
+                        )->timestamp
+                )
+                ->implode(
+                    '|'
+                );
+
+
+        return
+            $lotVersion
+            . '::'
+            . $reservationVersion;
     }
 
 

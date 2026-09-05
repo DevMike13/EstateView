@@ -4,6 +4,7 @@ namespace App\Livewire\FilPages;
 
 use App\Mail\ReservationDocumentsRejectedMail;
 use App\Models\LotReservation;
+use App\Models\Lot;
 use App\Models\ReservationPayment;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
@@ -179,18 +180,178 @@ class Reservations extends Component
 
     public function approveReservation($reservationId)
     {
-        DB::transaction(function () use ($reservationId) {
+        $result = DB::transaction(function () use ($reservationId) {
 
             $reservation = LotReservation::findOrFail($reservationId);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock the lot while choosing the winning reservation
+            |--------------------------------------------------------------------------
+            |
+            | This prevents two admins/staff members from approving two
+            | reservations for the same lot at the same time.
+            |
+            */
+
+            Lot::whereKey($reservation->lot_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Make sure this reservation can still be processed
+            |--------------------------------------------------------------------------
+            */
+
+            $reservation->refresh();
+
+            if ($reservation->status !== 'pending') {
+                return [
+                    'status' => 'invalid_status',
+                    'rejected_count' => 0,
+                ];
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Check if another reservation already won this lot
+            |--------------------------------------------------------------------------
+            |
+            | Once another reservation has reached Awaiting Reservation Fee,
+            | Fee Submitted, or Approved, this reservation must not continue.
+            |
+            */
+
+            $winningReservation = LotReservation::query()
+                ->where('lot_id', $reservation->lot_id)
+                ->where('id', '!=', $reservation->id)
+                ->whereIn('status', [
+                    'awaiting_reservation_fee',
+                    'reservation_fee_submitted',
+                    'approved',
+                ])
+                ->first();
+
+            if ($winningReservation) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Do not allow this reservation to push through
+                |--------------------------------------------------------------------------
+                |
+                | Using a normal update intentionally triggers
+                | LotReservationObserver so the client receives the existing
+                | rejected email and in-app notification.
+                |
+                */
+
+                $reservation->update([
+                    'status' => 'rejected',
+                    'notes' => 'Lot allocated to another reservation.',
+                ]);
+
+                return [
+                    'status' => 'lot_unavailable',
+                    'rejected_count' => 0,
+                ];
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Approve the winning reservation
+            |--------------------------------------------------------------------------
+            |
+            | The observer will notify the winning client that the submitted
+            | documents were approved and the reservation fee is now required.
+            |
+            */
 
             $reservation->update([
                 'status' => 'awaiting_reservation_fee',
             ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Reject the other pending reservations for the same lot
+            |--------------------------------------------------------------------------
+            |
+            | Only pending reservations are automatically rejected here.
+            | Because we already checked for progressed reservations above,
+            | nobody who has already been asked to pay or submitted a fee is
+            | silently displaced.
+            |
+            | Normal update() is used so LotReservationObserver sends each
+            | non-winning client the existing rejected email and notification.
+            |
+            */
+
+            $otherPendingReservations = LotReservation::query()
+                ->where('lot_id', $reservation->lot_id)
+                ->where('id', '!=', $reservation->id)
+                ->where('status', 'pending')
+                ->get();
+
+            foreach ($otherPendingReservations as $otherReservation) {
+                $otherReservation->update([
+                    'status' => 'rejected',
+                    'notes' => 'Lot allocated to another reservation.',
+                ]);
+            }
+
+            return [
+                'status' => 'approved',
+                'rejected_count' => $otherPendingReservations->count(),
+            ];
         });
+
+
+        if ($result['status'] === 'lot_unavailable') {
+            Notification::make()
+                ->title('Reservation Cannot Proceed')
+                ->body(
+                    'Another reservation has already progressed for this lot. '
+                    . 'This reservation has been moved to Rejected.'
+                )
+                ->danger()
+                ->send();
+
+            $this->dispatch('reload');
+
+            return redirect()->back();
+        }
+
+
+        if ($result['status'] === 'invalid_status') {
+            Notification::make()
+                ->title('Reservation Cannot Be Approved')
+                ->body(
+                    'This reservation is no longer pending and cannot be approved.'
+                )
+                ->warning()
+                ->send();
+
+            $this->dispatch('reload');
+
+            return redirect()->back();
+        }
+
 
         Notification::make()
             ->title('Requirements Approved')
-            ->body('Reservation fee payment is now required.')
+            ->body(
+                $result['rejected_count'] > 0
+                    ? 'Reservation fee payment is now required. '
+                        . $result['rejected_count']
+                        . ' competing reservation'
+                        . ($result['rejected_count'] > 1 ? 's were' : ' was')
+                        . ' rejected because this lot has now been allocated.'
+                    : 'Reservation fee payment is now required.'
+            )
             ->success()
             ->send();
 
@@ -243,28 +404,122 @@ class Reservations extends Component
 
     public function approveReservationFee($paymentId)
     {
-        DB::transaction(function () use ($paymentId) {
+        $result = DB::transaction(function () use ($paymentId) {
 
             $payment = ReservationPayment::with([
                 'reservation.lot',
             ])->findOrFail($paymentId);
 
+            $reservation = $payment->reservation;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lock the lot before verifying the winning reservation fee
+            |--------------------------------------------------------------------------
+            |
+            | This is a final database-level safeguard against two reservation
+            | fees being approved for the same lot at the same time.
+            |
+            */
+
+            $lot = Lot::whereKey($reservation->lot_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $reservation->refresh();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | The reservation must still be waiting for fee verification
+            |--------------------------------------------------------------------------
+            */
+
+            if ($reservation->status !== 'reservation_fee_submitted') {
+                return [
+                    'status' => 'invalid_status',
+                ];
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Final same-lot conflict check
+            |--------------------------------------------------------------------------
+            |
+            | If another reservation somehow became approved for this lot,
+            | do NOT automatically reject this one because this client has
+            | already submitted a reservation fee. Admin/staff must resolve it.
+            |
+            */
+
+            $anotherApprovedReservation = LotReservation::query()
+                ->where('lot_id', $reservation->lot_id)
+                ->where('id', '!=', $reservation->id)
+                ->where('status', 'approved')
+                ->exists();
+
+            if ($anotherApprovedReservation) {
+                return [
+                    'status' => 'conflict',
+                ];
+            }
+
+
             $payment->update([
                 'status' => 'verified',
             ]);
 
-            $reservation = $payment->reservation;
 
-            $reservation->lot->update([
+            $lot->update([
                 'status' => 'reserved',
                 'user_id' => $reservation->user_id,
                 'house_model_id' => $reservation->house_model_id,
             ]);
 
+
             $reservation->update([
                 'status' => 'approved',
             ]);
+
+
+            return [
+                'status' => 'approved',
+            ];
         });
+
+
+        if ($result['status'] === 'conflict') {
+            Notification::make()
+                ->title('Reservation Conflict')
+                ->body(
+                    'Another reservation is already approved for this lot. '
+                    . 'This payment was not verified. Please resolve the conflict first.'
+                )
+                ->danger()
+                ->send();
+
+            $this->dispatch('reload');
+
+            return redirect()->back();
+        }
+
+
+        if ($result['status'] === 'invalid_status') {
+            Notification::make()
+                ->title('Reservation Fee Cannot Be Verified')
+                ->body(
+                    'This reservation is no longer waiting for fee verification.'
+                )
+                ->warning()
+                ->send();
+
+            $this->dispatch('reload');
+
+            return redirect()->back();
+        }
+
 
         Notification::make()
             ->title('Reservation Fee Verified')

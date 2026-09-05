@@ -21,6 +21,7 @@ class ClientAppointment extends Model
         'phone',
         'notes',
         'document_path',
+        'document_paths',
         'status',
         'client_confirmed_at',
         'client_declined_at',
@@ -30,6 +31,7 @@ class ClientAppointment extends Model
         'appointment_date' => 'date',
         'client_confirmed_at' => 'datetime',
         'client_declined_at' => 'datetime',
+        'document_paths' => 'array',
     ];
 
     public function creator(): BelongsTo

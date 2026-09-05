@@ -45,11 +45,17 @@ class LotReservationObserver
                 };
             }
 
+            $isLotUnavailable =
+                $lotReservation->status === 'rejected'
+                && $lotReservation->notes === 'Lot allocated to another reservation.';
+
             $title = match ($lotReservation->status) {
                 'awaiting_reservation_fee' => 'Reservation Submitted Documents Approved',
                 'reservation_fee_submitted' => 'Reservation Fee Submitted',
                 'approved' => 'Reservation Approved',
-                'rejected' => 'Reservation Rejected',
+                'rejected' => $isLotUnavailable
+                    ? 'Reserved Lot No Longer Available'
+                    : 'Reservation Rejected',
                 'cancelled' => 'Reservation Cancelled',
                 default => 'Reservation Status Updated',
             };
@@ -63,7 +69,22 @@ class LotReservationObserver
                 true
             );
 
-            if ($lotReservation->status === 'cancelled') {
+            if ($isLotUnavailable) {
+
+                $lotReservation->loadMissing([
+                    'user',
+                    'lot',
+                ]);
+
+                $message =
+                    "The reservation of "
+                    . ($lotReservation->user?->name ?? 'the client')
+                    . " for "
+                    . ($lotReservation->lot?->name ?? 'the selected lot')
+                    . " can no longer proceed because the property has been allocated to another reservation. "
+                    . "Updated by: {$performedBy}.";
+
+            } elseif ($lotReservation->status === 'cancelled') {
 
                 $lotReservation->loadMissing([
                     'user',

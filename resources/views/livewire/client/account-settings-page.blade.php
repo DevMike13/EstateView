@@ -523,6 +523,9 @@
                                     $isPaid =
                                         $property->status === 'fully_paid';
 
+                                    $isCancelled =
+                                        $property->status === 'cancelled';
+
                                     $hasAccount =
                                         ! is_null($property);
 
@@ -530,26 +533,28 @@
                                         $property->lot?->name
                                         ?? 'No assigned lot';
 
-                                    // Property type from lots table
                                     $propertyType =
                                         $property->lot?->type
                                         ?? 'Property';
 
-                                    // House model, if the purchase has one
                                     $houseModel =
                                         $property->houseModel?->model_name
                                         ?? null;
 
-                                    // Reservation linked to this property
                                     $reservationId =
                                         $property->reservation?->id;
+
+                                    $reservationTab =
+                                        $isCancelled
+                                            ? 'cancelled'
+                                            : 'approved';
                                 @endphp
 
 
                                 <a
                                     @if($reservationId)
                                         href="{{ route('client.reservation', [
-                                            'activeTab' => 'approved',
+                                            'activeTab' => $reservationTab,
                                             'highlight' => $reservationId,
                                         ]) }}"
                                     @endif
@@ -636,7 +641,20 @@
 
 
                                     {{-- STATUS --}}
-                                    @if($isPaid)
+                                    @if($isCancelled)
+
+                                        <span
+                                            class="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-semibold text-red-600"
+                                        >
+                                            <x-icon
+                                                name="x-circle"
+                                                class="h-3 w-3"
+                                            />
+
+                                            Cancelled
+                                        </span>
+
+                                    @elseif($isPaid)
 
                                         <span
                                             class="shrink-0 rounded-full bg-green-100 px-2.5 py-1 text-[10px] font-semibold text-green-600"

@@ -71,12 +71,13 @@
             </div>
         @endif
     </div>
-    
+
      {{-- VIEW TOUR --}}
     <x-modal blur name="viewTour" max-width="6xl" persistent>
         <x-card title="Virtual Tour Viewer">
 
-            
+
+
             <div
                 x-data="tourViewer()"
                 x-init="setScenes(@js($viewScenes ?? [])); init()"
@@ -121,10 +122,22 @@
                             : [];
                 },
 
+                preloadScenes() {
+                    this.scenes.forEach(scene => {
+                        if (!scene.image) return;
+
+                        const img = new Image();
+                        img.src = scene.image;
+                    });
+                },
+
                 init() {
+
                     if (this.scenes.length === 0) {
                         return;
                     }
+
+                    this.preloadScenes();
 
                     this.$nextTick(() => {
                         this.createViewer();
@@ -133,6 +146,132 @@
 
                 getSceneKey(index) {
                     return `scene-${index}`;
+                },
+
+                normalizeYaw(yaw) {
+                    let value = Number(yaw);
+
+                    if (!Number.isFinite(value)) {
+                        return 0;
+                    }
+
+                    while (value > 180) value -= 360;
+                    while (value < -180) value += 360;
+
+                    return value;
+                },
+
+                yawDistance(a, b) {
+                    const first = this.normalizeYaw(a);
+                    const second = this.normalizeYaw(b);
+
+                    let diff = Math.abs(first - second);
+
+                    if (diff > 180) {
+                        diff = 360 - diff;
+                    }
+
+                    return diff;
+                },
+
+                hotspotDistance(hotspot, referencePitch = 0, referenceYaw = 0) {
+                    const pitch = Number(hotspot?.pitch);
+                    const yaw = Number(hotspot?.yaw);
+
+                    if (!Number.isFinite(pitch) || !Number.isFinite(yaw)) {
+                        return Number.POSITIVE_INFINITY;
+                    }
+
+                    const pitchDiff =
+                        pitch - Number(referencePitch || 0);
+
+                    const yawDiff =
+                        this.yawDistance(
+                            yaw,
+                            referenceYaw
+                        );
+
+                    return Math.sqrt(
+                        (pitchDiff * pitchDiff) +
+                        (yawDiff * yawDiff)
+                    );
+                },
+
+                getNearestHotspot(
+                    scene,
+                    referencePitch = 0,
+                    referenceYaw = 0,
+                    preferredTargetSceneId = null
+                ) {
+                    const hotspots =
+                        (scene?.hotspots || []).filter(h => {
+                            return Number.isFinite(Number(h.pitch)) &&
+                                   Number.isFinite(Number(h.yaw));
+                        });
+
+                    if (hotspots.length === 0) {
+                        return null;
+                    }
+
+                    let candidates = hotspots;
+
+                    if (preferredTargetSceneId !== null) {
+                        const returnHotspots =
+                            hotspots.filter(h =>
+                                Number(h.target_scene_id)
+                                ===
+                                Number(preferredTargetSceneId)
+                            );
+
+                        if (returnHotspots.length > 0) {
+                            candidates = returnHotspots;
+                        }
+                    }
+
+                    return candidates.reduce((nearest, hotspot) => {
+                        if (!nearest) {
+                            return hotspot;
+                        }
+
+                        const currentDistance =
+                            this.hotspotDistance(
+                                hotspot,
+                                referencePitch,
+                                referenceYaw
+                            );
+
+                        const nearestDistance =
+                            this.hotspotDistance(
+                                nearest,
+                                referencePitch,
+                                referenceYaw
+                            );
+
+                        return currentDistance < nearestDistance
+                            ? hotspot
+                            : nearest;
+                    }, null);
+                },
+
+                getInitialLookAt(scene) {
+                    const nearestHotspot =
+                        this.getNearestHotspot(
+                            scene,
+                            0,
+                            0
+                        );
+
+                    if (!nearestHotspot) {
+                        return {
+                            pitch: 0,
+                            yaw: 0,
+                        };
+                    }
+
+                    return {
+                        pitch: Number(nearestHotspot.pitch),
+                        yaw: Number(nearestHotspot.yaw),
+                    };
                 },
 
                 createViewer() {
@@ -145,26 +284,42 @@
                     }
 
                     if (this.viewer) {
-                        return;
+                        try {
+                            this.viewer.destroy();
+                        } catch (e) {}
+
+                        this.viewer = null;
                     }
+
+                    container.innerHTML = '';
 
                     const pannellumScenes = {};
 
                     this.scenes.forEach((scene, index) => {
+                        const initialLookAt =
+                            this.getInitialLookAt(scene);
 
                         pannellumScenes[
                             this.getSceneKey(index)
                         ] = {
-
                             type: 'equirectangular',
-
                             panorama: scene.image,
+
+                            pitch:
+                                initialLookAt.pitch,
+
+                            yaw:
+                                initialLookAt.yaw,
 
                             hotSpots:
                                 this.buildHotspots(scene),
                         };
-
                     });
+
+                    const firstSceneLookAt =
+                        this.getInitialLookAt(
+                            this.scenes[0]
+                        );
 
                     this.viewer =
                         pannellum.viewer(
@@ -188,6 +343,12 @@
 
                                     showFullscreenCtrl:
                                         true,
+
+                                    pitch:
+                                        firstSceneLookAt.pitch,
+
+                                    yaw:
+                                        firstSceneLookAt.yaw,
                                 },
 
                                 scenes:
@@ -371,61 +532,36 @@
                                                 targetIndex
                                             ];
 
-                                        const returnHotspot =
-                                            (
-                                                targetScene.hotspots
-                                                || []
-                                            ).find(
-                                                targetHotspot =>
-                                                    Number(
-                                                        targetHotspot
-                                                            .target_scene_id
-                                                    )
-                                                    ===
-                                                    Number(
-                                                        currentScene.id
-                                                    )
-                                            );
-
                                         const sceneKey =
                                             this.getSceneKey(
                                                 targetIndex
                                             );
 
-                                        if (returnHotspot) {
+                                        const nearestHotspot =
+                                            this.getNearestHotspot(
+                                                targetScene,
+                                                0,
+                                                0,
+                                                currentScene.id
+                                            );
+
+                                        if (nearestHotspot) {
 
                                             const pitch =
                                                 Number(
-                                                    returnHotspot.pitch
+                                                    nearestHotspot.pitch
                                                 );
 
                                             const yaw =
                                                 Number(
-                                                    returnHotspot.yaw
+                                                    nearestHotspot.yaw
                                                 );
 
-                                            if (
-                                                Number.isFinite(
-                                                    pitch
-                                                )
-                                                &&
-                                                Number.isFinite(
-                                                    yaw
-                                                )
-                                            ) {
-
-                                                this.viewer.loadScene(
-                                                    sceneKey,
-                                                    pitch,
-                                                    yaw
-                                                );
-
-                                            } else {
-
-                                                this.viewer.loadScene(
-                                                    sceneKey
-                                                );
-                                            }
+                                            this.viewer.loadScene(
+                                                sceneKey,
+                                                pitch,
+                                                yaw
+                                            );
 
                                         } else {
 
@@ -461,4 +597,5 @@
 
         });
     </script>
+
 </div>

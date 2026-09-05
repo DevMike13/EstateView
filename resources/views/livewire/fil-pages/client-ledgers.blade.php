@@ -1428,6 +1428,19 @@
 
                     </div>
 
+                    @if(!in_array($account->status, ['cancelled', 'fully_paid']))
+                        <div class="mt-4 flex justify-end">
+                            <x-button
+                                sm
+                                red
+                                icon="x-circle"
+                                label="Cancel Purchase Account"
+                                wire:click="confirmCancelPurchaseAccount({{ $account->id }})"
+                                rounded
+                            />
+                        </div>
+                    @endif
+
                 </div>
 
             @empty

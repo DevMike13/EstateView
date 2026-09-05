@@ -325,48 +325,92 @@
                             @endif
 
                             {{-- ATTACHMENT --}}
-                            @if(filled($appointment->document_path))
+                            @if(!empty($appointment->document_paths))
 
-                                <div class="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                <div class="mb-4">
 
-                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                    {{-- HEADER --}}
+                                    <div class="flex items-center gap-2 mb-3">
 
-                                        <div class="flex items-center gap-3">
-
-                                            <div
-                                                class="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0"
-                                            >
-                                                <x-icon
-                                                    name="paper-clip"
-                                                    class="h-5 w-5 text-blue-600"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <div class="text-xs text-gray-500">
-                                                    Client Attachment
-                                                </div>
-
-                                                <div class="text-sm font-medium text-gray-900">
-                                                    {{ basename($appointment->document_path) }}
-                                                </div>
-                                            </div>
-
-                                        </div>
-
-                                        <a
-                                            href="{{ asset('storage/' . $appointment->document_path) }}"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="24"
+                                            height="24"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            class="h-5 w-5 text-blue-600"
                                         >
-                                            <x-icon
-                                                name="eye"
-                                                class="h-4 w-4"
-                                            />
+                                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="8" x2="16" y1="13" y2="13"/>
+                                            <line x1="8" x2="16" y1="17" y2="17"/>
+                                        </svg>
 
-                                            View Attachment
-                                        </a>
+                                        <span class="text-base font-semibold text-gray-900">
+                                            Submitted Documents
+                                        </span>
+
+                                        <span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-50 text-blue-600 text-[11px] font-semibold">
+                                            {{ count($appointment->document_paths) }}
+                                        </span>
+
+                                    </div>
+
+                                    {{-- DOCUMENTS --}}
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                                        @foreach($appointment->document_paths as $index => $documentPath)
+
+                                            <a
+                                                href="{{ asset('storage/' . $documentPath) }}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="group flex items-center justify-between gap-4
+                                                    rounded-xl border border-gray-200
+                                                    bg-white px-4 py-3
+                                                    hover:border-blue-200
+                                                    hover:bg-blue-50/30
+                                                    transition"
+                                            >
+
+                                                <div class="min-w-0 flex-1">
+
+                                                    <p class="text-sm font-semibold text-gray-900">
+                                                        Attachment {{ $index + 1 }}
+                                                    </p>
+
+                                                    <p class="mt-1 text-xs text-gray-500 truncate">
+                                                        {{ basename($documentPath) }}
+                                                    </p>
+
+                                                </div>
+
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="24"
+                                                    height="24"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    class="h-4 w-4 shrink-0 text-gray-400
+                                                        group-hover:text-blue-600
+                                                        transition"
+                                                >
+                                                    <path d="M15 3h6v6"/>
+                                                    <path d="M10 14 21 3"/>
+                                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                                </svg>
+
+                                            </a>
+
+                                        @endforeach
 
                                     </div>
 
@@ -402,13 +446,26 @@
                                         Waiting for the client to confirm or decline this appointment.
                                     </div>
                                 @elseif($activeTab === 'approved')
-                                    <x-button
-                                        wire:click="confirmComplete({{ $appointment->id }})"
-                                        icon="check"
-                                        label="Mark as Completed"
-                                        class="w-full bg-blue-600 hover:bg-blue-800
-                                            text-white rounded-lg font-semibold"
-                                    />
+
+                                    <div class="flex flex-col gap-3 w-full">
+
+                                        <x-button
+                                            wire:click="confirmComplete({{ $appointment->id }})"
+                                            icon="check"
+                                            label="Mark as Completed"
+                                            class="w-full bg-blue-600 hover:bg-blue-800
+                                                text-white rounded-lg font-semibold"
+                                        />
+
+                                        <x-button
+                                            wire:click="confirmCancel({{ $appointment->id }})"
+                                            icon="x-mark"
+                                            label="Mark as Cancelled"
+                                            class="w-full border border-red-400 text-red-700
+                                                hover:bg-red-50 rounded-lg font-semibold"
+                                        />
+
+                                    </div>
 
                                 @elseif($activeTab === 'declined')
                                     <x-button

@@ -2,7 +2,7 @@
     <div class="bg-white rounded-2xl shadow-md p-5 border border-gray-100 mt-10">
         <div class="w-full h-auto flex justify-between items-center mb-5">
             <div>
-                <h2 class="text-lg font-semibold">Subdivision Lot Map</h2>
+                <h2 class="text-lg font-semibold">Subdivision GIS Map</h2>
                 <p class="text-sm text-gray-500">Click on any lot to view details or assign to a client</p>
             </div>
             <div class="flex justify-end">

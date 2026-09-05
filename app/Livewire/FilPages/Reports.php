@@ -4,6 +4,7 @@ namespace App\Livewire\FilPages;
 
 use App\Models\Billing;
 use App\Models\BillingPayment;
+use App\Models\ClientAppointment;
 use App\Models\CommissionRequest; // CHANGED — was App\Models\Commission
 use App\Models\Lot;
 use App\Models\LotReservation;
@@ -41,6 +42,28 @@ class Reports extends Component
         $avgSalePrice = PurchaseAccount::whereNotNull('total_contract_price')
             ->avg('total_contract_price');
 
+        $delayedPaymentEarnings = Billing::where('status', 'paid')
+            ->where('penalty_amount', '>', 0)
+            ->whereYear('updated_at', now()->year)
+            ->sum('penalty_amount');
+
+        $advancePaymentRebates = Billing::where('status', 'paid')
+            ->where('discount_amount', '>', 0)
+            ->whereYear('updated_at', now()->year)
+            ->sum('discount_amount');
+
+        $agentPaymentsDisbursed = CommissionRequest::where('status', 'paid')
+            ->whereNotNull('paid_at')
+            ->whereYear('paid_at', now()->year)
+            ->sum('requested_amount');
+
+        $totalAppointments = ClientAppointment::whereYear('created_at', now()->year)
+            ->count();
+
+        $cancelledLedgers = PurchaseAccount::where('status', 'cancelled')
+            ->whereYear('updated_at', now()->year)
+            ->count();
+
         $delayedPayments = Billing::with([
                 'purchaseAccount.user',
                 'purchaseAccount.lot',
@@ -73,6 +96,25 @@ class Reports extends Component
                         ->whereYear('paid_at', $date->year)
                         ->whereMonth('paid_at', $date->month)
                         ->sum('amount'),
+                ];
+            });
+
+        $monthlyActivity = collect(range(5, 0))
+            ->map(function ($monthsAgo) {
+                $date = now()->subMonths($monthsAgo);
+
+                return [
+                    'month' => $date->format('M'),
+                    'reservations' => LotReservation::whereYear('created_at', $date->year)
+                        ->whereMonth('created_at', $date->month)
+                        ->count(),
+                    'appointments' => ClientAppointment::whereYear('created_at', $date->year)
+                        ->whereMonth('created_at', $date->month)
+                        ->count(),
+                    'cancelled_ledgers' => PurchaseAccount::where('status', 'cancelled')
+                        ->whereYear('updated_at', $date->year)
+                        ->whereMonth('updated_at', $date->month)
+                        ->count(),
                 ];
             });
 
@@ -120,7 +162,7 @@ class Reports extends Component
                 ];
             });
 
-            /**
+        /**
          * Dynamic Performance Summary
          */
         $currentQuarter = now()->quarter;
@@ -177,9 +219,16 @@ class Reports extends Component
             'reservedLots' => $reservedLots,
             'soldLots' => $soldLots,
 
+            'delayedPaymentEarnings' => $delayedPaymentEarnings,
+            'advancePaymentRebates' => $advancePaymentRebates,
+            'agentPaymentsDisbursed' => $agentPaymentsDisbursed,
+            'totalAppointments' => $totalAppointments,
+            'cancelledLedgers' => $cancelledLedgers,
+
             'delayedPayments' => $delayedPayments,
             'advancedPayments' => $advancedPayments,
             'monthlyCollections' => $monthlyCollections,
+            'monthlyActivity' => $monthlyActivity,
             'monthlyDelayedAdvance' => $monthlyDelayedAdvance,
             'monthlyCommissions' => $monthlyCommissions,
 

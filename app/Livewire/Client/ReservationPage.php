@@ -68,6 +68,7 @@ class ReservationPage extends Component
             'reservation_fee_submitted',
             'approved',
             'rejected',
+            'cancelled'
         ];
 
         $requestedTab = request()->query(

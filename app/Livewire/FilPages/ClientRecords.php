@@ -13,6 +13,7 @@ use WireUi\Traits\Actions;
 use App\Models\PHBarangays;
 use App\Models\Notification as SystemNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class ClientRecords extends Component
 {
@@ -53,6 +54,7 @@ class ClientRecords extends Component
         'total_price' => 0,
         'total_paid' => 0,
         'payment_plan' => '',
+        'accounts' => [],
     ];
 
     public function updatingSearch()
@@ -134,15 +136,57 @@ class ClientRecords extends Component
             'info',
             'purchaseAccounts.lot',
             'purchaseAccounts.houseModel',
-            'purchaseAccounts.reservation',
+            'purchaseAccounts.reservation.lot',
+            'purchaseAccounts.reservation.houseModel',
         ])
             ->where('role', 'user')
             ->findOrFail($clientId);
 
-        $account = $this->selectedClient->purchaseAccounts->first();
-        $reservation = $account?->reservation;
-        $lot = $account?->lot ?? $reservation?->lot;
-        $houseModel = $account?->houseModel ?? $reservation?->houseModel;
+        $accounts = $this->selectedClient->purchaseAccounts
+            ->values()
+            ->map(function ($account) {
+                $reservation = $account?->reservation;
+                $lot = $account?->lot ?? $reservation?->lot;
+                $houseModel = $account?->houseModel ?? $reservation?->houseModel;
+
+                return [
+                    'id' => $account->id,
+                    'has_reservation' => (bool) $reservation,
+
+                    'property' => $account || $reservation || $lot || $houseModel
+                        ? trim(($houseModel?->model_name ?? 'Lot Only') . ' - ' . ($lot?->name ?? ''))
+                        : '',
+
+                    'lot_number' => $lot?->name ?? '',
+                    'house_model' => $houseModel?->model_name ?? '',
+                    'reservation_type' => $reservation?->type ?? '',
+                    'reservation_status' => $reservation?->status ?? '',
+                    'account_status' => $account?->status ?? '',
+                    'lot_status' => $lot?->status ?? '',
+                    'reserved_at' => $reservation?->reserved_at
+                        ? Carbon::parse($reservation->reserved_at)->format('Y-m-d')
+                        : '',
+
+                    'payment_scheme' => $account?->payment_scheme ?? '',
+                    'payment_plan' => $account
+                        ? ucfirst($account->payment_scheme) . ' - ' . ($account->loan_term_years ?? 0) . ' years'
+                        : '',
+
+                    'lot_price' => $account?->lot_price ?? 0,
+                    'house_price' => $account?->house_price ?? 0,
+                    'total_price' => $account?->total_contract_price ?? 0,
+                    'net_contract_price' => $account?->net_contract_price ?? 0,
+                    'downpayment_amount' => $account?->downpayment_amount ?? 0,
+                    'remaining_downpayment' => $account?->remaining_downpayment ?? 0,
+                    'loanable_amount' => $account?->loanable_amount ?? 0,
+                    'monthly_amortization' => $account?->monthly_amortization ?? 0,
+                    'total_paid' => $account?->total_paid ?? 0,
+                    'remaining_balance' => $account?->remaining_balance ?? 0,
+                ];
+            })
+            ->toArray();
+
+        $firstAccount = $accounts[0] ?? null;
 
         $this->editForm = [
             'first_name' => $this->selectedClient->info?->first_name,
@@ -158,19 +202,23 @@ class ClientRecords extends Component
             'barangay' => trim($this->selectedClient->info?->barangay ?? ''),
             'state' => $this->selectedClient->info?->state ?? 'Philippines',
 
-            'property' => $account || $reservation || $lot || $houseModel
-                ? trim(($houseModel?->model_name ?? 'Lot Only') . ' - ' . ($lot?->name ?? ''))
-                : '',
+            /*
+            |--------------------------------------------------------------------------
+            | Keep the existing top-level fields for compatibility.
+            | The edit UI now uses "accounts" so every property record is shown.
+            |--------------------------------------------------------------------------
+            */
 
-            'lot_number' => $lot?->name ?? '',
-            'house_model' => $houseModel?->model_name ?? '',
-            'reservation_status' => $reservation?->status ?? '',
-            'account_status' => $account?->status ?? '',
-            'total_price' => $account?->total_contract_price ?? 0,
-            'total_paid' => $account?->total_paid ?? 0,
-            'payment_plan' => $account
-                ? ucfirst($account->payment_scheme) . ' - ' . ($account->loan_term_years ?? 0) . ' years'
-                : '',
+            'property' => $firstAccount['property'] ?? '',
+            'lot_number' => $firstAccount['lot_number'] ?? '',
+            'house_model' => $firstAccount['house_model'] ?? '',
+            'reservation_status' => $firstAccount['reservation_status'] ?? '',
+            'account_status' => $firstAccount['account_status'] ?? '',
+            'total_price' => $firstAccount['total_price'] ?? 0,
+            'total_paid' => $firstAccount['total_paid'] ?? 0,
+            'payment_plan' => $firstAccount['payment_plan'] ?? '',
+
+            'accounts' => $accounts,
         ];
 
         $this->loadRegions();
@@ -213,9 +261,11 @@ class ClientRecords extends Component
             'editForm.municipality' => 'nullable|string|max:255',
             'editForm.barangay' => 'nullable|string|max:255',
             'editForm.state' => 'nullable|string|max:255',
-            'editForm.total_paid' => 'nullable|numeric|min:0',
-            'editForm.account_status' => 'nullable|string|max:255',
-            'editForm.reservation_status' => 'nullable|string|max:255',
+            'editForm.accounts' => 'nullable|array',
+            'editForm.accounts.*.id' => 'required|integer|exists:purchase_accounts,id',
+            'editForm.accounts.*.total_paid' => 'nullable|numeric|min:0',
+            'editForm.accounts.*.account_status' => 'nullable|string|max:255',
+            'editForm.accounts.*.reservation_status' => 'nullable|string|max:255',
         ]);
 
         $actor = auth()->user();
@@ -392,27 +442,32 @@ class ClientRecords extends Component
 
         /*
         |--------------------------------------------------------------------------
-        | UPDATE RESERVATION / PURCHASE ACCOUNT
+        | UPDATE RESERVATIONS / PURCHASE ACCOUNTS
         |--------------------------------------------------------------------------
+        |
+        | The edit form now contains every purchase account instead of only
+        | the first purchase account.
+        |
         */
 
-        $account = $client
-            ->purchaseAccounts()
-            ->with('reservation')
-            ->first();
+        foreach (($this->editForm['accounts'] ?? []) as $accountForm) {
 
-        $reservation = $account?->reservation;
+            $account = $client
+                ->purchaseAccounts()
+                ->with('reservation')
+                ->findOrFail($accountForm['id']);
 
-        if ($reservation) {
-            $reservation->update([
-                'status' => $this->editForm['reservation_status'],
-            ]);
-        }
+            $reservation = $account?->reservation;
 
-        if ($account) {
+            if ($reservation) {
+                $reservation->update([
+                    'status' => $accountForm['reservation_status'] ?? $reservation->status,
+                ]);
+            }
+
             $account->update([
-                'total_paid' => $this->editForm['total_paid'],
-                'status' => $this->editForm['account_status'],
+                'total_paid' => $accountForm['total_paid'] ?? $account->total_paid,
+                'status' => $accountForm['account_status'] ?? $account->status,
             ]);
         }
 
@@ -630,6 +685,15 @@ class ClientRecords extends Component
             })
             ->when($this->status, function ($query) {
                 $query->whereHas('purchaseAccounts', function ($account) {
+                    if ($this->status === 'fully_paid') {
+                        $account->whereIn('status', [
+                            'fully_paid',
+                            'bank_processing',
+                        ]);
+
+                        return;
+                    }
+
                     $account->where('status', $this->status);
                 });
             })

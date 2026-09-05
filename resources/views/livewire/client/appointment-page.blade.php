@@ -354,62 +354,6 @@
 
                                     </span>
 
-                                    {{-- VIEW ATTACHMENT --}}
-
-                                    @if($appointment->document_path)
-
-                                        <a
-
-                                            href="{{ asset('storage/' . $appointment->document_path) }}"
-
-                                            target="_blank"
-
-                                            rel="noopener noreferrer"
-
-                                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-
-                                                   text-xs font-medium text-blue-600 bg-blue-50
-
-                                                   hover:bg-blue-100 hover:text-blue-700 transition"
-
-                                        >
-
-                                            <svg
-
-                                                xmlns="http://www.w3.org/2000/svg"
-
-                                                width="24"
-
-                                                height="24"
-
-                                                viewBox="0 0 24 24"
-
-                                                fill="none"
-
-                                                stroke="currentColor"
-
-                                                stroke-width="2"
-
-                                                stroke-linecap="round"
-
-                                                stroke-linejoin="round"
-
-                                                class="h-3.5 w-3.5"
-
-                                            >
-
-                                                <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
-
-                                                <circle cx="12" cy="12" r="3"/>
-
-                                            </svg>
-
-                                            View Attachment
-
-                                        </a>
-
-                                    @endif
-
                                 </div>
 
                                 {{-- DATE + TIME --}}
@@ -503,6 +447,138 @@
                                         <span class="font-medium">Notes:</span>
 
                                         {{ $appointment->notes }}
+
+                                    </div>
+
+                                @endif
+
+                                {{-- SUBMITTED DOCUMENTS --}}
+
+                                @if(!empty($appointment->document_paths))
+
+                                    <div
+                                        x-data="{ open: false }"
+                                        class="mt-5 border-t border-gray-100 pt-5"
+                                    >
+
+                                        {{-- COLLAPSIBLE HEADER --}}
+
+                                        <button
+                                            type="button"
+                                            @click="open = !open"
+                                            class="w-full flex items-center justify-between gap-3 text-left"
+                                        >
+
+                                            <div class="flex items-center gap-2">
+
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="24"
+                                                    height="24"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    class="h-5 w-5 text-blue-600"
+                                                >
+                                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                    <line x1="8" x2="16" y1="13" y2="13"/>
+                                                    <line x1="8" x2="16" y1="17" y2="17"/>
+                                                </svg>
+
+                                                <span class="text-base font-semibold text-gray-900">
+                                                    Submitted Documents
+                                                </span>
+
+                                                <span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-50 text-blue-600 text-[11px] font-semibold">
+                                                    {{ count($appointment->document_paths) }}
+                                                </span>
+
+                                            </div>
+
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="24"
+                                                height="24"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                class="h-5 w-5 text-gray-500 transition-transform duration-200"
+                                                :class="open ? 'rotate-180' : ''"
+                                            >
+                                                <path d="m6 9 6 6 6-6"/>
+                                            </svg>
+
+                                        </button>
+
+                                        {{-- COLLAPSIBLE CONTENT --}}
+
+                                        <div
+                                            x-show="open"
+                                            x-collapse
+                                            class="mt-4"
+                                        >
+
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                                                @foreach($appointment->document_paths as $index => $documentPath)
+
+                                                    <a
+                                                        href="{{ asset('storage/' . $documentPath) }}"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        class="group flex items-center justify-between gap-4
+                                                               rounded-xl border border-gray-200
+                                                               bg-white px-4 py-3
+                                                               hover:border-blue-200
+                                                               hover:bg-blue-50/30
+                                                               transition"
+                                                    >
+
+                                                        <div class="min-w-0 flex-1">
+
+                                                            <p class="text-sm font-semibold text-gray-900">
+                                                                Attachment {{ $index + 1 }}
+                                                            </p>
+
+                                                            <p class="mt-1 text-xs text-gray-500 truncate">
+                                                                {{ basename($documentPath) }}
+                                                            </p>
+
+                                                        </div>
+
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            width="24"
+                                                            height="24"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            class="h-4 w-4 shrink-0 text-gray-400
+                                                                   group-hover:text-blue-600
+                                                                   transition"
+                                                        >
+                                                            <path d="M15 3h6v6"/>
+                                                            <path d="M10 14 21 3"/>
+                                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                                        </svg>
+
+                                                    </a>
+
+                                                @endforeach
+
+                                            </div>
+
+                                        </div>
 
                                     </div>
 
@@ -942,15 +1018,11 @@
                         @if(count($timeSlots))
 
                             <x-select
-
+                                wire:key="appointment-time-slot-{{ $selectedDate }}"
                                 label="Select Time"
-
                                 placeholder="Choose an available time slot"
-
                                 :options="$timeSlots"
-
                                 wire:model.live="timeSlot"
-
                             />
 
                             <p class="mt-1 text-[11px] text-gray-400">
@@ -1136,14 +1208,14 @@
                     </label>
 
                     <p class="mt-1 mb-3 text-xs text-gray-500">
-
-                        You may attach an image or document related to your concern.
-
+                        You may attach up to 5 images or documents related to your concern.
+                        Maximum file size is 20 MB per attachment.
                     </p>
 
                     <x-filepond::upload
-
-                        wire:model="document"
+                        wire:model="documents"
+                        multiple
+                        :max-files="5"
 
                         :accepted-file-types="[
                             'image/png',
@@ -1153,17 +1225,18 @@
                             'application/msword',
                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                         ]"
-
                     />
 
-                    @error('document')
-
+                    @error('documents')
                         <p class="mt-1 text-sm text-red-500">
-
                             {{ $message }}
-
                         </p>
+                    @enderror
 
+                    @error('documents.*')
+                        <p class="mt-1 text-sm text-red-500">
+                            {{ $message }}
+                        </p>
                     @enderror
 
                 </div>

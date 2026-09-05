@@ -205,6 +205,19 @@ Route::get('/api/lots', function (Request $request) {
         */
         ->where('status', 'available')
 
+        /*
+        |--------------------------------------------------------------------------
+        | HIDE LOTS WITH ONGOING WINNING RESERVATION
+        |--------------------------------------------------------------------------
+        */
+        ->whereDoesntHave('reservations', function ($query) {
+            $query->whereIn('status', [
+                'awaiting_reservation_fee',
+                'reservation_fee_submitted',
+                'approved',
+            ]);
+        })
+
         ->select(
             'id',
             'name',

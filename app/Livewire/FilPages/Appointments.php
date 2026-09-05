@@ -805,6 +805,12 @@ class Appointments extends Component
                     $performedBy
                 )
             );
+        
+        Notification::make()
+            ->title('Appointment Approved')
+            ->body('The appointment has been approved successfully.')
+            ->success()
+            ->send();
 
         $this->reloadWeb();
     }
@@ -841,6 +847,12 @@ class Appointments extends Component
                 )
             );
 
+        Notification::make()
+            ->title('Appointment Declined')
+            ->body('The appointment has been declined.')
+            ->warning()
+            ->send();
+
         $this->reloadWeb();
     }
 
@@ -874,6 +886,45 @@ class Appointments extends Component
                     $performedBy
                 )
             );
+        
+        Notification::make()
+            ->title('Appointment Completed')
+            ->body('The appointment has been marked as completed.')
+            ->success()
+            ->send();
+
+        $this->reloadWeb();
+    }
+
+    public function confirmCancel($id)
+    {
+        $this->dialog()->confirm([
+            'title' => 'Mark as Cancelled?',
+            'description' => 'This will move the appointment to cancelled.',
+            'acceptLabel' => 'Yes',
+            'method' => 'cancel',
+            'params' => $id,
+            'icon' => 'warning',
+        ]);
+    }
+
+    public function cancel($id)
+    {
+        $appointment = ClientAppointment::findOrFail($id);
+
+        if ($appointment->status !== 'approved') {
+            return;
+        }
+
+        $appointment->update([
+            'status' => 'cancelled'
+        ]);
+
+        Notification::make()
+            ->title('Appointment Cancelled')
+            ->body('The appointment has been marked as cancelled.')
+            ->warning()
+            ->send();
 
         $this->reloadWeb();
     }
@@ -895,6 +946,12 @@ class Appointments extends Component
         ClientAppointment::findOrFail($id)->update([
             'status' => 'pending'
         ]);
+
+        Notification::make()
+            ->title('Appointment Restored')
+            ->body('The appointment has been restored to pending.')
+            ->success()
+            ->send();
 
         $this->reloadWeb();
     }
@@ -939,6 +996,12 @@ class Appointments extends Component
         }
 
         $this->selectedDates = [];
+
+        Notification::make()
+            ->title('Dates Blocked')
+            ->body('The selected dates have been blocked successfully.')
+            ->success()
+            ->send();
     }
 
     public function confirmBlockDates()
@@ -967,6 +1030,12 @@ class Appointments extends Component
     public function removeBlockedDate($date)
     {
         BlockedDate::where('date', $date)->delete();
+
+        Notification::make()
+            ->title('Date Unblocked')
+            ->body('The selected date is now available again.')
+            ->success()
+            ->send();
     }
 
     public function getDatesProperty()

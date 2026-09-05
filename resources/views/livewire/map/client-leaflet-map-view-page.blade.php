@@ -717,6 +717,18 @@
 
                     'status' => $lot->status,
 
+                    'has_ongoing_reservation' =>
+                        $lot->reservations
+                            ->whereIn(
+                                'status',
+                                [
+                                    'awaiting_reservation_fee',
+                                    'reservation_fee_submitted',
+                                    'approved',
+                                ]
+                            )
+                            ->isNotEmpty(),
+
                     'price' => $lot->price,
 
                     'lot_area' => $lot->lot_area,
@@ -798,7 +810,7 @@
         >
             <div>
                 <h2 class="text-lg font-semibold text-gray-900">
-                    Subdivision Lot Map
+                    Subdivision GIS Map
                 </h2>
 
                 <p class="text-sm text-gray-500 mt-1">
@@ -1278,24 +1290,71 @@
                 map;
 
 
-            L.tileLayer(
+            const googleSatellite = L.tileLayer(
                 'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                 {
                     maxZoom: 22,
-
-                    subdomains: [
-                        'mt0',
-                        'mt1',
-                        'mt2',
-                        'mt3',
-                    ],
-
-                    attribution:
-                        '© Google',
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google',
                 }
-            ).addTo(
-                map
             );
+
+            const googleHybrid = L.tileLayer(
+                'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                {
+                    maxZoom: 22,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google',
+                }
+            );
+
+            const googleStreets = L.tileLayer(
+                'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                {
+                    maxZoom: 22,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google',
+                }
+            );
+
+            const googleTerrain = L.tileLayer(
+                'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+                {
+                    maxZoom: 22,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google',
+                }
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DEFAULT BASE MAP
+            |--------------------------------------------------------------------------
+            */
+
+            googleSatellite.addTo(map);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | BASE MAP SWITCHER
+            |--------------------------------------------------------------------------
+            */
+
+            L.control.layers(
+                {
+                    'Satellite': googleSatellite,
+                    'Hybrid': googleHybrid,
+                    'Roadmap': googleStreets,
+                    'Terrain': googleTerrain,
+                },
+                null,
+                {
+                    position: 'bottomleft',
+                    collapsed: true,
+                }
+            ).addTo(map);
 
 
             let boundary = null;
@@ -3319,8 +3378,22 @@
                     .trim();
 
 
+            const hasOngoingReservation =
+                !!lot.has_ongoing_reservation;
+
+
+            const displayStatus =
+                status === 'available'
+                &&
+                hasOngoingReservation
+                    ? 'unavailable'
+                    : status;
+
+
             const canReserve =
                 status === 'available'
+                &&
+                !hasOngoingReservation
                 &&
                 !isNonReservable
                 &&
@@ -3535,7 +3608,7 @@
                                             "
                                         >
                                             ${escapeClientEstateHTML(
-                                                status || '-'
+                                                displayStatus || '-'
                                             )}
                                         </div>
                                     `
@@ -4291,6 +4364,8 @@
 
             if (
                 status !== 'available'
+                ||
+                lot.has_ongoing_reservation
             ) {
                 return;
             }
@@ -4408,15 +4483,39 @@
 
             Livewire.on(
                 'refresh-client-leaflet-map',
-                function()
+                function(event)
                 {
-                    setTimeout(
-                        function()
-                        {
-                            initClientEstateLeafletMap();
-                        },
-                        200
-                    );
+                    const data =
+                        event?.detail
+                        ?? event
+                        ?? {};
+
+
+                    if (
+                        Array.isArray(
+                            data.lots
+                        )
+                    ) {
+                        window.clientEstateGISLots =
+                            data.lots;
+                    }
+
+
+                    hideClientEstateTooltip();
+
+
+                    renderClientEstateLots();
+
+
+                    if (
+                        typeof applyClientEstateMapFilters ===
+                            'function'
+                    ) {
+                        applyClientEstateMapFilters();
+                    }
+
+
+                    updateClientEstateLotOverlaySizes();
                 }
             );
         }

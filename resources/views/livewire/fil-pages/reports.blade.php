@@ -2,7 +2,7 @@
   <div class="space-y-6 md:space-y-8">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Reports &amp; Analytics</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Reports</h1>
         <p class="text-sm md:text-base text-gray-600">View comprehensive data and insights</p>
       </div>
       <button
@@ -66,16 +66,59 @@
       </div>
       <div class="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
         <div class="flex items-center gap-2 mb-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up h-4 w-4 md:h-5 md:w-5 text-green-600">
-            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-            <polyline points="16 7 22 7 22 13"></polyline>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-circle h-4 w-4 md:h-5 md:w-5 text-red-600">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="m15 9-6 6"></path>
+            <path d="m9 9 6 6"></path>
           </svg>
-          <span class="text-xs md:text-sm text-gray-500">Per Unit</span>
+          <span class="text-xs md:text-sm text-gray-500">This Year</span>
         </div>
-        <div class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">₱{{ number_format($avgSalePrice ?? 0, 2) }}</div>
-        <div class="text-xs md:text-sm text-gray-600">Avg. Sale Price</div>
+        <div class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{{ $cancelledLedgers }}</div>
+        <div class="text-xs md:text-sm text-gray-600">Cancelled Ledgers</div>
       </div>
     </div>
+
+    {{-- ADDED: Financial and Activity Summary --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div class="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs md:text-sm text-gray-500">This Year</span>
+        </div>
+        <div class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
+          ₱{{ number_format($delayedPaymentEarnings, 2) }}
+        </div>
+        <div class="text-xs md:text-sm text-gray-600">Delayed Payment Earnings</div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs md:text-sm text-gray-500">This Year</span>
+        </div>
+        <div class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
+          ₱{{ number_format($advancePaymentRebates, 2) }}
+        </div>
+        <div class="text-xs md:text-sm text-gray-600">Advance Payment Rebates</div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs md:text-sm text-gray-500">This Year</span>
+        </div>
+        <div class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
+          ₱{{ number_format($agentPaymentsDisbursed, 2) }}
+        </div>
+        <div class="text-xs md:text-sm text-gray-600">Agent Payments Disbursed</div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs md:text-sm text-gray-500">This Year</span>
+        </div>
+        <div class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{{ $totalAppointments }}</div>
+        <div class="text-xs md:text-sm text-gray-600">Total Appointments</div>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
       <div class="bg-white rounded-xl border shadow-sm p-6">
           <h3 class="text-lg font-semibold mb-4">
@@ -128,15 +171,24 @@
 
         </div>
       </div>
-      <div class="bg-white rounded-xl border shadow-sm p-6">
-          <h3 class="text-lg font-semibold mb-4">
-              Monthly Payment Collections
-          </h3>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
 
-          <div class="h-[350px]" wire:ignore>
-              <canvas id="collectionsChart"></canvas>
-          </div>
-      </div>
+        <div class="mb-5">
+            <h3 class="text-lg font-semibold text-gray-900">
+                Monthly Payment Collections
+            </h3>
+
+            <p class="mt-1 text-xs text-gray-500">
+                Collections compared with reservations, appointments,
+                and cancelled ledgers over the last 6 months.
+            </p>
+        </div>
+
+        <div class="h-[380px]" wire:ignore>
+            <canvas id="collectionsChart"></canvas>
+        </div>
+
+    </div>
     </div>
 
     {{-- ADDED: Delayed vs Advanced Payments + Agent Commissions --}}
@@ -162,123 +214,189 @@
     </div>
     {{-- END ADDED --}}
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="p-6 border-b bg-red-50">
-        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <span class="h-3 w-3 bg-red-500 rounded-full"></span>Delayed Payments
-        </h2>
-        <p class="text-sm text-gray-600 mt-1">Clients with overdue payments</p>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Client</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Lot</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Amount Due</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Due Date</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Days Delayed</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            @forelse($delayedPayments as $billing)
-                @php
-                    $daysDelayed = now()->diffInDays($billing->due_date);
-                    $balance = $billing->amount_due - $billing->amount_paid;
-                @endphp
+    <div
+      x-data="{ openDelayedPayments: false }"
+      class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+    >
+      <button
+        type="button"
+        x-on:click="openDelayedPayments = !openDelayedPayments"
+        class="w-full p-6 border-b bg-red-50 flex items-center justify-between gap-4 text-left transition hover:bg-red-100/60"
+      >
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span class="h-3 w-3 bg-red-500 rounded-full"></span>
+            Delayed Payments
+          </h2>
 
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 font-medium text-gray-900">
-                        {{ $billing->purchaseAccount?->user?->name ?? 'N/A' }}
-                    </td>
+          <p class="text-sm text-gray-600 mt-1">
+            Clients with overdue payments
+          </p>
+        </div>
 
-                    <td class="px-6 py-4 text-gray-700">
-                        {{ $billing->purchaseAccount?->lot?->name ?? 'N/A' }}
-                    </td>
+        <div class="flex items-center gap-3">
+          <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-red-700 shadow-sm">
+            {{ $delayedPayments->count() }}
+          </span>
 
-                    <td class="px-6 py-4 text-gray-700">
-                        ₱{{ number_format($balance, 2) }}
-                    </td>
+          <x-icon
+            name="chevron-down"
+            class="h-5 w-5 text-red-500 transition-transform duration-200"
+            x-bind:class="openDelayedPayments ? 'rotate-180' : ''"
+          />
+        </div>
+      </button>
 
-                    <td class="px-6 py-4 text-gray-700">
-                        {{ $billing->due_date?->format('M d, Y') }}
-                    </td>
+      <div
+        x-show="openDelayedPayments"
+        x-collapse
+        x-cloak
+      >
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Client</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Lot</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Amount Due</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Due Date</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Days Delayed</th>
+              </tr>
+            </thead>
 
-                    <td class="px-6 py-4">
-                        <span class="px-3 py-1 rounded-full text-sm font-medium {{ $daysDelayed >= 15 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700' }}">
-                            {{ $daysDelayed }} days
-                        </span>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="5" class="px-6 py-8 text-center text-gray-400">
-                        No delayed payments found.
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-        </table>
+            <tbody class="divide-y divide-gray-200">
+              @forelse($delayedPayments as $billing)
+                  @php
+                      $daysDelayed = now()->diffInDays($billing->due_date);
+                      $balance = $billing->amount_due - $billing->amount_paid;
+                  @endphp
+
+                  <tr class="hover:bg-gray-50">
+                      <td class="px-6 py-4 font-medium text-gray-900">
+                          {{ $billing->purchaseAccount?->user?->name ?? 'N/A' }}
+                      </td>
+
+                      <td class="px-6 py-4 text-gray-700">
+                          {{ $billing->purchaseAccount?->lot?->name ?? 'N/A' }}
+                      </td>
+
+                      <td class="px-6 py-4 text-gray-700">
+                          ₱{{ number_format($balance, 2) }}
+                      </td>
+
+                      <td class="px-6 py-4 text-gray-700">
+                          {{ $billing->due_date?->format('M d, Y') }}
+                      </td>
+
+                      <td class="px-6 py-4">
+                          <span class="px-3 py-1 rounded-full text-sm font-medium {{ $daysDelayed >= 15 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700' }}">
+                              {{ $daysDelayed }} days
+                          </span>
+                      </td>
+                  </tr>
+              @empty
+                  <tr>
+                      <td colspan="5" class="px-6 py-8 text-center text-gray-400">
+                          No delayed payments found.
+                      </td>
+                  </tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="p-6 border-b bg-green-50">
-        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <span class="h-3 w-3 bg-green-500 rounded-full"></span>Advanced Payments
-        </h2>
-        <p class="text-sm text-gray-600 mt-1">Clients who paid in advance</p>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Client</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Lot</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Amount Paid</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Next Due Date</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Months Advanced</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            @forelse($advancedPayments as $payment)
-                @php
-                    $monthsAdvanced = $payment->billing?->due_date
-                        ? max(1, $payment->paid_at->diffInMonths($payment->billing->due_date))
-                        : 0;
-                @endphp
+    <div
+      x-data="{ openAdvancedPayments: false }"
+      class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+    >
+      <button
+        type="button"
+        x-on:click="openAdvancedPayments = !openAdvancedPayments"
+        class="w-full p-6 border-b bg-green-50 flex items-center justify-between gap-4 text-left transition hover:bg-green-100/60"
+      >
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span class="h-3 w-3 bg-green-500 rounded-full"></span>
+            Advanced Payments
+          </h2>
 
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 font-medium text-gray-900">
-                        {{ $payment->purchaseAccount?->user?->name ?? 'N/A' }}
-                    </td>
+          <p class="text-sm text-gray-600 mt-1">
+            Clients who paid in advance
+          </p>
+        </div>
 
-                    <td class="px-6 py-4 text-gray-700">
-                        {{ $payment->purchaseAccount?->lot?->name ?? 'N/A' }}
-                    </td>
+        <div class="flex items-center gap-3">
+          <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-green-700 shadow-sm">
+            {{ $advancedPayments->count() }}
+          </span>
 
-                    <td class="px-6 py-4 text-gray-700">
-                        ₱{{ number_format($payment->amount, 2) }}
-                    </td>
+          <x-icon
+            name="chevron-down"
+            class="h-5 w-5 text-green-500 transition-transform duration-200"
+            x-bind:class="openAdvancedPayments ? 'rotate-180' : ''"
+          />
+        </div>
+      </button>
 
-                    <td class="px-6 py-4 text-gray-700">
-                        {{ $payment->billing?->due_date?->format('M d, Y') ?? 'N/A' }}
-                    </td>
+      <div
+        x-show="openAdvancedPayments"
+        x-collapse
+        x-cloak
+      >
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Client</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Lot</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Amount Paid</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Next Due Date</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Months Advanced</th>
+              </tr>
+            </thead>
 
-                    <td class="px-6 py-4">
-                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                            {{ $monthsAdvanced }} month{{ $monthsAdvanced > 1 ? 's' : '' }}
-                        </span>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="5" class="px-6 py-8 text-center text-gray-400">
-                        No advanced payments found.
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-        </table>
+            <tbody class="divide-y divide-gray-200">
+              @forelse($advancedPayments as $payment)
+                  @php
+                      $monthsAdvanced = $payment->billing?->due_date
+                          ? max(1, $payment->paid_at->diffInMonths($payment->billing->due_date))
+                          : 0;
+                  @endphp
+
+                  <tr class="hover:bg-gray-50">
+                      <td class="px-6 py-4 font-medium text-gray-900">
+                          {{ $payment->purchaseAccount?->user?->name ?? 'N/A' }}
+                      </td>
+
+                      <td class="px-6 py-4 text-gray-700">
+                          {{ $payment->purchaseAccount?->lot?->name ?? 'N/A' }}
+                      </td>
+
+                      <td class="px-6 py-4 text-gray-700">
+                          ₱{{ number_format($payment->amount, 2) }}
+                      </td>
+
+                      <td class="px-6 py-4 text-gray-700">
+                          {{ $payment->billing?->due_date?->format('M d, Y') ?? 'N/A' }}
+                      </td>
+
+                      <td class="px-6 py-4">
+                          <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                              {{ $monthsAdvanced }} month{{ $monthsAdvanced > 1 ? 's' : '' }}
+                          </span>
+                      </td>
+                  </tr>
+              @empty
+                  <tr>
+                      <td colspan="5" class="px-6 py-8 text-center text-gray-400">
+                          No advanced payments found.
+                      </td>
+                  </tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -422,56 +540,304 @@
                 }
 
                 window.collectionChart = new Chart(ctx, {
-                    type: 'bar',
                     data: {
                         labels: [
                             @foreach($monthlyCollections as $month)
                                 '{{ $month["month"] }}',
                             @endforeach
                         ],
-                        datasets: [{
-                            label: 'Monthly Collections',
-                            data: [
-                                @foreach($monthlyCollections as $month)
-                                    {{ $month["amount"] }},
-                                @endforeach
-                            ],
-                            backgroundColor: '#10b981',
-                            borderColor: '#059669',
-                            borderWidth: 1,
-                            borderRadius: 8,
-                        }]
+
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Collections',
+                                data: [
+                                    @foreach($monthlyCollections as $month)
+                                        {{ $month["amount"] }},
+                                    @endforeach
+                                ],
+
+                                backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                                borderColor: '#059669',
+                                borderWidth: 1,
+                                borderRadius: 10,
+                                borderSkipped: false,
+                                maxBarThickness: 48,
+                                categoryPercentage: 0.65,
+                                barPercentage: 0.8,
+                                yAxisID: 'yMoney',
+                                order: 4,
+                            },
+
+                            {
+                                type: 'line',
+                                label: 'Reservations',
+                                data: [
+                                    @foreach($monthlyActivity as $month)
+                                        {{ $month["reservations"] }},
+                                    @endforeach
+                                ],
+
+                                borderColor: '#2563eb',
+                                backgroundColor: '#2563eb',
+                                borderWidth: 3,
+                                tension: 0.35,
+
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                pointBorderWidth: 2,
+                                pointBackgroundColor: '#ffffff',
+                                pointBorderColor: '#2563eb',
+
+                                fill: false,
+                                yAxisID: 'yCount',
+                                order: 1,
+                            },
+
+                            {
+                                type: 'line',
+                                label: 'Appointments',
+                                data: [
+                                    @foreach($monthlyActivity as $month)
+                                        {{ $month["appointments"] }},
+                                    @endforeach
+                                ],
+
+                                borderColor: '#f59e0b',
+                                backgroundColor: '#f59e0b',
+                                borderWidth: 3,
+                                tension: 0.35,
+
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                pointBorderWidth: 2,
+                                pointBackgroundColor: '#ffffff',
+                                pointBorderColor: '#f59e0b',
+
+                                fill: false,
+                                yAxisID: 'yCount',
+                                order: 2,
+                            },
+
+                            {
+                                type: 'line',
+                                label: 'Cancelled Ledgers',
+
+                                data: [
+                                    @foreach($monthlyActivity as $month)
+                                        {{ $month["cancelled_ledgers"] }},
+                                    @endforeach
+                                ],
+
+                                borderColor: '#ef4444',
+                                backgroundColor: '#ef4444',
+
+                                borderWidth: 3,
+                                borderDash: [6, 4],
+                                tension: 0.25,
+
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+
+                                pointBackgroundColor: '#ffffff',
+                                pointBorderColor: '#ef4444',
+                                pointBorderWidth: 3,
+
+                                fill: false,
+                                yAxisID: 'yCount',
+
+                                // Draw this above the other datasets
+                                order: 0,
+                            },
+                        ],
                     },
+
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+
+                        layout: {
+                            padding: {
+                                top: 10,
+                                right: 10,
+                                bottom: 0,
+                                left: 0,
+                            },
+                        },
+
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
 
                         plugins: {
                             legend: {
                                 display: true,
                                 position: 'bottom',
+
+                                labels: {
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    boxWidth: 8,
+                                    boxHeight: 8,
+                                    padding: 18,
+
+                                    font: {
+                                        size: 12,
+                                        weight: '500',
+                                    },
+                                },
                             },
 
                             tooltip: {
+                                backgroundColor: '#111827',
+                                titleColor: '#ffffff',
+                                bodyColor: '#e5e7eb',
+                                padding: 12,
+                                cornerRadius: 10,
+                                displayColors: true,
+
                                 callbacks: {
+                                    title: function(items) {
+                                        return items[0]?.label ?? '';
+                                    },
+
                                     label: function(context) {
-                                        return '₱' + Number(context.raw).toLocaleString();
-                                    }
-                                }
-                            }
+                                        if (context.dataset.yAxisID === 'yMoney') {
+                                            return context.dataset.label
+                                                + ': ₱'
+                                                + Number(context.raw)
+                                                    .toLocaleString(
+                                                        'en-PH',
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        }
+                                                    );
+                                        }
+
+                                        return context.dataset.label
+                                            + ': '
+                                            + Number(context.raw)
+                                                .toLocaleString();
+                                    },
+                                },
+                            },
                         },
 
                         scales: {
-                            y: {
-                                beginAtZero: true,
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+
+                                border: {
+                                    display: false,
+                                },
+
                                 ticks: {
+                                    color: '#6b7280',
+
+                                    font: {
+                                        size: 12,
+                                        weight: '500',
+                                    },
+                                },
+                            },
+
+                            yMoney: {
+                                type: 'linear',
+                                position: 'left',
+                                beginAtZero: true,
+
+                                grid: {
+                                    color: 'rgba(148, 163, 184, 0.16)',
+                                    drawBorder: false,
+                                },
+
+                                border: {
+                                    display: false,
+                                },
+
+                                title: {
+                                    display: true,
+                                    text: 'Collections (₱)',
+                                    color: '#6b7280',
+
+                                    font: {
+                                        size: 11,
+                                        weight: '600',
+                                    },
+                                },
+
+                                ticks: {
+                                    color: '#6b7280',
+
                                     callback: function(value) {
-                                        return '₱' + Number(value).toLocaleString();
-                                    }
-                                }
-                            }
-                        }
-                    }
+                                        if (value >= 1000000) {
+                                            return '₱'
+                                                + (value / 1000000)
+                                                    .toFixed(
+                                                        value % 1000000 === 0
+                                                            ? 0
+                                                            : 1
+                                                    )
+                                                + 'M';
+                                        }
+
+                                        if (value >= 1000) {
+                                            return '₱'
+                                                + (value / 1000)
+                                                    .toFixed(
+                                                        value % 1000 === 0
+                                                            ? 0
+                                                            : 1
+                                                    )
+                                                + 'K';
+                                        }
+
+                                        return '₱'
+                                            + Number(value)
+                                                .toLocaleString();
+                                    },
+                                },
+                            },
+
+                            yCount: {
+                                type: 'linear',
+                                position: 'right',
+                                beginAtZero: true,
+
+                                suggestedMin: 0,
+                                suggestedMax: 5,
+
+                                grid: {
+                                    drawOnChartArea: false,
+                                },
+
+                                border: {
+                                    display: false,
+                                },
+
+                                title: {
+                                    display: true,
+                                    text: 'Activity Count',
+                                    color: '#6b7280',
+
+                                    font: {
+                                        size: 11,
+                                        weight: '600',
+                                    },
+                                },
+
+                                ticks: {
+                                    color: '#6b7280',
+                                    precision: 0,
+                                    stepSize: 1,
+                                },
+                            },
+                        },
+                    },
                 });
             }
 

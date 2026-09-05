@@ -201,6 +201,35 @@ class AppointmentObserver
 
         /*
         |--------------------------------------------------------------------------
+        | ADMIN / STAFF CANCELLED APPOINTMENT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $appointment->status === 'cancelled'
+            && $actor
+            && in_array(
+                $actor->role,
+                ['admin', 'staff'],
+                true
+            )
+        ) {
+            $this->notify(
+                $appointment,
+                'Appointment Cancelled',
+                $this->buildStaffCancelMessage(
+                    $appointment,
+                    $performedBy
+                ),
+                'appointment_cancelled',
+                true
+            );
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | APPOINTMENT COMPLETED
         |--------------------------------------------------------------------------
         */
@@ -325,6 +354,34 @@ class AppointmentObserver
             ?? 'appointment';
 
         return "The {$type} appointment for {$client} scheduled on {$date} at {$time} was declined by {$performedBy}.";
+    }
+
+    private function buildStaffCancelMessage(
+        ClientAppointment $appointment,
+        string $performedBy
+    ): string {
+        $appointment->loadMissing('user');
+
+        $client =
+            $appointment->name
+            ?? $appointment->user?->name
+            ?? 'Unknown Client';
+
+        $date =
+            Carbon::parse(
+                $appointment->appointment_date
+            )->format('M d, Y');
+
+        $time =
+            Carbon::parse(
+                $appointment->appointment_time
+            )->format('h:i A');
+
+        $type =
+            $appointment->appointment_type
+            ?? 'appointment';
+
+        return "The {$type} appointment for {$client} scheduled on {$date} at {$time} was cancelled by {$performedBy}.";
     }
 
     private function buildStaffApproveMessage(

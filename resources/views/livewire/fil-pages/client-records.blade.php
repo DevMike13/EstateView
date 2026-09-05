@@ -23,9 +23,7 @@
             <select wire:model.live="status" class="rounded-lg border-gray-300 bg-white text-gray-900
                 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
                 <option value="">All Status</option>
-                <option value="active">Active</option>
                 <option value="downpayment_pending">Downpayment Pending</option>
-                <option value="bank_processing">Bank Processing</option>
                 <option value="fully_paid">Fully Paid</option>
                 <option value="cancelled">Cancelled</option>
             </select>
@@ -296,27 +294,7 @@
         <x-card title="Client Details">
             @if($selectedClient)
                 @php
-                    $account = $selectedClient->purchaseAccounts->first();
-                    $reservation = $account?->reservation;
-                    $lot = $account?->lot ?? $reservation?->lot;
-                    $houseModel = $account?->houseModel ?? $reservation?->houseModel;
-
-                    $hasPropertyRecord = $account || $reservation || $lot || $houseModel;
-
-                    $reservationStatusColor = match($reservation?->status) {
-                        'approved' => 'bg-green-100 text-green-700',
-                        'pending', 'awaiting_reservation_fee', 'reservation_fee_submitted' => 'bg-yellow-100 text-yellow-700',
-                        'rejected' => 'bg-red-100 text-red-700',
-                        default => 'bg-gray-100 text-gray-700',
-                    };
-
-                    $accountStatusColor = match($account?->status) {
-                        'active', 'downpayment_paid' => 'bg-green-100 text-green-700',
-                        'completed' => 'bg-blue-100 text-blue-700',
-                        'downpayment_pending', 'downpayment_ongoing', 'loan_processing' => 'bg-yellow-100 text-yellow-700',
-                        'cancelled' => 'bg-red-100 text-red-700',
-                        default => 'bg-gray-100 text-gray-700',
-                    };
+                    $accounts = $selectedClient->purchaseAccounts;
                 @endphp
 
                 <div class="space-y-6">
@@ -385,6 +363,70 @@
                             </div>
                         </div>
                     </div>
+
+                    {{-- Property Records --}}
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                            Property Records
+                        </h4>
+
+                        @if($accounts->count())
+                            <div class="space-y-3">
+                                @foreach($accounts as $account)
+                                    @php
+                                        $reservation = $account?->reservation;
+                                        $lot = $account?->lot ?? $reservation?->lot;
+                                        $houseModel = $account?->houseModel ?? $reservation?->houseModel;
+
+                                        $hasPropertyRecord = $account || $reservation || $lot || $houseModel;
+
+                                        $reservationStatusColor = match($reservation?->status) {
+                                            'approved' => 'bg-green-100 text-green-700',
+                                            'pending', 'awaiting_reservation_fee', 'reservation_fee_submitted' => 'bg-yellow-100 text-yellow-700',
+                                            'rejected' => 'bg-red-100 text-red-700',
+                                            default => 'bg-gray-100 text-gray-700',
+                                        };
+
+                                        $accountStatusColor = match($account?->status) {
+                                            'active', 'downpayment_paid' => 'bg-green-100 text-green-700',
+                                            'completed' => 'bg-blue-100 text-blue-700',
+                                            'downpayment_pending', 'downpayment_ongoing', 'loan_processing' => 'bg-yellow-100 text-yellow-700',
+                                            'cancelled' => 'bg-red-100 text-red-700',
+                                            default => 'bg-gray-100 text-gray-700',
+                                        };
+                                    @endphp
+
+                                    <div
+                                        x-data="{ openProperty: false }"
+                                        class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+                                    >
+                                        <button
+                                            type="button"
+                                            x-on:click="openProperty = !openProperty"
+                                            class="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                        >
+                                            <div class="min-w-0">
+                                                <div class="font-semibold text-gray-900 dark:text-gray-100">
+                                                    {{ $lot?->name ?? 'Unknown Lot' }}
+                                                </div>
+
+                                                <div class="mt-1 text-xs text-gray-500">
+                                                    {{ $houseModel?->model_name ?? 'Lot Only' }}
+                                                </div>
+                                            </div>
+
+                                            <x-heroicon-o-chevron-down
+                                                class="h-5 w-5 shrink-0 text-gray-400 transition-transform duration-200"
+                                                x-bind:class="openProperty ? 'rotate-180' : ''"
+                                            />
+                                        </button>
+
+                                        <div
+                                            x-show="openProperty"
+                                            x-collapse
+                                            class="border-t border-gray-200 dark:border-gray-700"
+                                        >
+                                            <div class="space-y-6 p-4">
 
                     {{-- Property Information --}}
                     <div>
@@ -1058,6 +1100,22 @@
                             </div>
                         @endif
                     </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="border border-dashed border-gray-300 rounded-xl p-6 text-center">
+                                <div class="text-sm font-semibold text-gray-600">
+                                    No Property Record Yet
+                                </div>
+                                <div class="text-xs text-gray-400 mt-1">
+                                    This client has no reservation, lot, house model, or purchase account yet.
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             @endif
 
@@ -1173,84 +1231,219 @@
                         <x-input label="State" wire:model.defer="editForm.state" readonly />
                     </div>
                 </div>
-                @if($selectedClient?->purchaseAccounts?->count())
+                @if(!empty($editForm['accounts']))
                     <div>
                         <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                            Property Information
+                            Property Records
                         </h4>
 
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <x-input label="Property" wire:model.defer="editForm.property" />
-                            <x-input label="Lot Number" wire:model.defer="editForm.lot_number" />
+                        <div class="space-y-3">
+                            @foreach($editForm['accounts'] as $accountIndex => $accountForm)
+                                <div
+                                    wire:key="edit-client-account-{{ $accountForm['id'] }}"
+                                    x-data="{ openProperty: true }"
+                                    class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+                                >
+                                    <button
+                                        type="button"
+                                        x-on:click="openProperty = !openProperty"
+                                        class="flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                    >
+                                        <div class="min-w-0">
+                                            <div class="font-semibold text-gray-900 dark:text-gray-100">
+                                                {{ $accountForm['lot_number'] ?: 'Unknown Lot' }}
+                                            </div>
 
-                            <x-select
-                                label="House Model"
-                                wire:model.defer="editForm.house_model"
-                                :options="[
-                                    ['name' => 'None (Lot Only)', 'id' => ''],
-                                    ['name' => 'Naomi', 'id' => 'Naomi'],
-                                    ['name' => 'Hannah', 'id' => 'Hannah'],
-                                    ['name' => 'Nasiah', 'id' => 'Nasiah'],
-                                ]"
-                                option-label="name"
-                                option-value="id"
-                            />
-                            <x-select
-                                label="Reservation Status"
-                                wire:model.defer="editForm.reservation_status"
-                                :options="[
-                                    ['name' => 'Pending', 'id' => 'pending'],
-                                    ['name' => 'Awaiting Reservation Fee', 'id' => 'awaiting_reservation_fee'],
-                                    ['name' => 'Reservation Fee Submitted', 'id' => 'reservation_fee_submitted'],
-                                    ['name' => 'Approved', 'id' => 'approved'],
-                                    ['name' => 'Rejected', 'id' => 'rejected'],
-                                ]"
-                                option-label="name"
-                                option-value="id"
-                            />
+                                            <div class="mt-1 text-xs text-gray-500">
+                                                {{ $accountForm['house_model'] ?: 'Lot Only' }}
+                                            </div>
+                                        </div>
 
-                            <x-select
-                                label="Account Status"
-                                wire:model.defer="editForm.account_status"
-                                :options="[
-                                    ['name' => 'Downpayment Pending', 'id' => 'downpayment_pending'],
-                                    ['name' => 'Downpayment Ongoing', 'id' => 'downpayment_ongoing'],
-                                    ['name' => 'Downpayment Paid', 'id' => 'downpayment_paid'],
-                                    ['name' => 'Loan Processing', 'id' => 'loan_processing'],
-                                    ['name' => 'Active', 'id' => 'active'],
-                                    ['name' => 'Completed', 'id' => 'completed'],
-                                    ['name' => 'Cancelled', 'id' => 'cancelled'],
-                                ]"
-                                option-label="name"
-                                option-value="id"
-                            />
-                        </div>
-                    </div>
+                                        <x-heroicon-o-chevron-down
+                                            class="h-5 w-5 shrink-0 text-gray-400 transition-transform duration-200"
+                                            x-bind:class="openProperty ? 'rotate-180' : ''"
+                                        />
+                                    </button>
 
-                    <div>
-                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                            Payment Information
-                        </h4>
+                                    <div
+                                        x-show="openProperty"
+                                        x-collapse
+                                        class="border-t border-gray-200 dark:border-gray-700"
+                                    >
+                                        <div class="space-y-6 p-4">
 
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <x-input
-                                label="Total Price (₱)"
-                                type="number"
-                                wire:model.defer="editForm.total_price"
-                            />
+                                            {{-- Property Information --}}
+                                            <div>
+                                                <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                                    Property Information
+                                                </h4>
 
-                            <x-input
-                                label="Total Paid (₱)"
-                                type="number"
-                                wire:model.defer="editForm.total_paid"
-                            />
+                                                <div class="grid sm:grid-cols-2 gap-4">
+                                                    <x-input
+                                                        label="Property"
+                                                        value="{{ $accountForm['property'] }}"
+                                                        readonly
+                                                    />
 
-                            <div class="sm:col-span-2">
-                                <x-input
-                                    label="Payment Plan"
-                                    wire:model.defer="editForm.payment_plan"
-                                />
-                            </div>
+                                                    <x-input
+                                                        label="Lot Number"
+                                                        value="{{ $accountForm['lot_number'] ?: 'N/A' }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="House Model"
+                                                        value="{{ $accountForm['house_model'] ?: 'None (Lot Only)' }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Reservation Type"
+                                                        value="{{ $accountForm['reservation_type'] ?: 'N/A' }}"
+                                                        readonly
+                                                    />
+
+                                                    @if($accountForm['has_reservation'])
+                                                        <x-select
+                                                            label="Reservation Status"
+                                                            wire:model.defer="editForm.accounts.{{ $accountIndex }}.reservation_status"
+                                                            :options="[
+                                                                ['name' => 'Pending', 'id' => 'pending'],
+                                                                ['name' => 'Awaiting Reservation Fee', 'id' => 'awaiting_reservation_fee'],
+                                                                ['name' => 'Reservation Fee Submitted', 'id' => 'reservation_fee_submitted'],
+                                                                ['name' => 'Approved', 'id' => 'approved'],
+                                                                ['name' => 'Rejected', 'id' => 'rejected'],
+                                                            ]"
+                                                            option-label="name"
+                                                            option-value="id"
+                                                        />
+                                                    @else
+                                                        <x-input
+                                                            label="Reservation Status"
+                                                            value="N/A"
+                                                            readonly
+                                                        />
+                                                    @endif
+
+                                                    <x-select
+                                                        label="Account Status"
+                                                        wire:model.defer="editForm.accounts.{{ $accountIndex }}.account_status"
+                                                        :options="[
+                                                            ['name' => 'Downpayment Pending', 'id' => 'downpayment_pending'],
+                                                            // ['name' => 'Downpayment Ongoing', 'id' => 'downpayment_ongoing'],
+                                                            // ['name' => 'Downpayment Paid', 'id' => 'downpayment_paid'],
+                                                            // ['name' => 'Loan Processing', 'id' => 'loan_processing'],
+                                                            // ['name' => 'Bank Processing', 'id' => 'bank_processing'],
+                                                            // ['name' => 'Active', 'id' => 'active'],
+                                                            ['name' => 'Fully Paid', 'id' => 'fully_paid'],
+                                                            // ['name' => 'Completed', 'id' => 'completed'],
+                                                            ['name' => 'Cancelled', 'id' => 'cancelled'],
+                                                        ]"
+                                                        option-label="name"
+                                                        option-value="id"
+                                                    />
+
+                                                    <x-input
+                                                        label="Lot Status"
+                                                        value="{{ $accountForm['lot_status'] ? \Illuminate\Support\Str::headline($accountForm['lot_status']) : 'N/A' }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Reserved At"
+                                                        value="{{ $accountForm['reserved_at'] ? \Carbon\Carbon::parse($accountForm['reserved_at'])->format('M d, Y') : 'N/A' }}"
+                                                        readonly
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {{-- Payment Information --}}
+                                            <div>
+                                                <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                                    Payment Information
+                                                </h4>
+
+                                                <div class="grid sm:grid-cols-2 gap-4">
+                                                    <x-input
+                                                        label="Payment Scheme"
+                                                        value="{{ $accountForm['payment_scheme'] ? \Illuminate\Support\Str::headline($accountForm['payment_scheme']) : 'N/A' }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Payment Plan"
+                                                        value="{{ $accountForm['payment_plan'] ?: 'N/A' }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Lot Price (₱)"
+                                                        value="{{ number_format($accountForm['lot_price'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="House Price (₱)"
+                                                        value="{{ number_format($accountForm['house_price'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Total Contract Price (₱)"
+                                                        value="{{ number_format($accountForm['total_price'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Net Contract Price (₱)"
+                                                        value="{{ number_format($accountForm['net_contract_price'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Downpayment Amount (₱)"
+                                                        value="{{ number_format($accountForm['downpayment_amount'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Remaining Downpayment (₱)"
+                                                        value="{{ number_format($accountForm['remaining_downpayment'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Loanable Amount (₱)"
+                                                        value="{{ number_format($accountForm['loanable_amount'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Monthly Amortization (₱)"
+                                                        value="{{ number_format($accountForm['monthly_amortization'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+
+                                                    <x-input
+                                                        label="Total Paid (₱)"
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        wire:model.defer="editForm.accounts.{{ $accountIndex }}.total_paid"
+                                                    />
+
+                                                    <x-input
+                                                        label="Remaining Balance (₱)"
+                                                        value="{{ number_format($accountForm['remaining_balance'] ?? 0, 2, '.', '') }}"
+                                                        readonly
+                                                    />
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 @else

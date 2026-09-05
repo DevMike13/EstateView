@@ -1625,6 +1625,277 @@ public function rejectBillingPaymentConfirmation($paymentId)
             ->send();
     }
 
+    public function confirmCancelPurchaseAccount($accountId)
+    {
+        $account = PurchaseAccount::with([
+            'user',
+            'lot',
+        ])->findOrFail($accountId);
+
+        $this->dialog()->confirm([
+            'title' => 'Cancel Purchase Account?',
+            'description' =>
+                'Are you sure you want to cancel the purchase account for '
+                . ($account->user?->name ?? 'this client')
+                . ' - '
+                . ($account->lot?->name ?? 'this property')
+                . '?',
+
+            'icon' => 'warning',
+
+            'accept' => [
+                'label' => 'Yes, Cancel Account',
+                'method' => 'cancelPurchaseAccount',
+                'params' => $accountId,
+            ],
+
+            'reject' => [
+                'label' => 'No, Keep Account',
+            ],
+        ]);
+    }
+
+    public function cancelPurchaseAccount($accountId)
+    {
+        DB::transaction(function () use ($accountId) {
+
+            $account = PurchaseAccount::with([
+                'user',
+                'lot',
+                'reservation.agent',
+            ])->findOrFail($accountId);
+
+            $clientId =
+                $account->user_id;
+
+            $clientName =
+                $account->user?->name
+                ?? 'N/A';
+
+            $lotName =
+                $account->lot?->name
+                ?? 'N/A';
+
+            $agentId =
+                $account->reservation?->agent_id;
+
+            $performedBy =
+                auth()->check()
+                    ? (
+                        auth()->user()->role === 'staff'
+                            ? auth()->user()->name
+                            : 'Admin'
+                    )
+                    : 'System';
+
+            /*
+            |--------------------------------------------------------------------------
+            | CANCEL PURCHASE ACCOUNT
+            |--------------------------------------------------------------------------
+            */
+
+            $account->update([
+                'status' => 'cancelled',
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | RELEASE LOT
+            |--------------------------------------------------------------------------
+            */
+
+            if ($account->lot_id) {
+                Lot::whereKey($account->lot_id)
+                    ->update([
+                        'status' =>
+                            'available',
+
+                        'user_id' =>
+                            null,
+
+                        'house_model_id' =>
+                            null,
+                    ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | CANCEL RESERVATION
+            |--------------------------------------------------------------------------
+            */
+
+            if ($account->lot_reservation_id) {
+                LotReservation::whereKey(
+                    $account->lot_reservation_id
+                )->update([
+                    'status' =>
+                        'cancelled',
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | CREATE IN-APP NOTIFICATION
+            |--------------------------------------------------------------------------
+            */
+
+            $adminUrl =
+                url('/ev-admin/reservations')
+                . '?activeTab=cancelled'
+                . '&highlight='
+                . $account->lot_reservation_id;
+
+            $clientUrl =
+                route('client.reservation', [
+                    'activeTab' => 'cancelled',
+                    'highlight' => $account->lot_reservation_id,
+                ]);
+
+            $notification =
+                \App\Models\Notification::create([
+                    'title' =>
+                        'Purchase Account Cancelled',
+
+                    'message' =>
+                        "The purchase account for {$clientName}, "
+                        . "{$lotName}, has been cancelled. "
+                        . "Updated by: {$performedBy}.",
+
+                    'type' =>
+                        'purchase_account_cancelled',
+
+                    /*
+                    | Admin / Staff destination
+                    */
+                    'url' =>
+                        $adminUrl,
+
+                    'data' => [
+                        'purchase_account_id' =>
+                            $account->id,
+
+                        'reservation_id' =>
+                            $account->lot_reservation_id,
+
+                        'client_id' =>
+                            $clientId,
+
+                        'client_name' =>
+                            $clientName,
+
+                        'lot_id' =>
+                            $account->lot_id,
+
+                        'lot_name' =>
+                            $lotName,
+
+                        'agent_id' =>
+                            $agentId,
+
+                        'performed_by' =>
+                            $performedBy,
+
+                        /*
+                        | Client destination
+                        */
+                        'client_url' =>
+                            $clientUrl,
+                    ],
+
+                    'created_by' =>
+                        auth()->id(),
+                ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | RECIPIENTS
+            |--------------------------------------------------------------------------
+            |
+            | Client
+            | Assigned agent
+            | Other admins/staff
+            | Exclude the person who performed the cancellation
+            |
+            */
+
+            $recipientIds = collect();
+
+            /*
+            | Client
+            */
+            if (
+                $clientId
+                && $clientId !== auth()->id()
+            ) {
+                $recipientIds->push(
+                    $clientId
+                );
+            }
+
+            /*
+            | Assigned Agent
+            */
+            // if (
+            //     $agentId
+            //     && $agentId !== auth()->id()
+            // ) {
+            //     $recipientIds->push(
+            //         $agentId
+            //     );
+            // }
+
+            /*
+            | Other Admin / Staff
+            */
+            $adminStaffIds =
+                \App\Models\User::query()
+                    ->whereIn(
+                        'role',
+                        [
+                            'admin',
+                            'staff',
+                        ]
+                    )
+                    ->where(
+                        'id',
+                        '!=',
+                        auth()->id()
+                    )
+                    ->pluck('id');
+
+            $recipientIds =
+                $recipientIds
+                    ->merge($adminStaffIds)
+                    ->unique()
+                    ->values();
+
+            /*
+            | Attach notification recipients
+            */
+            if ($recipientIds->isNotEmpty()) {
+                $notification
+                    ->users()
+                    ->attach(
+                        $recipientIds->all()
+                    );
+            }
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | TOAST FOR PERSON WHO CANCELLED
+        |--------------------------------------------------------------------------
+        */
+
+        Notification::make()
+            ->title('Purchase Account Cancelled')
+            ->body(
+                'The purchase account and reservation were cancelled, and the lot was released.'
+            )
+            ->success()
+            ->send();
+    }
+
     public function updateAccountStatus()
     {
         $this->validate([
